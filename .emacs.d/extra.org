@@ -1,4 +1,4 @@
-#+title extra.org
+#+title: extra.org
 #+author: Erwann Rogard
 #+startup: fold
 #+property: header-args :tangle no

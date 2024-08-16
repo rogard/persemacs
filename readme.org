@@ -1,0 +1,2 @@
+#+title: Emacs config
+#+author: Erwann Rogard 
