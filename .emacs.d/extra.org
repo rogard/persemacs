@@ -1,0 +1,798 @@
+#+title extra.org
+#+author: Erwann Rogard
+#+startup: fold
+#+property: header-args :tangle no
+
+* resource
+** manual
+*** [[https://www.gnu.org/software/emacs/manual/html_node/elisp/Variable-Scoping.html][Scoping rules for variables bindings]]
+Keywords:
+- Lexical binding
+- Dynamic binding
+- Closures
+
+#+begin_src emacs-lisp
+  ;; -*- lexical-binding: t; -*-
+#+end_src
+*** [[https://www.gnu.org/software/emacs/manual/html_node/elisp/Profiling.html][Profiling]]
+*** [[https://www.gnu.org/software/emacs/manual/html_node/elisp/Type-Predicates.html][type predicate]]
+*** [[https://www.gnu.org/software/emacs/manual/html_node/elisp/Special-Forms.html][special forms]]
+** other
+*** [[https://emacspal.com/emacs-package-management-best-practices/][package management best practice]]
+*** [[https://javanexus.com/blog/emacs-clojure-mode-dependency-issues][closure dependencies]]
+** forum
+*** [[https://stackoverflow.com/questions/3855862/setq-and-defvar-in-lisp][setq and defvar in Lisp]]
+*** [[https://emacs.stackexchange.com/a/18204][can I have a link to a specific point of an external file?]]
+*** [[https://emacs.stackexchange.com/a/55274][What is the difference between #+tblname and #+name in org-mode?]]
+
+* dependency
+
+#+header: :noweb-ref erw-info
+#+begin_src emacs-lisp
+  (use-package ert
+    :ensure t)
+#+end_src
+
+* miscellany
+** example
+*** template
+
+#+begin_src emacs-lisp
+  (defun template-greeting-function (name_string)
+    "Define a function that greets NAME."
+    (eval
+     `(defun ,(intern (concat "greet-" name_string)) ()
+        (message (concat "Hello, " ,name_string "!")))))
+
+  (template-greeting-function "Alice")
+  (template-greeting-function "Bob")
+#+end_src
+
+#+RESULTS:
+: greet-Bob
+
+#+header: :result output
+#+begin_src emacs-lisp
+ (list (greet-Alice)  ;; Outputs: Hello, Alice!
+  (greet-Bob))    ;; Outputs: Hello, Bob!
+#+end_src
+
+#+RESULTS:
+| Hello, Alice! | Hello, Bob! |
+
+*** list
+
+#+begin_src emacs-lisp
+  (setq f 'list)
+  (apply f '(x y z))
+#+end_src
+
+#+RESULTS:
+| x | y | z |
+
+#+begin_src emacs-lisp
+  #+begin_src emacs-lisp
+  (cons 'x 'y)
+#+end_src
+
+#+RESULTS:
+: (x . y)
+
+#+begin_src emacs-lisp
+  (defvar my-plist '("foo" "x
+#+end_src
+
+* source
+** group
+
+#+header: :noweb-ref erw-src
+#+begin_src emacs-lisp
+    (defgroup erw-extra nil "erw's extra functionality"
+      :prefix "erw/")
+#+end_src
+
+#+RESULTS:
+: erw-extra
+
+** name
+
+#+header: :noweb-ref erw-src
+#+begin_src emacs-lisp
+  (defun erw/function-name-compose-names-global (&rest args)
+  "Compose global name from ARGS "
+    (concat "erw/"
+            (mapconcat 'identity args "-")))
+  (defalias 'erw/global-name 'erw/function-name-compose-names-global)
+#+end_src
+
+#+RESULTS:
+: erw/global-name
+
+#+header: :noweb-ref erw-example
+#+begin_src emacs-lisp
+  (erw/global-name "foo" "bar" "qux")
+#+end_src
+
+#+RESULTS:
+: erw/foo-bar-qux
+
+** string
+*** wrap-single-quotes
+
+#+header: :noweb-ref erw-src
+#+begin_src emacs-lisp
+  (defun erw/function-string-wrap-single-quotes (filename)
+    "Wraps STRING with single quotes if absent."
+    (if (string-match-p "^'.*'$" filename)
+       string
+      (concat "'" filename "'")))
+  (defalias 'erw/wrap-single-quotes 'erw/function-string-wrap-single-quotes)
+#+end_src
+
+#+RESULTS:
+: erw/wrap-single-quotes
+
+#+header: :noweb-ref erw-example
+#+begin_src emacs-lisp
+  (let ((string (buffer-file-name (current-buffer))))
+    (format "before: %s\nafter: %s" string 
+             (funcall 'erw/wrap-single-quotes string)))
+#+end_src
+
+#+RESULTS:
+: before: /home/erwann/src/org/extra.org
+: after: '/home/erwann/src/org/extra.org'
+
+** list
+*** assoc
+
+#+header: :noweb-ref erw-reminder
+#+begin_src emacs-lisp
+  (defun erw/function-alist-datum-make (key value)
+    "Association list datum
+      ----------
+      Reference:
+      - https://www.gnu.org/software/emacs/manual/html_node/elisp/Association-List-Type.html
+      - http://xahlee.info/emacs/emacs/elisp_quote.html"
+    (cons key value))
+  (defalias 'erw/alist-datum 'erw/function-alist-datum-make)
+#+end_src
+
+#+RESULTS:
+: erw/alist-datum
+
+#+header: :noweb-ref erw-example
+#+begin_src emacs-lisp
+(erw/alist-datum "foo" "x")
+#+end_src
+
+#+RESULTS:
+: (foo . x)
+
+
+#+begin_src emacs-lisp
+    (let ((my-alist `(,(erw/alist-datum "foo" "x")
+                   ,(erw/alist-datum "bar" "y"))))
+  (list
+   (alist-get "foo" my-alist nil nil 'string-match-p)
+   (alist-get "bar" my-alist nil nil 'string-match-p)
+   ))
+#+end_src
+
+#+RESULTS:
+| x | y |
+
+*** safe
+
+#+header: :noweb-ref erw-src
+#+begin_src emacs-lisp
+  (defun erw/function-list-safe (expr)
+    "Ensure EXPR is a list."
+    (cond
+     ((listp expr) expr)
+     ((stringp expr) (list expr))
+     (t (error "Expected string or list"))))
+  (defalias 'erw/list-safe 'erw/function-list-safe)
+#+end_src
+
+#+RESULTS:
+: erw/list-safe
+
+#+name: :noweb-ref erw-example
+#+begin_src emacs-lisp
+  (listp (erw/function-list-safe "foo"))
+#+end_src
+
+#+RESULTS: :noweb-ref erw-example
+: t
+
+** shell
+
+#+header: :noweb-ref erw-src
+#+begin_src emacs-lisp
+  (defun erw/function-shell-name ()
+    (file-name-nondirectory shell-file-name))
+  (defalias 'erw/shell-name 'erw/function-shell-name)
+#+end_src
+
+#+RESULTS:
+: erw/shell-name
+
+#+header: :noweb-ref erw-example
+#+begin_src emacs-lisp
+(erw/shell-name)
+#+end_src
+
+#+RESULTS:
+: bash
+
+** filesystem
+*** test
+
+#+begin_src emacs-lisp
+  ;; source: https://gist.github.com/gdanke/d1d85dcd8c8f75ae960b915021564184
+  (defcustom erw/custom-filesystem-test-pdf-regular "/home/erwann/test/Get_Started_With_Smallpdf.pdf"
+    "Test pdf file with regular name"
+    :type 'string :group 'erw/extra)
+  (defvaralias 'erw/test-pdf-regular 'erw/custom-filesystem-test-pdf-regular)
+#+end_src
+
+#+RESULTS:
+: erw/custom-filesystem-test-pdf-regular
+
+#+begin_src emacs-lisp
+  ;; source: https://gist.github.com/gdanke/d1d85dcd8c8f75ae960b915021564184
+  (defcustom erw/custom-filesystem-test-pdf-spaces "/home/erwann/test/Get Started With Smallpdf.pdf"
+    "Test pdf file with name containing spaces"
+    :type 'string :group 'erw/extra)
+  (defvaralias 'erw/test-pdf-spaces 'erw/custom-filesystem-test-pdf-spaces)
+#+end_src
+
+#+RESULTS:
+: erw/custom-filesystem-test-pdf-spaces
+
+*** mime-encoding
+
+#+header: :noweb-ref erw-src
+#+begin_src emacs-lisp
+  (defconst erw/const-mime-encoding-class-bash-alist
+    '(("us-ascii"."text")
+     ("utf-8"."text")
+     ("utf-16"."text")
+     ("utf-32"."text")
+     ("iso-8859-1"."text")
+     ("iso-8859-2"."text")
+     ("iso-8859-15"."text")
+     ("windows-1252"."text")
+     ("euc-jp"."text")
+     ("shift_jis"."text")
+     ("euc-kr"."text")
+     ("big5"."text")
+     ("gb2312"."text")
+     ("binary"."binary")))
+  (defvaralias 'erw/mime-encoding-bash-alist 'erw/const-mime-encoding-class-bash-alist)
+#+end_src
+
+#+RESULTS:
+: erw/const-mime-encoding-class-bash-alist
+
+#+header: :noweb-ref erw-src
+#+begin_src emacs-lisp
+  (defvar erw/variable-mime-encoding-class-by-shell-plist
+    '("bash" erw/mime-encoding-bash-alist)
+    "Property list mapping shell to association list mapping mime-encoding to class
+            Update it as necessary.")
+  (defvaralias 'erw/mime-encoding-class-plist 'erw/variable-mime-encoding-class-by-shell-plist)
+#+end_src
+
+#+RESULTS:
+: erw/variable-mime-encoding-class-by-shell-plist
+
+#+header: :noweb-ref erw-src-example
+#+begin_src emacs-lisp
+  (symbol-value (plist-get erw/mime-encoding-class-plist "bash" 'string-match-p))
+#+end_src
+
+#+RESULTS:
+: ((us-ascii . text) (utf-8 . text) (utf-16 . text) (utf-32 . text) (iso-8859-1 . text) (iso-8859-2 . text) (iso-8859-15 . text) (windows-1252 . text) (euc-jp . text) (shift_jis . text) (euc-kr . text) (big5 . text) (gb2312 . text) (binary . binary))
+
+#+header: :results verbatim
+#+begin_src emacs-lisp
+  (let ((alist (symbol-value (plist-get erw/mime-encoding-class-plist "bash" 'string-match-p))))
+    (alist-get "big5" alist nil nil 'equal))
+#+end_src
+
+#+RESULTS:
+: "text"
+
+#+header: :noweb-ref erw-example
+#+header: :results verbatim
+#+begin_src emacs-lisp
+  (let ((filename (buffer-file-name (current-buffer))))
+  (shell-command-to-string (concat "file --mime-encoding " (erw/wrap-single-quotes filename) " | cut -d':' -f2 | cut -c2- | tr -d '\n'")))
+#+end_src
+
+#+RESULTS:
+: "us-ascii"
+
+#+header: :noweb-ref erw-src
+#+begin_src emacs-lisp
+  (defun erw/function-filesystem-mime-encoding-bash (filename)
+    "Returns FILENAME's mime-encoding using bash"
+    (shell-command-to-string (concat "file --mime-encoding " (erw/wrap-single-quotes filename) " | cut -d':' -f2 | cut -c2- | tr -d '\n'")))
+  (defalias 'erw/mime-encoding-bash 'erw/function-filesystem-mime-encoding-bash)
+#+end_src
+
+#+RESULTS:
+: erw/mime-encoding-bash
+
+#+header: :noweb-ref erw-example
+#+header: :results verbatim
+#+begin_src emacs-lisp
+    (let* ((file (buffer-file-name (current-buffer))))
+      (erw/mime-encoding-bash file))
+#+end_src
+
+#+RESULTS:
+: "us-ascii"
+
+#+header: :noweb-ref erw-src
+#+begin_src emacs-lisp
+  (defvar erw/variable-filesystem-mime-encoding-function-by-shell-plist
+    '("bash" erw/mime-encoding-bash)
+    "Property list mapping shell to function returning mime-encoding;
+  Update it as necessary")
+  (defvaralias 'erw/mime-encoding-function-plist 'erw/variable-filesystem-mime-encoding-function-by-shell-plist)
+#+end_src
+
+#+RESULTS:
+: erw/variable-filesystem-mime-encoding-function-by-shell-plist
+
+#+header: :noweb-ref erw-example
+#+begin_src emacs-lisp
+  (plist-get erw/mime-encoding-function-plist "bash" 'string-match-p)
+#+end_src
+
+#+RESULTS:
+: erw/mime-encoding-bash
+
+#+header: :noweb-ref erw-example
+#+header: :results verbatim
+#+begin_src emacs-lisp
+  (let* ((file (buffer-file-name (current-buffer)))
+    (func (plist-get erw/mime-encoding-function-plist "bash" 'string-match-p)))
+    (funcall func file))
+#+end_src
+
+#+RESULTS:
+: "us-ascii"
+
+*** unique
+
+Remark:
+- The advantage of hashing the file to obtain a unique basename is it prevents duplicates
+
+#+header: :noweb-ref erw-src
+#+begin_src emacs-lisp
+  (defun erw/function-filesystem-unique-basename-prefix-make-bash (file-name)
+  "Makes a unique basename prefix from FILE-NAME"
+    (shell-command-to-string (concat "md5sum " (erw/wrap-single-quotes file-name) " | cut -d' ' -f1 | tr -d '\n'")))
+  (defalias 'erw/unique-basename-bash 'erw/function-filesystem-unique-basename-prefix-make-bash)
+#+end_src
+
+#+RESULTS:
+: erw/unique-basename-bash
+
+#+header: :noweb-ref example
+#+begin_src emacs-lisp
+(erw/unique-basename-bash (buffer-file-name (current-buffer)))
+#+end_src
+
+#+RESULTS:
+: ecb8251626e3decf4acf3dc984b92261
+
+#+header: :noweb-ref erw-src
+#+begin_src emacs-lisp
+;; bug
+    (defvar erw/variable-filesystem-unique-basename-prefix-make-plist
+      '("bash" erw/unique-basename-bash "org" org-id-new)
+      "Property list mapping keys to functions.
+        Requirement: functions make a unique basename from a FILENAME")
+    (defvaralias 'erw/unique-basename-plist 'erw/variable-filesystem-unique-basename-prefix-make-plist)
+#+end_src
+
+#+RESULTS:
+: erw/variable-filesystem-unique-basename-prefix-make-plist
+
+#+header: :noweb-ref erw-src
+#+begin_src emacs-lisp
+  (plist-get erw/unique-basename-plist "bash" 'string-match-p)
+#+end_src
+
+#+RESULTS:
+: erw/unique-basename-bash
+
+#+header: :noweb-ref erw-src
+#+begin_src emacs-lisp
+   (defcustom erw/custom-filesystem-unique-basename-prefix-make-key-by-shell-plist
+     '("bash" "bash")
+     "Property list mapping shells to keys"
+     :type 'plist
+     :group 'erw-extra)
+     (defvaralias 'erw/unique-basename-prefix-make-key-plist 'erw/custom-filesystem-unique-basename-prefix-make-key-by-shell-plist))
+#+end_src
+
+#+RESULTS:
+: erw/custom-filesystem-unique-basename-prefix-make-key-by-shell-plist
+
+#+header: :noweb-ref erw-example
+#+begin_src emacs-lisp
+  (plist-get erw/custom-filesystem-unique-basename-prefix-make-key-by-shell-plist "bash" 'string-match-p)
+#+end_src
+
+#+RESULTS:
+: bash
+
+#+header: :noweb-ref erw-example
+#+begin_src emacs-lisp
+  (plist-get erw/unique-basename-prefix-make-key-plist "bash" 'string-match-p)
+#+end_src
+
+#+RESULTS:
+: bash
+
+#+header: :noweb-ref erw-src
+#+begin_src emacs-lisp
+       (defun erw/function-filesystem-unique-basename-make (source-file &optional prefix-make-key)
+         "Makes a unique basename from SOURCE-FILE using the function associated with PREFIX-MAKE-KEY"
+         (let* (
+                (key (or prefix-make-key (let ((shell (erw/shell-name))) (plist-get erw/unique-basename-prefix-make-key-plist shell 'string-match-p))))
+                (value (or (plist-get erw/unique-basename-plist key 'string-match-p) (error (format "Invalid key %s" key))))
+                (prefix (funcall value source-file))
+                (ext (file-name-extension source-file nil)))
+           (if ext (concat prefix "." ext) prefix)))
+       (defalias 'erw/unique-basename 'erw/function-filesystem-unique-basename-make)
+#+end_src
+
+#+RESULTS:
+: erw/unique-basename
+
+#+header: :noweb-ref erw-example
+#+begin_src emacs-lisp
+(erw/unique-basename erw/test-pdf-regular)
+#+end_src
+
+#+RESULTS:
+: 317a4ebd4b16238478a8f7e0341e7a67.pdf
+
+#+header: :noweb-ref erw-src
+#+begin_src emacs-lisp
+  (defcustom erw/custom-filesystem-unique-target-directory "/home/erwann/unique"
+    "Target directory of files with a unique name"
+    :type 'string
+    :group 'erw-extra)
+  (defvaralias 'erw/unique-target-directory 'erw/custom-filesystem-unique-target-directory)
+#+end_src
+
+#+RESULTS:
+: erw/custom-filesystem-unique-target-directory
+
+#+header: :noweb-ref erw-example
+#+begin_src emacs-lisp
+erw/unique-target-directory
+#+end_src
+
+#+RESULTS:
+: /home/erwann/unique
+
+#+header: :noweb-ref erw-src
+#+begin_src emacs-lisp
+  (defun erw/function-filesystem-copy-unique-basename (source-file &optional prefix-make-key target-dir &rest optional-args)
+    "Copies SOURCE-FILE to TARGET-DIR such as to have a unique basename;
+ Returns TARGET-FILE."
+    (let* ((target-basename (or (erw/unique-basename source-file prefix-make-key)))
+           (target-dir (or target-dir erw/unique-target-directory))
+      (target-file (expand-file-name target-basename target-dir)))
+      (apply 'copy-file source-file target-file optional-args)
+      target-file))
+(defalias 'erw/copy-unique-basename 'erw/function-filesystem-copy-unique-basename)
+#+end_src
+
+#+RESULTS:
+: erw/copy-unique-basename
+
+#+header: :noweb-ref erw-example
+#+begin_src emacs-lisp
+  (erw/copy-unique-basename erw/test-pdf-regular)
+#+end_src
+
+#+RESULTS:
+: /home/erwann/unique/317a4ebd4b16238478a8f7e0341e7a67.pdf
+
+#+header: :noweb-ref erw-example
+#+begin_src emacs-lisp
+  (erw/copy-unique-basename erw/test-pdf-spaces)
+#+end_src
+
+#+header: :noweb-ref erw-src
+#+begin_src emacs-lisp
+  (defun erw/function-interactive-filesystem-copy-unique-basename-select ()
+    "Select SOURCE-FILE and TARGET-DIRECTORY; 
+    Makes a copy that has a unique basename;
+    Copies target path to the clipboard."
+    (interactive)
+    (let* ((target-dir (symbol-value erw/unique-target-directory)
+           (source-file (read-file-name "Select SOURCE-FILE: "))
+           (target-dir (read-directory-name "Select TARGET-DIRECTORY: " target-dir))))
+      (kill-new (target-file (erw/copy-unique-basename source-file target-dir)))
+      (message "Copied file %s. TARGET-FILE copied to clipboard." source-file)))
+  (defalias 'erw/interactive-copy-unique-basename 'erw/interactive-filesystem-copy-file-unique-basename-select)
+#+end_src
+
+** table
+*** test-case
+
+#+name: table-foo-bar
+| "foo" | "x" |
+| "bar" | "y" |
+
+*** field-address
+
+#+header: :noweb-ref erw-reminder
+#+begin_src emacs-lisp
+  (defun erw/function-table-field-address (index)
+    "Table address for field INDEX"
+    (format "@1$%d..@>$%d" index index))
+  (defalias 'erw/field-address 'erw/function-table-field-address)
+#+end_src
+
+#+RESULTS:
+: erw/field-address
+
+#+header: :noweb-ref erw-example
+#+begin_src emacs-lisp
+  (erw/field-address 2)
+#+end_src
+
+#+RESULTS:
+: @1$2..@>$2
+
+*** get-range
+
+#+header: :noweb-ref erw-src
+#+begin_src emacs-lisp
+  (defun erw/function-table-get-range-at-file (tbl-id range-address &optional file-name)
+    "Get list of values in RANGE-ADDRESS from TBL-ID at FILE-NAME.
+       Credits: https://redd.it/r2nig7"
+    (let ((file-name (or file-name (buffer-file-name (current-buffer)))))
+      (with-current-buffer (find-file-noselect file-name)
+        (org-table-get-remote-range tbl-id range-address))))
+  (defalias 'erw/table-range 'erw/function-table-get-range-at-file)
+#+end_src
+
+#+RESULTS:
+: erw/table-range
+
+#+header: :noweb-ref erw-example
+#+begin_src emacs-lisp
+(erw/table-range "table-foo-bar" (format "@1$%d..@>$%d" 1 1))
+#+end_src
+
+#+RESULTS:
+| "foo" | "bar" |
+
+#+header: :noweb-ref erw-example
+#+begin_src emacs-lisp
+(erw/table-range "table-foo-bar" (format "@1$%d..@>$%d" 2 2))
+#+end_src
+
+#+RESULTS:
+| "x" | "y" |
+
+*** lookup
+
+#+header: :noweb-ref erw-src
+#+begin_src emacs-lisp
+  (defun erw/function-table-lookup (tbl-id key &optional file-name key-index value-index match-predicate)
+    "Lookup field KEY-INDEX and return corresponding entry in field VALUE-INDEX from table TBL-ID."
+    (interactive)
+    (let ((key-address (erw/field-address (or key-index 1)))
+          (value-address (erw/field-address (or value-index 2)))
+          (file-name (or file-name (buffer-file-name (current-buffer))))
+          (match-predicate (or match-predicate 'string-match-p)))
+      (let ((key-range (erw/table-range tbl-id key-address file-name))
+            (value-range (erw/table-range tbl-id value-address file-name)))
+        (org-lookup-first key key-range value-range 'string-match-p))))
+(defalias 'erw/table-lookup 'erw/function-table-lookup)
+#+end_src
+
+#+RESULTS:
+: erw/table-lookup
+
+#+header: :noweb-ref erw-example
+#+begin_src emacs-lisp
+(erw/table-lookup "table-foo-bar" "foo")
+#+end_src
+
+#+RESULTS:
+: "x"
+
+#+header: :noweb-ref erw-example
+#+begin_src emacs-lisp
+(erw/table-lookup "table-foo-bar" "bar")
+#+end_src
+
+#+RESULTS:
+: "y"
+
+* tangle
+** source
+:PROPERTIES:
+:header-args: :tangle ~/src/el/extra.el
+:END:
+
+#+header: :noweb yes
+#+begin_src emacs-lisp
+  <<erw-src>>
+#+end_src
+
+#+RESULTS:
+: erw/function-table-lookup
+** example
+
+* scratchpad
+** table
+
+#+begin_src emacs-lisp
+  (org-table-get-remote-range "const-path" "@1$1..@>$1")
+#+end_src
+
+#+RESULTS:
+: unique-directory
+
+#+header: :results value
+#+begin_src emacs-lisp
+   (org-table-get-remote-range "foobar" (format "@1$%d..@>$%d" 1 1))
+#+end_src
+
+#+RESULTS:
+| foo | bar |
+
+#+header: :results value
+#+begin_src emacs-lisp
+   (org-table-get-remote-range "file:/home/erwann/.emacs.d/config.org::foobar" (format "@1$%d..@>$%d" 1 1))
+#+end_src
+
+
+#+begin_src emacs-lisp
+  (org-lookup-first "unique-directory"
+                    (erw/function-table-get-field "const-path" 1)
+                    (erw/function-table-get-field "const-path" 2)))
+#+end_src
+
+#+RESULTS:
+: "/home/erwann/unique"
+** list
+
+#+header: example-plist-get-1
+#+begin_src emacs-lisp
+  (let ((my-listp (list 'foo "x" 'bar "y")))
+    (plist-get my-listp 'foo))
+#+end_src
+
+#+RESULTS:
+: x
+
+#+header: example-plist-get-2
+#+begin_src emacs-lisp
+  (let ((my-listp '("foo" "x" bar "y")))
+    (list (plist-get my-listp 'bar 'eq)
+     (plist-get my-listp "foo" 'string-match-p)))
+#+end_src
+
+#+RESULTS:
+| y | x |
+
+#+name: debug-a
+#+begin_src emacs-lisp
+  (let ((my-alist '(("foo" . "x")
+                 ("bar" . "y"))))
+      (cdr (assoc "foo" my-alist)))
+#+end_src
+
+#+RESULTS: debug-a
+: x
+
+#+name: debug-b
+#+begin_src emacs-lisp
+  (makunbound 'my-pair)
+  (makunbound 'my-pair-x)
+  (makunbound 'my-pair-y)
+  (defun my-pair (key value)
+    (cons key value))
+  (defun my-pair-x (key)
+    (my-pair key "x"))
+  (defun my-pair-y (key)
+    (my-pair key "y"))
+  (let ((my-alist `(,(my-pair-x "foo")
+                    , (my-pair-y "bar"))))
+    (cdr (assoc "foo" my-alist)))
+#+end_src
+
+#+RESULTS: debug-b
+: ((foo . x) (bar . y))
+
+#+begin_src emacs-lisp
+      (defconst my-alist '(("us-ascii" . "text")
+                     ("utf-8" . "text")
+       ("utf-16" . "text")
+       ("utf-32" . "text")
+       ("iso-8859-1" . "text")
+       ("iso-8859-2" . "text")
+       ("iso-8859-15" . "text")
+       ("windows-1252" . "text")
+       ("euc-jp" . "text")
+       ("shift_jis" . "text")
+       ("euc-kr" . "text")
+       ("big5" . "text")
+       ("gb2312" . "text")
+       ("binary" . "binary")))
+      (alist-get "big5" my-alist nil nil 'equal)
+;;      (cdr (assoc "big5" my-alist)))
+#+end_src
+
+#+RESULTS:
+: text
+
+#+name: setup-1
+#+begin_src emacs-lisp
+  (defun my-fun () (message "%s" "foo"))
+  (defvar my-var (my-fun))
+  (symbol-value 'my-var)
+#+end_src
+
+#+RESULTS:
+: foo
+
+#+name: setup-2
+#+begin_src emacs-lisp
+(makunbound my-var)
+(makunbound my-fun)
+  (defvar my-var (my-fun))
+  (defun my-fun () (message "%s" "foo"))
+  (symbol-value 'my-var)
+#+end_src
+
+* trash
+** macro
+*** defconst
+
+#+begin_src emacs-lisp
+(defun erw/defconst (names_list default_variant &optional doc_string)
+  (let* ((_string (apply 'erw/global-name "const" names_list))
+         (_symbol (intern _string)))
+    (eval `(defconst ,_symbol ,default_variant ,doc_string))))
+#+end_src
+
+#+RESULTS:
+: erw/defconst
+
+#+header: :noweb-ref erw-example
+#+begin_src emacs-lisp
+  (erw/defconst (list "test") "foo" "Test")
+#+end_src
+
+#+RESULTS:
+: erw/const-test
+
+#+header: :noweb-ref erw-example
+#+begin_src emacs-lisp
+  (let ((value (symbol-value 'erw/const-test)))
+    (makunbound 'erw/const-test)
+    (message "%s" value))
+#+end_src
+
+#+RESULTS:
+: foo
+
+
