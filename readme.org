@@ -1,2 +1,6 @@
-#+title: Emacs config
+#+title: Personal Emacs 
 #+author: Erwann Rogard 
+
+#+begin_src org
+  This Emacs org file merely marks where the root directory should be. The relevant files are in =.emacs.d=.
+#+end_src
