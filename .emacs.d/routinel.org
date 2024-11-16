@@ -5,7 +5,7 @@
 
 #+name: doc-lead
 #+begin_src org
-  This Emacs Org file contains routine elisp—routinel—functionality.
+  This Emacs Org file contains routine elisp functionality.
 #+end_src
 
 * doc
@@ -85,8 +85,8 @@ Emacs-org:
 #+end_src
 
 #+RESULTS:
-: before: /home/erwann/src/org/extra.org
-: after: '/home/erwann/src/org/extra.org'
+: before: /home/erwann/.emacs.d/routinel.org
+: after: '/home/erwann/.emacs.d/routinel.org'
 
 *** table
 **** field-address
@@ -192,6 +192,7 @@ Emacs-org:
 
 #+RESULTS:
 : erw/function-table-lookup
+
 * miscellany
 ** scratchpad
 *** table
@@ -448,7 +449,7 @@ Emacs-org:
 
 **** mime-encoding
 
-#+header: :noweb-ref elisp-source
+#+header: :noweb-ref elisp-source-disabled
 #+begin_src emacs-lisp
   (defconst erw/const-mime-encoding-class-bash-alist
     '(("us-ascii"."text")
@@ -471,7 +472,7 @@ Emacs-org:
 #+RESULTS:
 : erw/const-mime-encoding-class-bash-alist
 
-#+header: :noweb-ref elisp-source
+#+header: :noweb-ref elisp-source-disabled
 #+begin_src emacs-lisp
   (defvar erw/variable-mime-encoding-class-by-shell-plist
     '("bash" erw/mime-encoding-bash-alist)
@@ -483,7 +484,7 @@ Emacs-org:
 #+RESULTS:
 : erw/variable-mime-encoding-class-by-shell-plist
 
-#+header: :noweb-ref elisp-source-example
+#+header: :noweb-ref elisp-source-disabled-example
 #+begin_src emacs-lisp
   (symbol-value (plist-get erw/mime-encoding-class-plist "bash" 'string-match-p))
 #+end_src
@@ -510,7 +511,7 @@ Emacs-org:
 #+RESULTS:
 : "us-ascii"
 
-#+header: :noweb-ref elisp-source
+#+header: :noweb-ref elisp-source-disabled
 #+begin_src emacs-lisp
   (defun erw/function-filesystem-mime-encoding-bash (filename)
     "Returns FILENAME's mime-encoding using bash"
@@ -531,7 +532,7 @@ Emacs-org:
 #+RESULTS:
 : "us-ascii"
 
-#+header: :noweb-ref elisp-source
+#+header: :noweb-ref elisp-source-disabled
 #+begin_src emacs-lisp
   (defvar erw/variable-filesystem-mime-encoding-function-by-shell-plist
     '("bash" erw/mime-encoding-bash)
@@ -567,7 +568,7 @@ Emacs-org:
 Remark:
 - The advantage of hashing the file to obtain a unique basename is it prevents duplicates
 
-#+header: :noweb-ref elisp-source
+#+header: :noweb-ref elisp-source-disabled
 #+begin_src emacs-lisp
   (defun erw/function-filesystem-unique-basename-prefix-make-bash (file-name)
   "Makes a unique basename prefix from FILE-NAME"
@@ -586,7 +587,7 @@ Remark:
 #+RESULTS:
 : ecb8251626e3decf4acf3dc984b92261
 
-#+header: :noweb-ref elisp-source
+#+header: :noweb-ref elisp-source-disabled
 #+begin_src emacs-lisp
 ;; bug
     (defvar erw/variable-filesystem-unique-basename-prefix-make-plist
@@ -599,7 +600,7 @@ Remark:
 #+RESULTS:
 : erw/variable-filesystem-unique-basename-prefix-make-plist
 
-#+header: :noweb-ref elisp-source
+#+header: :noweb-ref elisp-source-disabled
 #+begin_src emacs-lisp
   (plist-get erw/unique-basename-plist "bash" 'string-match-p)
 #+end_src
@@ -607,7 +608,7 @@ Remark:
 #+RESULTS:
 : erw/unique-basename-bash
 
-#+header: :noweb-ref elisp-source
+#+header: :noweb-ref elisp-source-disabled
 #+begin_src emacs-lisp
    (defcustom erw/custom-filesystem-unique-basename-prefix-make-key-by-shell-plist
      '("bash" "bash")
@@ -636,7 +637,7 @@ Remark:
 #+RESULTS:
 : bash
 
-#+header: :noweb-ref elisp-source
+#+header: :noweb-ref elisp-source-disabled
 #+begin_src emacs-lisp
        (defun erw/function-filesystem-unique-basename-make (source-file &optional prefix-make-key)
          "Makes a unique basename from SOURCE-FILE using the function associated with PREFIX-MAKE-KEY"
@@ -660,7 +661,7 @@ Remark:
 #+RESULTS:
 : 317a4ebd4b16238478a8f7e0341e7a67.pdf
 
-#+header: :noweb-ref elisp-source
+#+header: :noweb-ref elisp-source-disabled
 #+begin_src emacs-lisp
   (defcustom erw/custom-filesystem-unique-target-directory "/home/erwann/unique"
     "Target directory of files with a unique name"
@@ -680,7 +681,7 @@ erw/unique-target-directory
 #+RESULTS:
 : /home/erwann/unique
 
-#+header: :noweb-ref elisp-source
+#+header: :noweb-ref elisp-source-disabled
 #+begin_src emacs-lisp
   (defun erw/function-filesystem-copy-unique-basename (source-file &optional prefix-make-key target-dir &rest optional-args)
     "Copies SOURCE-FILE to TARGET-DIR such as to have a unique basename;
@@ -709,7 +710,7 @@ erw/unique-target-directory
   (erw/copy-unique-basename erw/test-pdf-spaces)
 #+end_src
 
-#+header: :noweb-ref elisp-source
+#+header: :noweb-ref elisp-source-disabled
 #+begin_src emacs-lisp
   (defun erw/function-interactive-filesystem-copy-unique-basename-select ()
     "Select SOURCE-FILE and TARGET-DIRECTORY; 
