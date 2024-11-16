@@ -2,5 +2,25 @@
 #+author: Erwann Rogard 
 
 #+begin_src org
-  This Emacs org file merely marks where the root directory should be. The relevant files are in =.emacs.d=.
+  This Emacs Org file merely marks where the root directory should be. The relevant files are in =.emacs.d=.
 #+end_src
+
+* setup
+
+If =Emacs= came with file =~/.emacs=, do:
+#+begin_src sh
+  source <(cat << EOF
+  link_name="${HOME}/.emacs"
+
+  [[ -f "${link_name}" ]] && cp "${link_name}" "${HOME}/.emacs.bak"
+
+  target="${HOME}/.emacs.d/init.el" ||  { echo "Target $target not found; return 1; }
+     
+  ln -sf "$target" "${link_name}" || { echo "Failed to create symlink"; return 1; }
+
+  emacs --batch --eval "(kill-emacs)" || { echo "Failed to launch Emacs with the new symlink"; return 1; }
+  EOF
+  )
+#+end_src
+
+

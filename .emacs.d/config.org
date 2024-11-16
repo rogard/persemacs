@@ -3,25 +3,11 @@
 #+startup: fold
 #+property: header-args :tangle no
 
-* resource
-** article
-- [[https://www.masteringemacs.org/article/speed-up-emacs-libjansson-native-elisp-compilation][Speed up Emacs with libjansson and native elisp compilation - by Mickey Peterson]]
-- [[https://justinbarclay.ca/posts/from-zero-to-ide-with-emacs-and-lsp/][From zero to IDE with emacs and LSP - By Jutin Barclay]]
-- [[https://arne.me/blog/emacs-from-scratch-part-one-foundations][Emacs config from scratch - By Arne]]
-- [[https://ianyepan.github.io/posts/setting-up-use-package/][Setting up =use-package= - By Ian Yepan]]
-** manual
-*** [[https://www.gnu.org/software/emacs/manual/html_node/elisp/Variable-Scoping.html][Scoping rules for variables bindings]]
-Keywords:
-- Lexical binding
-- Dynamic binding
-- Closures
-
-#+begin_src emacs-lisp
-  ;; -*- lexical-binding: t; -*-
+#+begin_src org
+  This Emacs Org file contains my Emacs configuration.
 #+end_src
 
-*** [[https://www.gnu.org/software/emacs/manual/html_node/elisp/Profiling.html][Profiling]]
-* miscellany
+* doc
 ** convention
 
 #+name tags
@@ -454,7 +440,7 @@ Resource:
   (defcustom erw/custom-owner 'erw/const-owner-at-hostname
   "constant expanding to owner"
   :type 'string
-  :group 'erw-extra)
+  :group 'erw-custom)
 #+end_src
 
 ** tangle
@@ -464,4 +450,27 @@ Resource:
 #+begin_src emacs-lisp
   <<src-erw-custom>>
 #+end_src
+
+* miscellany
+** resource
+*** article
+- [[https://www.masteringemacs.org/article/speed-up-emacs-libjansson-native-elisp-compilation][Speed up Emacs with libjansson and native elisp compilation - by Mickey Peterson]]
+- [[https://justinbarclay.ca/posts/from-zero-to-ide-with-emacs-and-lsp/][From zero to IDE with emacs and LSP - By Jutin Barclay]]
+- [[https://arne.me/blog/emacs-from-scratch-part-one-foundations][Emacs config from scratch - By Arne]]
+- [[https://ianyepan.github.io/posts/setting-up-use-package/][Setting up =use-package= - By Ian Yepan]]
+*** manual
+**** [[https://www.gnu.org/software/emacs/manual/html_node/elisp/Variable-Scoping.html][Scoping rules for variables bindings]]
+Keywords:
+- Lexical binding
+- Dynamic binding
+- Closures
+
+#+begin_src emacs-lisp
+  ;; -*- lexical-binding: t; -*-
+#+end_src
+
+**** [[https://www.gnu.org/software/emacs/manual/html_node/elisp/Profiling.html][Profiling]]
+
+
+
 
