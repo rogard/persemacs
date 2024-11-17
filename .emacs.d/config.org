@@ -137,7 +137,8 @@ Reference:
 
 *** emacs
 
-#+name: src-package-emacs-ui
+**** ui
+
 #+header: :noweb-ref src-package-emacs
 #+begin_src emacs-lisp
   (use-package emacs ;; pseudo-package
@@ -161,6 +162,14 @@ Reference:
           auto-window-vscroll nil)
     )
   ;;	  scroll-conservatively 101 ; >100
+#+end_src
+
+**** other
+
+#+header: :noweb-ref src-package-emacs
+#+begin_src elisp
+  ;; if you do this, then you have to manually run the command ~package-quickstart-refresh~ when the activations need to be change
+  (setq package-quickstart t)
 #+end_src
 
 *** files

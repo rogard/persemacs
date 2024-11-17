@@ -1,26 +1,235 @@
 #+title: Personal Emacs 
 #+author: Erwann Rogard 
+#+property: header-args :tangle no
 
 #+begin_src org
-  This Emacs Org file merely marks where the root directory should be. The relevant files are in =.emacs.d=.
+This Emacs Org file contains a subset of my Emacs configuration, with the rest located in =.emacs.d=.
 #+end_src
 
-* setup
+* doc
+** requirement
+:PROPERTIES:
+:custom_id: doc-req
+:END:
 
-If =Emacs= came with file =~/.emacs=, do:
+*** machine
+:PROPERTIES:
+:custom_id: doc-req-machine
+:END:
+
+Installed:
+#+name: doc-install
+| emacs-org |
+| Unix shell |
+
+** workflow
+*** customize
+
+Customize these nodes:
+#+begin_src elisp
+  (org-match-sparse-tree nil "customize=\"yes\"")
+#+end_src
+
+#+RESULTS:
+
+Undo:
+#+begin_src elisp
+  (org-show-all)
+#+end_src
+
+*** tangle
+Tangle source blocks under [[id:tangle][tangle]]
+*** execute
+Execute code under [[id:execute][execute]]
+** reference
+
+Managing source code:
+- [[https://orgmode.org/manual/Working-with-Source-Code.html][Working with source code]]
+
+Installation:
+- [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Package-Installation.html][Package installation]]
+
+* source
+** elisp
+*** attrib
+
+#+header: :noweb-ref source-elisp-init
+#+begin_src elisp
+  ;; init.el --- Emacs init file
+  ;; Adapted from:
+  ;; - https://github.com/ianyepan/yay-evil-emacs
+#+end_src
+
+*** early
+
+#+header: :noweb-ref source-elisp-init
+#+begin_src elisp
+  ;; https://emacs.stackexchange.com/a/76249
+  ;; (setq package-enable-at-startup nil) 
+#+end_src
+
+*** archives
+
+#+header: :noweb-ref source-elisp-init
+#+begin_src elisp
+  (require 'package)
+  (add-to-list 'package-archives '("gnu" . "https://elpa.gnu.org/packages/"))
+  (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/"))
+  (add-to-list 'package-archives '("org" . "https://orgmode.org/elpa/"))
+#+end_src
+
+*** use-package
+
+#+header: :noweb-ref source-elisp-init
+#+begin_src elisp
+  (unless (package-installed-p 'use-package)
+    (package-refresh-contents)
+    (package-install 'use-package))
+  (eval-and-compile
+  (setq use-package-always-ensure t)) 
+  ;; (setq use-package-always-defer t))
+#+end_src
+
+*** config
+**** location
+:PROPERTIES:
+:customize: yes
+:END:
+
+#+header: :noweb-ref source-elisp-init
+#+begin_src elisp
+  (defcustom erw/routinel-directory "/home/erwann/github/rogard/routinel/" "where this package is located")
+  (message "debug: %s" erw/routinel-directory)
+#+end_src
+
+#+RESULTS:
+: debug: /home/erwann/github/rogard/routinel/
+
+**** load
+
+#+header: :noweb-ref source-elisp-init
+#+begin_src elisp
+  (let* ((remote-emacs-dir (expand-file-name ".emacs.d" erw/routinel-directory)))
+    (org-babel-load-file (expand-file-name "config.org" remote-emacs-dir)))
+#+end_src
+
+** sh
+*** preamble
+:PROPERTIES:
+:customize: yes
+:END:
+
+#+header: :noweb-ref source-sh-preamble
+#+name: sh-shebang
+#+begin_src shell
+  #!/usr/bin/env bash
+#+end_src
+
+*** symlink
+**** link_name
+
+#+header: :noweb-ref source-sh-symlink
 #+begin_src sh
-  source <(cat << EOF
   link_name="${HOME}/.emacs"
 
-  [[ -f "${link_name}" ]] && cp "${link_name}" "${HOME}/.emacs.bak"
+  if [[ -f "${link_name}" ]]; then
+      cp "${link_name}" "${HOME}/.emacs.bak" || {
+          echo "Failed to create backup of ${link_name}"; exit 1;
+      }
+  fi
+#+end_src
 
-  target="${HOME}/.emacs.d/init.el" ||  { echo "Target $target not found; return 1; }
-     
-  ln -sf "$target" "${link_name}" || { echo "Failed to create symlink"; return 1; }
+**** target
 
-  emacs --batch --eval "(kill-emacs)" || { echo "Failed to launch Emacs with the new symlink"; return 1; }
-  EOF
+#+header: :noweb-ref source-sh-symlink
+#+begin_src sh
+  target="${PWD}/.emacs.d/init.el"
+
+  if [[ ! -f "${target}" ]]; then
+      echo "Target ${target} not found"; exit 1;
+  fi
+#+end_src
+
+**** link
+
+#+header: :noweb-ref source-sh-symlink
+#+begin_src sh
+  ln -sf "${target}" "${link_name}" || {
+      echo "Failed to create symlink"; exit 1;
+  }
+#+end_src
+
+**** launch-kill
+
+#+header: :noweb-ref source-sh-symlink
+#+begin_src sh
+  emacs --batch --eval "(kill-emacs)" || {
+      echo "Failed to launch Emacs with the new symlink"; exit 1;
+  }
+#+end_src
+
+**** message 
+
+#+header: :noweb-ref source-sh-symlink
+#+begin_src sh
+  echo "Symlink created and Emacs verified successfully."
+#+end_src
+
+* tangle
+:PROPERTIES:
+:custom_id: tangle
+:END:
+
+** elisp
+:PROPERTIES:
+:header-args: :tangle ".emacs.d/init.el"
+:END:
+
+#+header: :noweb  yes
+#+begin_src elisp
+<<source-elisp-init>>
+#+end_src
+
+** sh
+:PROPERTIES:
+:header-args: :tangle "symlink.sh"
+:END:
+
+#+header: :noweb  yes
+#+begin_src elisp
+  <<source-sh-preamble>>
+  <<source-sh-symlink>>
+#+end_src
+
+* execute
+:PROPERTIES:
+:custom_id: execute
+:END:
+
+** sh
+
+#+begin_src sh
+  (file='symlink.sh';
+   if  [[ -f "$file" ]]; then
+       chmod +x "$file"
+       $SHELL "$file"
+   else
+       printf 'error: executable %s missing' "$file"
+   fi
   )
+#+end_src
+
+#+RESULTS:
+: Symlink created and Emacs verified successfully.
+
+* trash
+
+*** workaround
+
+#+header: :noweb-ref source-elisp-init-disable
+#+begin_src elisp
+  ;; (package-initialize) ;; Emacs calls package-initialize before evaluating your init file (since 27.1)
+  (setq gnutls-algorithm-priority "NORMAL:-VERS-TLS1.3") ;; workaround bug in Emacs 26.2
 #+end_src
 
 
