@@ -175,6 +175,29 @@ Emacs-org:
 #+RESULTS:
 : "y"
 
+*** path
+**** ensure-directory
+
+#+header: :noweb-ref elisp-source
+#+begin_src emacs-lisp
+  (defun erw/ensure-directory (path)
+    "Ensures PATH ends with a slash"
+    (if (not (string-match-p "/$" path))
+        (concat path "/")
+      path))
+#+end_src
+
+#+RESULTS:
+: erw/ensure-directory
+
+#+header: :noweb-ref erw-example
+#+begin_src emacs-lisp
+(erw/ensure-directory "foo")
+#+end_src
+
+#+RESULTS:
+: foo/
+
 * tangle
 ** source
 :PROPERTIES:
