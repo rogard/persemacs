@@ -68,6 +68,14 @@ Installation:
   ;; (setq package-enable-at-startup nil) 
 #+end_src
 
+*** group
+
+#+header: :noweb-ref source-elisp-init
+#+begin_src emacs-lisp
+  (defgroup erw/config nil "erw's config"
+    :prefix "erw/")
+#+end_src
+
 *** archives
 
 #+header: :noweb-ref source-elisp-init
@@ -94,22 +102,21 @@ Installation:
 **** location
 :PROPERTIES:
 :customize: yes
+:custom_id: this-directory
 :END:
 
+#+name: source-elisp-this-directory
 #+header: :noweb-ref source-elisp-init
 #+begin_src elisp
-  (defcustom erw/routinel-directory "/home/erwann/github/rogard/routinel/" "where this package is located")
-  (message "debug: %s" erw/routinel-directory)
+  (defcustom erw/this-directory "/home/erwann/github/rogard/persemacs/" "where this package is located"
+    :group 'erw/config)
 #+end_src
-
-#+RESULTS:
-: debug: /home/erwann/github/rogard/routinel/
 
 **** load
 
 #+header: :noweb-ref source-elisp-init
 #+begin_src elisp
-  (let* ((remote-emacs-dir (expand-file-name ".emacs.d" erw/routinel-directory)))
+  (let* ((remote-emacs-dir (expand-file-name ".emacs.d" erw/this-directory)))
     (org-babel-load-file (expand-file-name "config.org" remote-emacs-dir)))
 #+end_src
 
@@ -208,6 +215,10 @@ Installation:
 
 ** sh
 
+Tip:
+- Before emacs is configured, this source block will not execute
+- In this case, do it from the terminal in the [[id:this-directory][current directory]]
+
 #+begin_src sh
   (file='symlink.sh';
    if  [[ -f "$file" ]]; then
@@ -223,7 +234,6 @@ Installation:
 : Symlink created and Emacs verified successfully.
 
 * trash
-
 *** workaround
 
 #+header: :noweb-ref source-elisp-init-disable

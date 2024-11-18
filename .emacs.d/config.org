@@ -8,24 +8,55 @@
 #+end_src
 
 * doc
-** convention
+** require
+:PROPERTIES:
+:custom_id: doc-req
+:END:
 
-#+name tags
-| owner   | requires owner input   |
-| task    | a task awaits action   |
-| require | contains a requirement |
+See =../readme.org=
 
-* package
+** workflow
+*** source
+**** customize
 
-Package customization.
+Customize these nodes:
+#+begin_src elisp
+  (org-match-sparse-tree nil "customize=\"yes\"")
+#+end_src
 
-** source
+#+RESULTS:
+
+Undo:
+#+begin_src elisp
+  (org-show-all)
+#+end_src
+
+**** warning
+
+Check these nodes:
+#+begin_src elisp
+  (org-match-sparse-tree nil "warning=\"yes\"")
+#+end_src
+
+*** tangle
+
+Tangling is handled by =../init.el=
+
+*** execute
+Execute code under [[id:execute][execute]]
+** reference
+
+Managing source code:
+- [[https://orgmode.org/manual/Working-with-Source-Code.html][Working with source code]]
+
+* source
+** package
 *** corfu
 
 Reference:
 - https://github.com/minad/corfu
 
-#+name: src-package-corfu
+#+name: source-package-corfu
 #+begin_src emacs-lisp
   (use-package corfu
   ;; Optional customizations
@@ -71,7 +102,7 @@ Reference:
   (setq read-extended-command-predicate #'command-completion-default-include-p))
 #+end_src
 
-#+name: src-package-corfu-disable
+#+name: source-package-corfu-disable
 #+begin_src emacs-lisp
   (use-package corfu
   :ensure
@@ -87,16 +118,9 @@ Reference:
   (global-corfu-mode)
   (corfu-popupinfo-mode +1))
 #+end_src
-*** ekg
-
-#+name: src-package-ekg
-#+begin_src emacs-lisp
-  (use-package ekg)
-#+end_src
-
 *** dashboard
 
-#+name: src-package-dashboard
+#+name: source-package-dashboard
 #+begin_src emacs-lisp
   (use-package dashboard
     :config
@@ -110,7 +134,7 @@ Reference:
 
 *** doomemacs
 
-#+name: src-package-doomemacs
+#+name: source-package-doomemacs
 #+begin_src emacs-lisp
 (use-package doom-themes
     :config
@@ -135,11 +159,18 @@ Reference:
     (doom-themes-org-config))
 #+end_src
 
+*** ekg
+
+#+name: source-package-ekg
+#+begin_src emacs-lisp
+  (use-package ekg)
+#+end_src
+
 *** emacs
 
 **** ui
 
-#+header: :noweb-ref src-package-emacs
+#+header: :noweb-ref source-package-emacs
 #+begin_src emacs-lisp
   (use-package emacs ;; pseudo-package
     :config
@@ -164,18 +195,20 @@ Reference:
   ;;	  scroll-conservatively 101 ; >100
 #+end_src
 
-**** other
+**** quickstart
+:PROPERTIES:
+:custom_id: source-quickstart
+:END:
 
-#+header: :noweb-ref src-package-emacs
+#+header: :noweb-ref source-package-emacs
 #+begin_src elisp
-  ;; if you do this, then you have to manually run the command ~package-quickstart-refresh~ when the activations need to be change
   (setq package-quickstart t)
 #+end_src
 
 *** files
 
-#+name: src-package-files
-#+header :noweb-ref src-package-emacs-file-tweaks
+#+name: source-package-files
+#+header :noweb-ref source-package-emacs-file-tweaks
 #+begin_src emacs-lisp
   (use-package files
     :config
@@ -190,7 +223,7 @@ Reference:
 - [[https://github.com/federicotdn/flymake-shellcheck][flymate-shellcheck]]
 
 
-#+header: :noweb-ref src-package-flymake
+#+header: :noweb-ref source-package-flymake
 #+begin_src emacs-lisp
   (use-package flymake-shellcheck
     :ensure nil ;; built-in
@@ -221,7 +254,7 @@ Reference:
 Reference:
 - [[https://github.com/bash-lsp/bash-language-server][bash-lsp/bash-language-server]]
 
-#+header: :noweb-ref src-package-lsp-mode
+#+header: :noweb-ref source-package-lsp-mode
 #+begin_src emacs-lisp
   (use-package lsp-mode
     :hook ((sh-mode) . lsp-deferred) ; XYZ are to be replaced by python, c++, etc.
@@ -233,7 +266,7 @@ Commands:
 - =M-x lsp-ui-imenu=
 - =M-x lsp-describe-sessions=
 
-#+header: :noweb-ref src-package-lsp-mode-disable
+#+header: :noweb-ref source-package-lsp-mode-disable
 #+begin_src emacs-lisp
   (use-package lsp-ui
   :commands lsp-ui-mode
@@ -248,7 +281,7 @@ Commands:
 
 *** markdown
 
-#+name: src-package-markdown-mode
+#+name: source-package-markdown-mode
 #+begin_src emacs-lisp
   (use-package markdown-mode
     :hook (markdown-mode . visual-line-mode))
@@ -271,32 +304,61 @@ Commands:
 Resource:
 - https://orgmode.org/worg/org-contrib/babel/languages/index.html
 - https://orgmode.org/manual/Languages.html
-  
-#+header: :noweb-ref src-package-org
-#+begin_src emacs-lisp
-(use-package org
-  :custom
-  (org-read-date-force-compatible-dates nil) ;; extends calendar
-  (org-log-into-drawer t)
-  (org-capture-templates
-   '(("c" "Core" entry (file+headline "/home/erwann/src/org/capture.org" "Capture") (file "~/.emacs.d/capture_core_tpl"))))
-  (org-refile-targets '((nil :tag . "refile") (nil :maxlevel . 3)))
-  (org-agenda-files '("/home/erwann/.emacs.d/agenda_files"))
-  (org-fold-core-style 'overlays) ;; https://lists.nongnu.org/archive/html/emacs-orgmode/2024-04/msg00497.html
-  :hook ((org-mode . visual-line-mode)
-         (org-mode . org-indent-mode))
-  :config
-  (org-babel-do-load-languages
-   'org-babel-load-languages
-   '((emacs-lisp . t)
-     (latex . t)
-     (org . t)
-     (python . t)
-     (shell . t)
-     (lua . t))))
+
+**** path
+:PROPERTIES:
+:customize: yes
+:END:
+
+#+header: :noweb-ref source-package-org
+#+begin_src elisp
+    (defcustom erw/capture-target "/home/erwann/src/org/capture.org" "capture target location"
+      :group 'erw/custom )
 #+end_src
 
-#+header:  :noweb-ref src-package-org
+#+header: :noweb-ref source-package-org
+#+begin_src elisp
+    (defcustom erw/capture-template "/home/erwann/.emacs.d/capture_core_tpl" "capture template location"
+      :group 'erw/custom)
+#+end_src
+
+#+header: :noweb-ref source-package-org
+#+begin_src elisp
+    (defcustom erw/agenda-files "/home/erwann/.emacs.d/agenda_files" "agenda-files location"
+      :group 'erw/custom)
+#+end_src
+
+**** use
+
+#+header: :noweb-ref source-package-org
+#+begin_src emacs-lisp
+  (use-package org
+    :custom
+    (org-read-date-force-compatible-dates nil) ;; extends calendar
+    (org-log-into-drawer t)
+    (org-capture-templates
+     '(("c" "Core" entry (file+headline erw/capture-target "Capture") (file erw/capture-template))))
+    (org-refile-targets '((nil :tag . "refile") (nil :maxlevel . 3)))
+    (org-agenda-files erw/agenda-files)
+    (org-fold-core-style 'overlays)
+    ;; https://lists.nongnu.org/archive/html/emacs-orgmode/2024-04/msg00497.html
+    :hook ((org-mode . visual-line-mode)
+           (org-mode . org-indent-mode))
+    :config
+    (org-babel-do-load-languages
+     'org-babel-load-languages
+     '((emacs-lisp . t)
+       (latex . t)
+       (org . t)
+       (python . t)
+       (shell . t)
+       (lua . t)))
+    )
+#+end_src
+
+*** org-bullets
+
+#+header:  :noweb-ref source-package-org-bullets
 #+begin_src emacs-lisp
   (use-package org-bullets :hook (org-mode . org-bullets-mode))
 #+end_src
@@ -306,7 +368,7 @@ Resource:
 Reference
 - https://github.com/minad/vertico
 
-#+header: :noweb-ref src-package-vertico
+#+header: :noweb-ref source-package-vertico
 #+begin_src emacs-lisp
     ;; Enable vertico
   (use-package vertico
@@ -327,7 +389,7 @@ Reference
     )
 #+end_src
 
-#+header: :noweb-ref src-package-vertico
+#+header: :noweb-ref source-package-vertico
 #+begin_src emacs-lisp
   ;; Persist history over Emacs restarts. Vertico sorts by history position.
   (use-package savehist
@@ -335,7 +397,7 @@ Reference
     (savehist-mode))
 #+end_src
 
-#+header: :noweb-ref src-package-vertico
+#+header: :noweb-ref source-package-vertico
 #+begin_src emacs-lisp
   ;; A few more useful configurations...
   (use-package emacs
@@ -367,7 +429,7 @@ Reference
 
 *** web-mode
 
-#+name: src-package-web-mode
+#+name: source-package-web-mode
 #+begin_src emacs-lisp
   (use-package web-mode
     :mode (("\\.html?\\'" . web-mode)
@@ -389,13 +451,13 @@ Resource:
 - https://emacs.stackexchange.com/a/75819
 - https://github.com/kawabata/wolfram-mode/tree/be680190cac6ccf579dbce107deaae495928d1b3
   
-#+header: :noweb-ref src-package-wolfram
+#+header: :noweb-ref source-package-wolfram
 #+begin_src emacs-lisp
   ;; Org also enables languages when loaded with ‘require’ statement.
   (require 'ob-mathematica "/home/erwann/github/ob-mathematica/ob-mathematica.el")
 #+end_src
 
-#+header: :noweb-ref src-package-wolfram
+#+header: :noweb-ref source-package-wolfram
 #+begin_src emacs-lisp
 (use-package wolfram-mode
   :ensure t
@@ -409,58 +471,75 @@ Resource:
 )
 #+end_src
 
-** tangle
+** extra
+*** const
 
-#+header: :tangle yes
-#+header: :noweb yes
-#+begin_src emacs-lisp
-  <<src-package-corfu>>
-  <<src-package-dashboard>>
-  <<src-package-doomemacs>>
-  <<src-package-ekg>>
-  <<src-package-el-mock>>
-  <<src-package-emacs>>
-  <<src-package-files>>
-  <<src-package-flymake>>
-  <<src-package-lsp-mode>>
-  <<src-package-markdown-mode>>
-  <<src-package-org>>
-  <<src-package-scroll-bar>>
-  <<src-package-vertico>>
-  <<src-package-web-mode>>
-#+end_src
-
-* extra
-** source
-
-#+header: :noweb-ref src-erw-custom
-#+begin_src emacs-lisp
-    (defgroup erw-custom nil "erw's extra functionality for org mode"
-      :prefix "erw/")
-#+end_src
-
-#+header: :noweb-ref src-erw-custom
+#+header: :noweb-ref source-erw-extra
 #+begin_src emacs-lisp
   (defconst erw/const-owner-at-hostname (concat (getenv "OWNER") "@" (system-name)))
 #+end_src
 
-#+header: :noweb-ref src-erw-custom
+*** custom
+:PROPERTIES:
+:customize: yes
+:END:
+
+#+header: :noweb-ref source-erw-extra
 #+begin_src emacs-lisp
   (defcustom erw/custom-owner 'erw/const-owner-at-hostname
   "constant expanding to owner"
   :type 'string
-  :group 'erw-custom)
+  :group 'erw/config)
 #+end_src
 
-** tangle
+* tangle
+*** package
 
 #+header: :tangle yes
 #+header: :noweb yes
 #+begin_src emacs-lisp
-  <<src-erw-custom>>
+  <<source-package-corfu>>
+  <<source-package-dashboard>>
+  <<source-package-doomemacs>>
+  <<source-package-el-mock>>
+  <<source-package-emacs>>
+  <<source-package-files>>
+  <<source-package-flymake>>
+  <<source-package-lsp-mode>>
+  <<source-package-markdown-mode>>
+  <<source-package-org>>
+  <<source-package-org-bullets>>
+  <<source-package-scroll-bar>>
+  <<source-package-vertico>>
+  <<source-package-web-mode>>
 #+end_src
 
-* miscellany
+#+header: :tangle no
+#+header: :noweb yes
+#+begin_src emacs-lisp
+<<source-package-ekg>>
+<<source-package-wolfram>>
+#+end_src
+
+*** extra
+:PROPERTIES:
+:customize: yes
+:END:
+
+#+header: :tangle yes
+#+header: :noweb yes
+#+begin_src emacs-lisp
+  <<source-erw-extra>>
+#+end_src
+
+* execute
+
+In connection with [[id:source-quickstart][this]], optionally execute: 
+#+begin_src elisp
+  (package-quickstart-refresh)
+#+end_src
+
+* trash
 ** resource
 *** article
 - [[https://www.masteringemacs.org/article/speed-up-emacs-libjansson-native-elisp-compilation][Speed up Emacs with libjansson and native elisp compilation - by Mickey Peterson]]

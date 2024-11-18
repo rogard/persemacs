@@ -1,11 +1,11 @@
-#+title routinel
+#+title persemacs-extra
 #+author: Erwann Rogard
 #+startup: fold
 #+property: header-args :tangle no
 
 #+name: doc-lead
 #+begin_src org
-  This Emacs Org file contains routine elisp functionality.
+  This Emacs Org file contains extra elisp functionality.
 #+end_src
 
 * doc
@@ -16,7 +16,7 @@
 
 #+name: doc-license
 #+begin_src org
-  ;;  routinel — routine elisp functionality
+  ;;  persemacs-extra — extra elisp functionality
   ;;  Copyright (C) 2024 — Erwann Rogard
   ;;  Released under GPL 3.0
   ;;  See https://www.gnu.org/licenses/gpl-3.0.en.html
@@ -54,12 +54,9 @@ Emacs-org:
 
 #+header: :noweb-ref elisp-source
 #+begin_src emacs-lisp
-    (defgroup erw-routinel nil "erw's routine elisp functionality"
+    (defgroup erw/extra nil "erw's extra elisp functionality"
       :prefix "erw/")
 #+end_src
-
-#+RESULTS:
-: erw-routinel
 
 *** string
 **** wrap-single-quotes
