@@ -5,7 +5,7 @@
 
 #+name: doc-lead
 #+begin_src org
-  This is a standalone Emacs Org containing elisp functionality.
+  This is a standalone Emacs Org file containing elisp functionality.
 #+end_src
 
 * doc
@@ -35,6 +35,14 @@
 Installed:
 #+name: doc-install
 | emacs-org  |
+
+** workflow
+
+For each source blocks below:
+- Execute it
+- Process the matches as indicated
+
+TODO
 
 ** reference
 

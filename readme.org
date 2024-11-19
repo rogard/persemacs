@@ -28,10 +28,9 @@ Installed:
 
 ** workflow
 
-Description:
-- Execute the source blocks below
-- Process sparse trees as indicated
-- Execute a second time to remove sparse trees
+For each source blocks below:
+- Execute it
+- Process the matches as indicated
 
 Customize:
 #+begin_src emacs-lisp
