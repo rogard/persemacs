@@ -116,34 +116,38 @@
   (setq web-mode-css-indent-offset 2)    ; CSS
   (setq web-mode-code-indent-offset 2)   ; JS/JSX/TS/TSX
   (setq web-mode-content-types-alist '(("jsx" . "\\.js[x]?\\'"))))
-(defcustom erw/capture-target "/home/erwann/src/org/capture.org" "capture target location"
-  :group 'erw/custom )
-(defcustom erw/capture-template "/home/erwann/.emacs.d/capture_core_tpl" "capture template location"
-  :group 'erw/custom)
-(defcustom erw/agenda-files "/home/erwann/.emacs.d/agenda_files" "agenda-files location"
-  :group 'erw/custom)
+(defcustom erw/config-capture-target "/home/erwann/src/org/capture.org" "capture target location"
+  :group 'erw/config )
+(defcustom erw/config-capture-template "/home/erwann/.emacs.d/capture_core_tpl" "capture template location"
+  :group 'erw/config)
+(defcustom erw/config-agenda-files (list (symbol-value 'erw/config-capture-target)) "agenda files"
+  :group 'erw/config)
 (use-package org
   :custom
   (org-read-date-force-compatible-dates nil) ;; extends calendar
   (org-log-into-drawer t)
   (org-capture-templates
-   '(("c" "Core" entry (file+headline erw/capture-target "Capture") (file erw/capture-template))))
-  (org-refile-targets '((nil :tag . "refile") (nil :maxlevel . 3)))
-  (org-agenda-files erw/agenda-files)
-  (org-fold-core-style 'overlays)
-  ;; https://lists.nongnu.org/archive/html/emacs-orgmode/2024-04/msg00497.html
+   '(("c" "Core" entry
+      (file+headline (symbol-value 'erw/config-capture-target) "Capture")
+      (file (symbol-value 'erw/config-capture-template)))))
+  (org-refile-targets '((nil :regexp . "^:refile_bool: true$")))
+  (org-agenda-files (symbol-value 'erw/config-agenda-files))
+  (org-fold-core-style 'overlays) ;; https://lists.nongnu.org/archive/html/emacs-orgmode/2024-04/msg00497.html
+)
+(use-package org
   :hook ((org-mode . visual-line-mode)
-         (org-mode . org-indent-mode))
-  :config
-  (org-babel-do-load-languages
-   'org-babel-load-languages
-   '((emacs-lisp . t)
-     (latex . t)
-     (org . t)
-     (python . t)
-     (shell . t)
-     (lua . t)))
-  )
+	 (org-mode . org-indent-mode)))
+(use-package org
+    :config
+    (org-babel-do-load-languages
+     'org-babel-load-languages
+     '((emacs-lisp . t)
+       (latex . t)
+       (org . t)
+       (python . t)
+       (shell . t)
+       (lua . t)))
+    )
 (use-package org-bullets :hook (org-mode . org-bullets-mode))
 
   ;; Enable vertico
@@ -206,7 +210,7 @@
   (setq web-mode-content-types-alist '(("jsx" . "\\.js[x]?\\'"))))
 
 (defconst erw/const-owner-at-hostname (concat (getenv "OWNER") "@" (system-name)))
-(defcustom erw/custom-owner 'erw/const-owner-at-hostname
+(defcustom erw/config-owner 'erw/const-owner-at-hostname
 "constant expanding to owner"
 :type 'string
 :group 'erw/config)

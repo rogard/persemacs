@@ -7,40 +7,52 @@ This Emacs Org file contains a subset of my Emacs configuration, with the rest l
 #+end_src
 
 * doc
+** abstract
+
+#+begin_src org
+  This file can be used to generate =.emacs.d/init.el= and =symlink.sh= within a session opened with ~emacs -Q~.
+  Also see =.emacs.d/config.org=
+#+end_src
+
 ** requirement
 :PROPERTIES:
 :custom_id: doc-req
 :END:
 
-*** machine
-:PROPERTIES:
-:custom_id: doc-req-machine
-:END:
-
 Installed:
-#+name: doc-install
-| emacs-org |
-| Unix shell |
+#+name: doc-req-install
+| Package    | Purpose    |
+|------------+------------|
+| Emacs      | init.el    |
+| Unix shell | symlink.sh |
 
 ** workflow
-*** customize
 
-Customize these nodes:
-#+begin_src elisp
-  (org-match-sparse-tree nil "customize=\"yes\"")
+Description:
+- Execute the source blocks below
+- Process sparse trees as indicated
+- Execute a second time to remove sparse trees
+
+Customize:
+#+begin_src emacs-lisp
+  (org-occur "customize_bool: true")
 #+end_src
 
-#+RESULTS:
-
-Undo:
-#+begin_src elisp
-  (org-show-all)
+Execute:
+#+begin_src emacs-lisp
+  (org-occur "prereq_bool: true")
 #+end_src
 
-*** tangle
-Tangle source blocks under [[id:tangle][tangle]]
-*** execute
-Execute code under [[id:execute][execute]]
+Tangle:
+#+begin_src emacs-lisp
+  (org-occur "header-args: :tangle")
+#+end_src
+
+Execute:
+#+begin_src emacs-lisp
+  (org-occur "prereq_bool: false")
+#+end_src
+
 ** reference
 
 Managing source code:
@@ -51,45 +63,60 @@ Installation:
 
 * source
 ** elisp
-*** attrib
+*** prereq
+
+To be able to tangle:
+#+header: :noweb-ref source-elisp-prereq
+#+begin_src emacs-lisp
+  (org-babel-do-load-languages
+   'org-babel-load-languages
+   '((emacs-lisp . t)
+     (org . t)
+#+end_src
+
+To be able to execute code from [[id:exec-sh][sh]].
+#+header: :noweb-ref source-elisp-prereq
+#+begin_src emacs-lisp
+     (shell . t)
+#+end_src
+
+#+header: :noweb-ref source-elisp-prereq
+#+begin_src emacs-lisp
+     ))
+#+end_src
+
+*** init
+**** attrib
 
 #+header: :noweb-ref source-elisp-init
-#+begin_src elisp
+#+begin_src emacs-lisp
   ;; init.el --- Emacs init file
   ;; Adapted from:
   ;; - https://github.com/ianyepan/yay-evil-emacs
 #+end_src
 
-*** early
-
-#+header: :noweb-ref source-elisp-init
-#+begin_src elisp
-  ;; https://emacs.stackexchange.com/a/76249
-  ;; (setq package-enable-at-startup nil) 
-#+end_src
-
-*** group
+**** group
 
 #+header: :noweb-ref source-elisp-init
 #+begin_src emacs-lisp
   (defgroup erw/config nil "erw's config"
-    :prefix "erw/")
+    :prefix "erw/config")
 #+end_src
 
-*** archives
+**** archives
 
 #+header: :noweb-ref source-elisp-init
-#+begin_src elisp
+#+begin_src emacs-lisp
   (require 'package)
   (add-to-list 'package-archives '("gnu" . "https://elpa.gnu.org/packages/"))
   (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/"))
   (add-to-list 'package-archives '("org" . "https://orgmode.org/elpa/"))
 #+end_src
 
-*** use-package
+**** use-package
 
 #+header: :noweb-ref source-elisp-init
-#+begin_src elisp
+#+begin_src emacs-lisp
   (unless (package-installed-p 'use-package)
     (package-refresh-contents)
     (package-install 'use-package))
@@ -98,24 +125,24 @@ Installation:
   ;; (setq use-package-always-defer t))
 #+end_src
 
-*** config
-**** location
+**** config
+***** location
 :PROPERTIES:
-:customize: yes
+:customize_bool: true
 :custom_id: this-directory
 :END:
 
 #+name: source-elisp-this-directory
 #+header: :noweb-ref source-elisp-init
-#+begin_src elisp
+#+begin_src emacs-lisp
   (defcustom erw/this-directory "/home/erwann/github/rogard/persemacs/" "where this package is located"
     :group 'erw/config)
 #+end_src
 
-**** load
+***** load
 
 #+header: :noweb-ref source-elisp-init
-#+begin_src elisp
+#+begin_src emacs-lisp
   (let* ((remote-emacs-dir (expand-file-name ".emacs.d" erw/this-directory)))
     (org-babel-load-file (expand-file-name "config.org" remote-emacs-dir)))
 #+end_src
@@ -123,7 +150,7 @@ Installation:
 ** sh
 *** preamble
 :PROPERTIES:
-:customize: yes
+:customize_bool: true
 :END:
 
 #+header: :noweb-ref source-sh-preamble
@@ -157,7 +184,7 @@ Installation:
   fi
 #+end_src
 
-**** link
+**** do-link
 
 #+header: :noweb-ref source-sh-symlink
 #+begin_src sh
@@ -189,21 +216,21 @@ Installation:
 
 ** elisp
 :PROPERTIES:
-:header-args: :tangle ".emacs.d/init.el"
+:header-args: :tangle "./.emacs.d/init.el"
 :END:
 
 #+header: :noweb  yes
-#+begin_src elisp
+#+begin_src emacs-lisp
 <<source-elisp-init>>
 #+end_src
 
 ** sh
 :PROPERTIES:
-:header-args: :tangle "symlink.sh"
+:header-args: :tangle "./symlink.sh"
 :END:
 
 #+header: :noweb  yes
-#+begin_src elisp
+#+begin_src emacs-lisp
   <<source-sh-preamble>>
   <<source-sh-symlink>>
 #+end_src
@@ -213,11 +240,28 @@ Installation:
 :custom_id: execute
 :END:
 
-** sh
+** elisp
+:PROPERTIES:
+:custom_id: exec-elisp
+:END:
 
-Tip:
-- Before emacs is configured, this source block will not execute
-- In this case, do it from the terminal in the [[id:this-directory][current directory]]
+*** prereq
+:PROPERTIES:
+:prereq_bool: true
+:END:
+
+#+header: :noweb yes
+#+begin_src emacs-lisp
+  <<source-elisp-prereq>>
+#+end_src
+
+#+RESULTS:
+
+** sh
+:PROPERTIES:
+:custom_id: exec-sh
+:prereq_bool: false
+:END:
 
 #+begin_src sh
   (file='symlink.sh';
@@ -233,12 +277,22 @@ Tip:
 #+RESULTS:
 : Symlink created and Emacs verified successfully.
 
+
 * trash
+*** early
+
+#+header: :noweb-ref source-elisp-init-disable
+#+begin_src emacs-lisp
+  ;; https://emacs.stackexchange.com/a/76249
+  ;; (setq package-enable-at-startup nil) 
+#+end_src
+
 *** workaround
 
 #+header: :noweb-ref source-elisp-init-disable
-#+begin_src elisp
-  ;; (package-initialize) ;; Emacs calls package-initialize before evaluating your init file (since 27.1)
+#+begin_src emacs-lisp
+  ;; Emacs calls package-initialize before evaluating your init file (since 27.1)
+  ;; (package-initialize) 
   (setq gnutls-algorithm-priority "NORMAL:-VERS-TLS1.3") ;; workaround bug in Emacs 26.2
 #+end_src
 

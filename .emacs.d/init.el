@@ -1,10 +1,8 @@
 ;; init.el --- Emacs init file
 ;; Adapted from:
 ;; - https://github.com/ianyepan/yay-evil-emacs
-;; https://emacs.stackexchange.com/a/76249
-;; (setq package-enable-at-startup nil) 
 (defgroup erw/config nil "erw's config"
-  :prefix "erw/")
+  :prefix "erw/config")
 (require 'package)
 (add-to-list 'package-archives '("gnu" . "https://elpa.gnu.org/packages/"))
 (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/"))

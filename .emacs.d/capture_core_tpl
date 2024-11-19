@@ -1,8 +1,0 @@
-* %^{heading}
-:PROPERTIES:
-:created_on: %^T
-:uname: %(eval erw/custom-owner)
-:refile: %^{refile|no}p
-:custom_id: %^{custom_id}
-:linked_id: %^{linked_id}
-:END:

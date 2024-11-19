@@ -8,6 +8,12 @@
 #+end_src
 
 * doc
+** abstract
+
+#+begin_src org
+  This file is invoked by =./init.el= to generate =./config.el=
+#+end_src
+
 ** require
 :PROPERTIES:
 :custom_id: doc-req
@@ -16,40 +22,72 @@
 See =../readme.org=
 
 ** workflow
-*** source
-**** customize
 
-Customize these nodes:
+Description:
+- Execute the source blocks below
+- Process sparse trees as indicated
+- Execute a second time to remove sparse trees
+
+Customize:
 #+begin_src elisp
-  (org-match-sparse-tree nil "customize=\"yes\"")
+  (org-occur "customize_bool: true")
 #+end_src
 
 #+RESULTS:
 
-Undo:
-#+begin_src elisp
-  (org-show-all)
-#+end_src
-
-**** warning
-
-Check these nodes:
-#+begin_src elisp
-  (org-match-sparse-tree nil "warning=\"yes\"")
-#+end_src
-
-*** tangle
-
-Tangling is handled by =../init.el=
-
-*** execute
-Execute code under [[id:execute][execute]]
 ** reference
 
 Managing source code:
 - [[https://orgmode.org/manual/Working-with-Source-Code.html][Working with source code]]
 
 * source
+** variable
+*** const
+
+#+header: :noweb-ref source-erw-extra
+#+begin_src emacs-lisp
+  (defconst erw/const-owner-at-hostname (concat (getenv "OWNER") "@" (system-name)))
+#+end_src
+
+*** custom
+:PROPERTIES:
+:customize_bool: true
+:END:
+
+**** owner
+
+#+header: :noweb-ref source-erw-extra
+#+begin_src emacs-lisp
+  (defcustom erw/config-owner 'erw/const-owner-at-hostname
+  "constant expanding to owner"
+  :type 'string
+  :group 'erw/config)
+#+end_src
+
+**** capture-target
+
+#+header: :noweb-ref source-package-org
+#+begin_src elisp
+    (defcustom erw/config-capture-target "/home/erwann/src/org/capture.org" "capture target location"
+      :group 'erw/config )
+#+end_src
+
+**** capture-template
+
+#+header: :noweb-ref source-package-org
+#+begin_src elisp
+    (defcustom erw/config-capture-template "/home/erwann/.emacs.d/capture_core_tpl" "capture template location"
+      :group 'erw/config)
+#+end_src
+
+**** agenda-files
+
+#+header: :noweb-ref source-package-org
+#+begin_src elisp
+    (defcustom erw/config-agenda-files (list (symbol-value 'erw/config-capture-target)) "agenda files"
+      :group 'erw/config)
+#+end_src
+
 ** package
 *** corfu
 
@@ -222,7 +260,6 @@ Reference:
 Reference:
 - [[https://github.com/federicotdn/flymake-shellcheck][flymate-shellcheck]]
 
-
 #+header: :noweb-ref source-package-flymake
 #+begin_src emacs-lisp
   (use-package flymake-shellcheck
@@ -305,30 +342,7 @@ Resource:
 - https://orgmode.org/worg/org-contrib/babel/languages/index.html
 - https://orgmode.org/manual/Languages.html
 
-**** path
-:PROPERTIES:
-:customize: yes
-:END:
-
-#+header: :noweb-ref source-package-org
-#+begin_src elisp
-    (defcustom erw/capture-target "/home/erwann/src/org/capture.org" "capture target location"
-      :group 'erw/custom )
-#+end_src
-
-#+header: :noweb-ref source-package-org
-#+begin_src elisp
-    (defcustom erw/capture-template "/home/erwann/.emacs.d/capture_core_tpl" "capture template location"
-      :group 'erw/custom)
-#+end_src
-
-#+header: :noweb-ref source-package-org
-#+begin_src elisp
-    (defcustom erw/agenda-files "/home/erwann/.emacs.d/agenda_files" "agenda-files location"
-      :group 'erw/custom)
-#+end_src
-
-**** use
+**** custom
 
 #+header: :noweb-ref source-package-org
 #+begin_src emacs-lisp
@@ -337,23 +351,39 @@ Resource:
     (org-read-date-force-compatible-dates nil) ;; extends calendar
     (org-log-into-drawer t)
     (org-capture-templates
-     '(("c" "Core" entry (file+headline erw/capture-target "Capture") (file erw/capture-template))))
-    (org-refile-targets '((nil :tag . "refile") (nil :maxlevel . 3)))
-    (org-agenda-files erw/agenda-files)
-    (org-fold-core-style 'overlays)
-    ;; https://lists.nongnu.org/archive/html/emacs-orgmode/2024-04/msg00497.html
-    :hook ((org-mode . visual-line-mode)
-           (org-mode . org-indent-mode))
-    :config
-    (org-babel-do-load-languages
-     'org-babel-load-languages
-     '((emacs-lisp . t)
-       (latex . t)
-       (org . t)
-       (python . t)
-       (shell . t)
-       (lua . t)))
-    )
+     '(("c" "Core" entry
+	(file+headline (symbol-value 'erw/config-capture-target) "Capture")
+	(file (symbol-value 'erw/config-capture-template)))))
+    (org-refile-targets '((nil :regexp . "^:refile_bool: true$")))
+    (org-agenda-files (symbol-value 'erw/config-agenda-files))
+    (org-fold-core-style 'overlays) ;; https://lists.nongnu.org/archive/html/emacs-orgmode/2024-04/msg00497.html
+  )
+#+end_src
+
+**** hook
+
+#+header: :noweb-ref source-package-org
+#+begin_src emacs-lisp
+    (use-package org
+      :hook ((org-mode . visual-line-mode)
+	     (org-mode . org-indent-mode)))
+#+end_src
+
+**** config
+
+#+header: :noweb-ref source-package-org
+#+begin_src emacs-lisp
+  (use-package org
+      :config
+      (org-babel-do-load-languages
+       'org-babel-load-languages
+       '((emacs-lisp . t)
+	 (latex . t)
+	 (org . t)
+	 (python . t)
+	 (shell . t)
+	 (lua . t)))
+      )
 #+end_src
 
 *** org-bullets
@@ -471,25 +501,26 @@ Resource:
 )
 #+end_src
 
-** extra
-*** const
-
-#+header: :noweb-ref source-erw-extra
-#+begin_src emacs-lisp
-  (defconst erw/const-owner-at-hostname (concat (getenv "OWNER") "@" (system-name)))
-#+end_src
-
-*** custom
+** other
+*** capture
 :PROPERTIES:
-:customize: yes
+:todo_bool:     true
 :END:
 
-#+header: :noweb-ref source-erw-extra
-#+begin_src emacs-lisp
-  (defcustom erw/custom-owner 'erw/const-owner-at-hostname
-  "constant expanding to owner"
-  :type 'string
-  :group 'erw/config)
+#+name: property-refile
+#+begin_src org
+  #+property: refile_bool_ALL true false
+#+end_src
+
+#+name: org-capture-tpl
+#+begin_src org
+  ,* %^{heading}
+  :PROPERTIES:
+  :created_on: %^T
+  :uname:    %(eval erw/config-owner)
+
+  :refile_bool: %^{refile_bool|false}p
+  :END:
 #+end_src
 
 * tangle
@@ -523,7 +554,7 @@ Resource:
 
 *** extra
 :PROPERTIES:
-:customize: yes
+:customize_bool: true
 :END:
 
 #+header: :tangle yes

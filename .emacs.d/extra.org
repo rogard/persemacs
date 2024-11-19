@@ -5,7 +5,7 @@
 
 #+name: doc-lead
 #+begin_src org
-  This Emacs Org file contains extra elisp functionality.
+  This is a standalone Emacs Org containing elisp functionality.
 #+end_src
 
 * doc
@@ -15,7 +15,7 @@
 :END:
 
 #+name: doc-license
-#+begin_src org
+#+begin_src elisp
   ;;  persemacs-extra — extra elisp functionality
   ;;  Copyright (C) 2024 — Erwann Rogard
   ;;  Released under GPL 3.0
@@ -52,7 +52,7 @@ Emacs-org:
 ** el
 *** group
 
-#+header: :noweb-ref elisp-source
+#+header: :noweb-ref source-elisp
 #+begin_src emacs-lisp
     (defgroup erw/extra nil "erw's extra elisp functionality"
       :prefix "erw/")
@@ -61,7 +61,7 @@ Emacs-org:
 *** string
 **** wrap-single-quotes
 
-#+header: :noweb-ref elisp-source
+#+header: :noweb-ref source-elisp
 #+begin_src emacs-lisp
   (defun erw/function-string-wrap-single-quotes (filename)
     "Wraps STRING with single quotes if absent."
@@ -88,7 +88,7 @@ Emacs-org:
 *** table
 **** field-address
 
-#+header: :noweb-ref erw-reminder
+#+header: :noweb-ref source-elisp
 #+begin_src emacs-lisp
   (defun erw/function-table-field-address (index)
     "Table address for field INDEX"
@@ -109,7 +109,7 @@ Emacs-org:
 
 **** get-range
 
-#+header: :noweb-ref elisp-source
+#+header: :noweb-ref source-elisp
 #+begin_src emacs-lisp
   (defun erw/function-table-get-range-at-file (tbl-id range-address &optional file-name)
     "Get list of values in RANGE-ADDRESS from TBL-ID at FILE-NAME.
@@ -141,7 +141,7 @@ Emacs-org:
 
 **** lookup
 
-#+header: :noweb-ref elisp-source
+#+header: :noweb-ref source-elisp
 #+begin_src emacs-lisp
   (defun erw/function-table-lookup (tbl-id key &optional file-name key-index value-index match-predicate)
     "Lookup field KEY-INDEX and return corresponding entry in field VALUE-INDEX from table TBL-ID."
@@ -178,7 +178,7 @@ Emacs-org:
 *** path
 **** ensure-directory
 
-#+header: :noweb-ref elisp-source
+#+header: :noweb-ref source-elisp
 #+begin_src emacs-lisp
   (defun erw/ensure-directory (path)
     "Ensures PATH ends with a slash"
@@ -201,13 +201,13 @@ Emacs-org:
 * tangle
 ** source
 :PROPERTIES:
-:header-args: :tangle ./routin.el
+:header-args: :tangle ./extra.el
 :END:
 
 #+header: :noweb yes
 #+begin_src emacs-lisp
-  <<doc-license()>>
-  <<elisp-source>>
+  <<doc-license>>
+  <<source-elisp>>
 #+end_src
 
 #+RESULTS:
