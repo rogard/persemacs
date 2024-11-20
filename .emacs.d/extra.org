@@ -1,21 +1,20 @@
 #+title persemacs-extra
 #+author: Erwann Rogard
-#+startup: fold
 #+property: header-args :tangle no
 
 #+name: doc-lead
 #+begin_src org
-  This is a standalone Emacs Org file containing elisp functionality.
+  This is a standalone Emacs Org file containing emacs-lisp functionality.
 #+end_src
 
 * doc
 ** license
 :PROPERTIES:
-:custom_id: doc-license
+:custom_id: _doc-license
 :END:
 
 #+name: doc-license
-#+begin_src elisp
+#+begin_src emacs-lisp
   ;;  persemacs-extra — extra elisp functionality
   ;;  Copyright (C) 2024 — Erwann Rogard
   ;;  Released under GPL 3.0
@@ -24,17 +23,17 @@
 
 ** requirement
 :PROPERTIES:
-:custom_id: doc-req
+:custom_id: _doc-req
 :END:
 
 *** machine
 :PROPERTIES:
-:custom_id: doc-req-machine
+:custom_id: _doc-req-machine
 :END:
 
 Installed:
 #+name: doc-install
-| emacs-org  |
+| Emacs |
 
 ** workflow
 
@@ -42,7 +41,9 @@ For each source blocks below:
 - Execute it
 - Process the matches as indicated
 
-TODO
+#+begin_src emacs-lisp
+  (org-occur "header-args: :tangle" nil nil)
+#+end_src
 
 ** reference
 
@@ -53,9 +54,13 @@ Emacs-org:
 ** org
 *** table
 
-#+name: table-foo-bar
+#+name: tbl-foo-bar-string
 | "foo" | "x" |
 | "bar" | "y" |
+
+#+name: tbl-foo-bar-dir
+| "foo" | ./foo |
+| "bar" | ./bar |
 
 ** el
 *** group
@@ -133,7 +138,7 @@ Emacs-org:
 
 #+header: :noweb-ref erw-example
 #+begin_src emacs-lisp
-(erw/table-range "table-foo-bar" (format "@1$%d..@>$%d" 1 1))
+(erw/table-range "tbl-foo-bar-string" (format "@1$%d..@>$%d" 1 1))
 #+end_src
 
 #+RESULTS:
@@ -141,7 +146,7 @@ Emacs-org:
 
 #+header: :noweb-ref erw-example
 #+begin_src emacs-lisp
-(erw/table-range "table-foo-bar" (format "@1$%d..@>$%d" 2 2))
+(erw/table-range "tbl-foo-bar-string" (format "@1$%d..@>$%d" 2 2))
 #+end_src
 
 #+RESULTS:
@@ -169,7 +174,7 @@ Emacs-org:
 
 #+header: :noweb-ref erw-example
 #+begin_src emacs-lisp
-(erw/table-lookup "table-foo-bar" "foo")
+(erw/table-lookup "tbl-foo-bar-string" "foo")
 #+end_src
 
 #+RESULTS:
@@ -177,11 +182,30 @@ Emacs-org:
 
 #+header: :noweb-ref erw-example
 #+begin_src emacs-lisp
-(erw/table-lookup "table-foo-bar" "bar")
+(erw/table-lookup "tbl-foo-bar-string" "bar")
 #+end_src
 
 #+RESULTS:
 : "y"
+
+**** to-path
+
+#+header: :noweb-ref source-elisp
+#+begin_src emacs-lisp
+  (defun erw/table-to-path (tbl-name key &optional child)
+    (let* ((parent (erw/table-lookup tbl-name key))
+           (parent (erw/ensure-directory parent))
+           (args (if child
+                     (list child parent)
+                   (list parent))))
+      (message "debug: parent is %s" parent)
+      (apply #'expand-file-name args)))
+#+end_src
+
+#+header: :noweb-ref erw-example
+#+begin_src emacs-lisp
+(erw/table-to-path "tbl-test" "foo" "bar")
+#+end_src
 
 *** path
 **** ensure-directory
@@ -207,7 +231,7 @@ Emacs-org:
 : foo/
 
 * tangle
-** source
+** extra
 :PROPERTIES:
 :header-args: :tangle ./extra.el
 :END:
@@ -217,9 +241,6 @@ Emacs-org:
   <<doc-license>>
   <<source-elisp>>
 #+end_src
-
-#+RESULTS:
-: erw/function-table-lookup
 
 * miscellany
 ** scratchpad
@@ -254,6 +275,7 @@ Emacs-org:
 
 #+RESULTS:
 : "/home/erwann/unique"
+
 *** list
 
 #+header: example-plist-get-1

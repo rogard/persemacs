@@ -16,7 +16,7 @@ This Emacs Org file contains a subset of my Emacs configuration, with the rest l
 
 ** requirement
 :PROPERTIES:
-:custom_id: doc-req
+:custom_id: _doc-req
 :END:
 
 Installed:
@@ -128,7 +128,7 @@ To be able to execute code from [[id:exec-sh][sh]].
 ***** location
 :PROPERTIES:
 :customize_bool: true
-:custom_id: this-directory
+:custom_id: _this-directory
 :END:
 
 #+name: source-elisp-this-directory
@@ -210,7 +210,7 @@ To be able to execute code from [[id:exec-sh][sh]].
 
 * tangle
 :PROPERTIES:
-:custom_id: tangle
+:custom_id: _tangle
 :END:
 
 ** elisp
@@ -236,12 +236,12 @@ To be able to execute code from [[id:exec-sh][sh]].
 
 * execute
 :PROPERTIES:
-:custom_id: execute
+:custom_id: _execute
 :END:
 
 ** elisp
 :PROPERTIES:
-:custom_id: exec-elisp
+:custom_id: _exec-elisp
 :END:
 
 *** prereq
@@ -258,7 +258,7 @@ To be able to execute code from [[id:exec-sh][sh]].
 
 ** sh
 :PROPERTIES:
-:custom_id: exec-sh
+:custom_id: _exec-sh
 :prereq_bool: false
 :END:
 
@@ -275,7 +275,6 @@ To be able to execute code from [[id:exec-sh][sh]].
 
 #+RESULTS:
 : Symlink created and Emacs verified successfully.
-
 
 * trash
 *** early

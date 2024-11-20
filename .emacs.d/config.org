@@ -16,7 +16,7 @@
 
 ** require
 :PROPERTIES:
-:custom_id: doc-req
+:custom_id: _doc-req
 :END:
 
 See =../readme.org=
@@ -234,7 +234,7 @@ Reference:
 
 **** quickstart
 :PROPERTIES:
-:custom_id: source-quickstart
+:custom_id: _source-quickstart
 :END:
 
 #+header: :noweb-ref source-package-emacs
