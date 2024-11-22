@@ -204,7 +204,6 @@ Reference:
 #+end_src
 
 *** emacs
-
 **** ui
 
 #+header: :noweb-ref source-package-emacs

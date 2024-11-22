@@ -59,8 +59,8 @@ Emacs-org:
 | "bar" | "y" |
 
 #+name: tbl-foo-bar-dir
-| "foo" | ./foo |
-| "bar" | ./bar |
+| "foo" | "./foo" |
+| "bar" | "./bar" |
 
 ** el
 *** group
@@ -87,7 +87,7 @@ Emacs-org:
 #+RESULTS:
 : erw/wrap-single-quotes
 
-#+header: :noweb-ref erw-example
+#+header: :noweb-ref elisp-example
 #+begin_src emacs-lisp
   (let ((string (buffer-file-name (current-buffer))))
     (format "before: %s\nafter: %s" string 
@@ -112,7 +112,7 @@ Emacs-org:
 #+RESULTS:
 : erw/field-address
 
-#+header: :noweb-ref erw-example
+#+header: :noweb-ref elisp-example
 #+begin_src emacs-lisp
   (erw/field-address 2)
 #+end_src
@@ -129,106 +129,61 @@ Emacs-org:
        Credits: https://redd.it/r2nig7"
     (let ((file-name (or file-name (buffer-file-name (current-buffer)))))
       (with-current-buffer (find-file-noselect file-name)
-        (org-table-get-remote-range tbl-id range-address))))
+        (let ((result-with-properties
+               (org-table-get-remote-range tbl-id range-address)))
+          (mapcar (lambda (s)
+                    (substring-no-properties (substring s 1 -1)))
+                  result-with-properties)))))
   (defalias 'erw/table-range 'erw/function-table-get-range-at-file)
 #+end_src
 
 #+RESULTS:
 : erw/table-range
 
-#+header: :noweb-ref erw-example
-#+begin_src emacs-lisp
-(erw/table-range "tbl-foo-bar-string" (format "@1$%d..@>$%d" 1 1))
-#+end_src
-
-#+RESULTS:
-| "foo" | "bar" |
-
-#+header: :noweb-ref erw-example
+#+header: :noweb-ref elisp-example
+#+header: :results value verbatim
 #+begin_src emacs-lisp
 (erw/table-range "tbl-foo-bar-string" (format "@1$%d..@>$%d" 2 2))
 #+end_src
 
 #+RESULTS:
-| "x" | "y" |
+: ("x" "y")
 
 **** lookup
 
 #+header: :noweb-ref source-elisp
 #+begin_src emacs-lisp
-  (defun erw/function-table-lookup (tbl-id key &optional file-name key-index value-index match-predicate)
-    "Lookup field KEY-INDEX and return corresponding entry in field VALUE-INDEX from table TBL-ID."
-    (interactive)
-    (let ((key-address (erw/field-address (or key-index 1)))
-          (value-address (erw/field-address (or value-index 2)))
-          (file-name (or file-name (buffer-file-name (current-buffer))))
-          (match-predicate (or match-predicate 'string-match-p)))
-      (let ((key-range (erw/table-range tbl-id key-address file-name))
-            (value-range (erw/table-range tbl-id value-address file-name)))
-        (org-lookup-first key key-range value-range 'string-match-p))))
-(defalias 'erw/table-lookup 'erw/function-table-lookup)
+    (defun erw/function-table-lookup (tbl-id key &optional file-name key-index value-index match-predicate)
+      "Lookup field KEY-INDEX and return corresponding entry in field VALUE-INDEX from table TBL-ID."
+      (interactive)
+      (let ((key-address (erw/field-address (or key-index 1)))
+            (value-address (erw/field-address (or value-index 2)))
+            (file-name (or file-name (buffer-file-name (current-buffer))))
+            (match-predicate (or match-predicate 'string-match-p)))
+        (let ((key-range (erw/table-range tbl-id key-address file-name))
+              (value-range (erw/table-range tbl-id value-address file-name)))
+          (org-lookup-first key key-range value-range 'string-match-p))))
+  (defalias 'erw/table-lookup 'erw/function-table-lookup)
 #+end_src
 
 #+RESULTS:
 : erw/table-lookup
 
-#+header: :noweb-ref erw-example
+#+header: :noweb-ref elisp-example
 #+begin_src emacs-lisp
 (erw/table-lookup "tbl-foo-bar-string" "foo")
 #+end_src
 
 #+RESULTS:
-: "x"
+: x
 
-#+header: :noweb-ref erw-example
+#+header: :noweb-ref elisp-example
 #+begin_src emacs-lisp
 (erw/table-lookup "tbl-foo-bar-string" "bar")
 #+end_src
 
 #+RESULTS:
-: "y"
-
-**** to-path
-
-#+header: :noweb-ref source-elisp
-#+begin_src emacs-lisp
-  (defun erw/table-to-path (tbl-name key &optional child)
-    (let* ((parent (erw/table-lookup tbl-name key))
-           (parent (erw/ensure-directory parent))
-           (args (if child
-                     (list child parent)
-                   (list parent))))
-      (message "debug: parent is %s" parent)
-      (apply #'expand-file-name args)))
-#+end_src
-
-#+header: :noweb-ref erw-example
-#+begin_src emacs-lisp
-(erw/table-to-path "tbl-test" "foo" "bar")
-#+end_src
-
-*** path
-**** ensure-directory
-
-#+header: :noweb-ref source-elisp
-#+begin_src emacs-lisp
-  (defun erw/ensure-directory (path)
-    "Ensures PATH ends with a slash"
-    (if (not (string-match-p "/$" path))
-        (concat path "/")
-      path))
-#+end_src
-
-#+RESULTS:
-: erw/ensure-directory
-
-#+header: :noweb-ref erw-example
-#+begin_src emacs-lisp
-(erw/ensure-directory "foo")
-#+end_src
-
-#+RESULTS:
-: foo/
+: y
 
 * tangle
 ** extra
@@ -243,7 +198,119 @@ Emacs-org:
 #+end_src
 
 * miscellany
+** trash
+*** path
+**** from-table
+
+#+header: :noweb-ref source-elisp-disable
+#+begin_src emacs-lisp
+    (defun erw/function-path-from-table (tbl-name key &optional child)
+      (let* ((parent (erw/table-lookup tbl-name key)))
+	   (parent "./foo/"))
+           (if child
+                     (expand-file-name child (file-name-as-directory parent))
+                   (expand-file-name parent))))
+  (defalias 'erw/path-from-table 'erw/function-path-from-table)
+#+end_src
+
+#+RESULTS:
+: erw/path-from-table
+
+#+header: :noweb-ref elisp-example
+#+header: :results value
+#+begin_src emacs-lisp
+(erw/path-from-table "tbl-foo-bar-dir" "foo")
+#+end_src
+
+#+RESULTS:
+: /home/erwann/github/rogard/persemacs/.emacs.d/foo/
+
+#+header: :noweb-ref elisp-example
+#+header: :results value
+#+begin_src emacs-lisp
+(erw/path-from-table "tbl-foo-bar-dir" "foo" "bar")
+#+end_src
+
+#+RESULTS:
+: /home/erwann/github/rogard/persemacs/.emacs.d/foo/bar
+
+*** ensure-directory
+
+Redundant with file-name-as-directory
+
+#+header: :noweb-ref source-elisp-disable
+#+begin_src emacs-lisp
+  (defun erw/ensure-directory (path)
+    "Ensures PATH ends with a slash"
+    (if (not (string-match-p "/$" path))
+        (concat path "/")
+      path))
+#+end_src
+
+#+RESULTS:
+: erw/ensure-directory
+
+#+header: :noweb-ref elisp-example
+#+begin_src emacs-lisp
+(erw/ensure-directory "foo")
+#+end_src
+
+#+RESULTS:
+: foo/
+
+*** jtable-range
+
+#+header: :noweb-ref debug
+#+begin_src emacs-lisp
+(defun j/remote-table-range (path name range)
+  (with-current-buffer (find-file-noselect path)
+  (org-table-get-remote-range name range)))
+#+end_src
+
+#+RESULTS:
+: j/remote-table-range
+
+#+name: tbl-foo-bar-string
+| "foo" | "x" |
+| "bar" | "y" |
+
+#+header: :noweb-ref debug
+#+header: :results value verbatim
+#+begin_src emacs-lisp
+(j/remote-table-range (buffer-file-name) "tbl-foo-bar-string" (format "@1$%d..@>$%d" 2 2))
+#+end_src
+
+#+RESULTS:
+: (#("\"x\"" 0 3 (wrap-prefix #("      " 0 6 (face org-indent)) line-prefix #("      " 0 6 (face org-indent)) face org-table fontified t)) #("\"y\"" 0 3 (wrap-prefix #("      " 0 6 (face org-indent)) line-prefix #("      " 0 6 (face org-indent)) face org-table fontified t)))
+
+#+header: :results verbatim
+#+begin_src emacs-lisp
+  (let ((result  #("\"x\"" 0 3 (wrap-prefix #("      " 0 6 (face org-indent)) line-prefix #("      " 0 6 (face org-indent)) face org-table fontified t))))
+  (substring-no-properties result))
+#+end_src
+
+#+RESULTS:
+: "\"x\""
+
+#+header: :results verbatim
+#+begin_src emacs-lisp
+  (let ((result-with-properties  #("\"x\"" 0 3 (wrap-prefix #("      " 0 6 (face org-indent)) line-prefix #("      " 0 6 (face org-indent)) face org-table fontified t))))
+  (substring-no-properties (substring result 1 -1)))
+#+end_src
+
+#+RESULTS:
+: "x"
+
 ** scratchpad
+*** tangle
+:PROPERTIES:
+:header-args: :tangle (erw/table-to-path "tbl-foo-bar-dir" "foo" "test.el")
+:END:
+
+#+begin_src emacs-lisp
+  (message "testing %s" "foo")
+#+end_src
+
 *** table
 
 #+begin_src emacs-lisp
