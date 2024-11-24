@@ -64,21 +64,22 @@ Managing source code:
 
 **** debug
 
-
-#+header: :noweb-ref source-init
+#+header: :noweb-ref source-disabled
 #+begin_src emacs-lisp
-  (defun erw/default-directory-watcher (symbol newval operation where)
-    "Watch for changes to `default-directory`.
-  SYMBOL is the variable being watched.
-  NEWVAL is the new value of the variable.
-  OPERATION is the operation performed on the variable.
-  WHERE is the buffer where the variable was changed."
-    (message "default-directory changed in %s: %s → %s"
-             (buffer-name where)
-             (symbol-value symbol)  ;; Old value
-             newval))  ;; New value
-
-  (add-variable-watcher 'default-directory #'erw/default-directory-watcher)
+  ;;  (defun erw/default-directory-watcher (symbol newval operation where)
+  ;;    "Watch for changes to `default-directory`.
+  ;;  SYMBOL is the variable being watched.
+  ;;  NEWVAL is the new value of the variable.
+  ;;  OPERATION is the operation performed on the variable.
+  ;;  WHERE is the buffer where the variable was changed."
+  ;;    (message "default-directory changed in %s: %s → %s"
+  ;;             (buffer-name where)
+  ;;             (symbol-value symbol)  ;; Old value
+  ;;             newval))  ;; New value
+  ;;
+  ;; (add-variable-watcher 'default-directory #'erw/default-directory-watcher)
+  ;;
+  ;; (remove-variable-watcher 'default-directory #'erw/default-directory-watcher)
 #+end_src
 
 **** straight
@@ -226,7 +227,6 @@ Managing source code:
 #+begin_src emacs-lisp
   <<source-init>>
 #+end_src
-
 
 ** sh
 :PROPERTIES:

@@ -1,17 +1,5 @@
 (defgroup erw/config nil "erw's config"
   :prefix "erw/config")
-(defun erw/default-directory-watcher (symbol newval operation where)
-  "Watch for changes to `default-directory`.
-SYMBOL is the variable being watched.
-NEWVAL is the new value of the variable.
-OPERATION is the operation performed on the variable.
-WHERE is the buffer where the variable was changed."
-  (message "default-directory changed in %s: %s → %s"
-           (buffer-name where)
-           (symbol-value symbol)  ;; Old value
-           newval))  ;; New value
-
-(add-variable-watcher 'default-directory #'erw/default-directory-watcher)
 (defvar bootstrap-version)
 (let ((bootstrap-file
        (expand-file-name
