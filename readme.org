@@ -147,7 +147,7 @@ Managing source code:
 #+header: :noweb-ref source-init
 #+begin_src emacs-lisp
   (let* ((remote-emacs-dir (expand-file-name "config" erw/this-directory)))
-    (org-babel-load-file (expand-file-name "config.org" remote-emacs-dir)))
+    (org-babel-load-file (expand-file-name "main.org" remote-emacs-dir)))
 #+end_src
 
 ** sh
@@ -227,8 +227,6 @@ Managing source code:
   <<source-init>>
 #+end_src
 
-#+RESULTS:
-: Loaded /home/erwann/github/rogard/persemacs/config/config.el
 
 ** sh
 :PROPERTIES:

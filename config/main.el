@@ -94,7 +94,7 @@
   ;; Corrects (and improves) org-mode's native fontification.
   (doom-themes-org-config))
 (use-package ekg
-  :disabled t)
+  :disabled)
 (use-package emacs ;; pseudo-package
   :config
   (setq frame-title-format '("Misterwann")
@@ -241,6 +241,18 @@
   (setq web-mode-css-indent-offset 2)    ; CSS
   (setq web-mode-code-indent-offset 2)   ; JS/JSX/TS/TSX
   (setq web-mode-content-types-alist '(("jsx" . "\\.js[x]?\\'"))))
+(use-package wolfram-mode
+  :disabled
+  ;; :commands (wolfram-mode run-wolfram) ;; Uncomment if needed
+  :mode (("\\.m\\'" . wolfram-mode)
+         ("\\.nb\\'" . wolfram-mode))
+  :init
+  (setq wolfram-program "/usr/local/Wolfram/WolframEngine/14.0/SystemFiles/Kernel/Binaries/Linux-x86-64/WolframKernel")
+  ;; Uncomment and adjust the following line if you need to set wolfram-path
+  ;; (setq wolfram-path "/Owners/yourownername/Library/WolframEngine/12.3/Applications")
+  :config
+    (require 'ob-mathematica "/home/erwann/github/ob-mathematica/ob-mathematica.el")
+)
 
 (defconst erw/const-owner-at-hostname (concat (getenv "OWNER") "@" (system-name)))
 (defcustom erw/config-owner 'erw/const-owner-at-hostname
