@@ -1,4 +1,11 @@
+(defcustom erw/config-capture-target "/home/erwann/src/org/capture.org" "capture target location"
+  :group 'erw/config )
+(defcustom erw/config-capture-template "/home/erwann/.emacs.d/capture_core_tpl" "capture template location"
+  :group 'erw/config)
+(defcustom erw/config-agenda-files (list (symbol-value 'erw/config-capture-target)) "agenda files"
+  :group 'erw/config)
 (use-package corfu
+  :straight t
   ;; Optional customizations
   :custom
   ;; (corfu-cycle t)                ;; Enable cycling for `corfu-next/previous'
@@ -24,6 +31,7 @@
 
 ;; A few more useful configurations...
 (use-package emacs
+  :straight t
   :init
   ;; TAB cycle if there are only few candidates
   ;; (setq completion-cycle-threshold 3)
@@ -40,7 +48,22 @@
   ;; mode.  Corfu commands are hidden, since they are not used via M-x. This
   ;; setting is useful beyond Corfu.
   (setq read-extended-command-predicate #'command-completion-default-include-p))
+(use-package corfu
+  :straight t
+  :ensure
+  :demand
+  :custom
+  (corfu-auto t)
+  (corfu-quit-at-boundary 'separator)
+  (corfu-quit-no-match 'separator)
+  (corfu-scroll-margin 0)
+  (corfu-separator ?\s)
+  (corfu-popupinfo-delay '(0.5 . 0.2))
+  :config
+  (global-corfu-mode)
+  (corfu-popupinfo-mode +1))
 (use-package dashboard
+  :straight t
   :config
   (dashboard-setup-startup-hook)
   (setq dashboard-startup-banner 'logo
@@ -49,27 +72,29 @@
         dashboard-items nil
         dashboard-set-footer nil))
 (use-package doom-themes
-    :config
-    ;; Global settings (defaults)
-    (setq doom-themes-enable-bold t    ; if nil, bold is universally disabled
-          doom-themes-enable-italic t) ; if nil, italics is universally disabled
-    (load-theme ;;
-     ;;   'doom-flatwhite
-     ;;   'doom-homage-white
-     ;;   'doom-feather-light
-     ;;   'doom-one-light
-     'doom-wilmersdorf t)
+  :straight t
+  :config
+  ;; Global settings (defaults)
+  (setq doom-themes-enable-bold t    ; if nil, bold is universally disabled
+        doom-themes-enable-italic t) ; if nil, italics is universally disabled
+  (load-theme ;;
+   ;;   'doom-flatwhite
+   ;;   'doom-homage-white
+   ;;   'doom-feather-light
+   ;;   'doom-one-light
+   'doom-wilmersdorf t)
 
-    ;; Enable flashing mode-line on errors
-    (doom-themes-visual-bell-config)
-    ;; Enable custom neotree theme (all-the-icons must be installed!)
-    (doom-themes-neotree-config)
-    ;; or for treemacs owners
-    (setq doom-themes-treemacs-theme "doom-atom") ; use "doom-colors" for less minimal icon theme
-    (doom-themes-treemacs-config)
-    ;; Corrects (and improves) org-mode's native fontification.
-    (doom-themes-org-config))
-
+  ;; Enable flashing mode-line on errors
+  (doom-themes-visual-bell-config)
+  ;; Enable custom neotree theme (all-the-icons must be installed!)
+  (doom-themes-neotree-config)
+  ;; or for treemacs owners
+  (setq doom-themes-treemacs-theme "doom-atom") ; use "doom-colors" for less minimal icon theme
+  (doom-themes-treemacs-config)
+  ;; Corrects (and improves) org-mode's native fontification.
+  (doom-themes-org-config))
+(use-package ekg
+  :disabled t)
 (use-package emacs ;; pseudo-package
   :config
   (setq frame-title-format '("Misterwann")
@@ -77,6 +102,8 @@
         frame-resize-pixelwise t
         default-directory "~/")
 
+  (set-face-attribute 'default nil :height 180)
+  
   ;; Omit default startup screen
   (setq inhibit-startup-screen t)
 
@@ -92,20 +119,25 @@
   )
 ;;	  scroll-conservatively 101 ; >100
 (setq package-quickstart t)
-
 (use-package flymake-shellcheck
+  :straight t
   :ensure nil ;; built-in
   :commands flymake-shellcheck-load
   :init
   (add-hook 'sh-mode-hook 'flymake-shellcheck-load))
 (use-package lsp-mode
-  :hook ((sh-mode) . lsp-deferred) ; XYZ are to be replaced by python, c++, etc.
+  :straight t
+  :hook ((sh-mode python-mode) . lsp-deferred)
   :commands lsp
   )
+(use-package dash
+  :straight t)
 (use-package markdown-mode
+  :straight t
   :hook (markdown-mode . visual-line-mode))
 
 (use-package web-mode
+  :straight t
   :mode (("\\.html?\\'" . web-mode)
          ("\\.css\\'"   . web-mode)
          ("\\.jsx?\\'"  . web-mode)
@@ -116,13 +148,8 @@
   (setq web-mode-css-indent-offset 2)    ; CSS
   (setq web-mode-code-indent-offset 2)   ; JS/JSX/TS/TSX
   (setq web-mode-content-types-alist '(("jsx" . "\\.js[x]?\\'"))))
-(defcustom erw/config-capture-target "/home/erwann/src/org/capture.org" "capture target location"
-  :group 'erw/config )
-(defcustom erw/config-capture-template "/home/erwann/.emacs.d/capture_core_tpl" "capture template location"
-  :group 'erw/config)
-(defcustom erw/config-agenda-files (list (symbol-value 'erw/config-capture-target)) "agenda files"
-  :group 'erw/config)
 (use-package org
+  :straight t
   :custom
   (org-read-date-force-compatible-dates nil) ;; extends calendar
   (org-log-into-drawer t)
@@ -133,25 +160,26 @@
   (org-refile-targets '((nil :regexp . "^:refile_bool: true$")))
   (org-agenda-files (symbol-value 'erw/config-agenda-files))
   (org-fold-core-style 'overlays) ;; https://lists.nongnu.org/archive/html/emacs-orgmode/2024-04/msg00497.html
-)
+  )
 (use-package org
+  :straight t
   :hook ((org-mode . visual-line-mode)
 	 (org-mode . org-indent-mode)))
 (use-package org
-    :config
-    (org-babel-do-load-languages
-     'org-babel-load-languages
-     '((emacs-lisp . t)
-       (latex . t)
-       (org . t)
-       (python . t)
-       (shell . t)
-       (lua . t)))
-    )
-(use-package org-bullets :hook (org-mode . org-bullets-mode))
-
-  ;; Enable vertico
+  :straight t
+  :config
+  (org-babel-do-load-languages
+   'org-babel-load-languages
+   '((emacs-lisp . t)
+     (latex . t)
+     (org . t)
+     (python . t)
+     (shell . t)
+     (lua . t)))
+  )
+;; Enable vertico
 (use-package vertico
+  :straight t
   :init
   (vertico-mode)
 
@@ -169,10 +197,12 @@
   )
 ;; Persist history over Emacs restarts. Vertico sorts by history position.
 (use-package savehist
+  :straight t
   :init
   (savehist-mode))
 ;; A few more useful configurations...
 (use-package emacs
+  :straight t
   :init
   ;; Add prompt indicator to `completing-read-multiple'.
   ;; We display [CRM<separator>], e.g., [CRM,] if the separator is a comma.
@@ -198,6 +228,7 @@
   ;; useful beyond Vertico.
   (setq read-extended-command-predicate #'command-completion-default-include-p))
 (use-package web-mode
+  :straight t
   :mode (("\\.html?\\'" . web-mode)
          ("\\.css\\'"   . web-mode)
          ("\\.jsx?\\'"  . web-mode)
@@ -211,6 +242,6 @@
 
 (defconst erw/const-owner-at-hostname (concat (getenv "OWNER") "@" (system-name)))
 (defcustom erw/config-owner 'erw/const-owner-at-hostname
-"constant expanding to owner"
-:type 'string
-:group 'erw/config)
+  "constant expanding to owner"
+  :type 'string
+  :group 'erw/config)

@@ -3,15 +3,14 @@
 #+property: header-args :tangle no
 
 #+begin_src org
-This Emacs Org file contains a subset of my Emacs configuration, with the rest located in =.emacs.d=.
+  This Emacs Org file contains a subset of my Emacs configuration, with the rest located in =.emacs.d=.
 #+end_src
 
 * doc
 ** abstract
 
 #+begin_src org
-  This file can be used to generate =.emacs.d/init.el= and =symlink.sh= within a session opened with ~emacs -Q~.
-  Also see =.emacs.d/config.org=
+  This file can be used to generate =./.emacs.d/init.el= (1) and =symlink.sh= (2) for use with ~emacs -Q~. Loading (1) bootstraps with =straight.el= and loads =./emacs.d/config.el=. Executing (2) links (1) to ~user-init-file~.
 #+end_src
 
 ** requirement
@@ -37,11 +36,6 @@ Customize:
   (org-occur "customize_bool: true")
 #+end_src
 
-Execute:
-#+begin_src emacs-lisp
-  (org-occur "prereq_bool: true")
-#+end_src
-
 Tangle:
 #+begin_src emacs-lisp
   (org-occur "header-args: :tangle")
@@ -49,7 +43,7 @@ Tangle:
 
 Execute:
 #+begin_src emacs-lisp
-  (org-occur "prereq_bool: false")
+  (org-occur "postinit_bool: true")
 #+end_src
 
 ** reference
@@ -57,70 +51,77 @@ Execute:
 Managing source code:
 - [[https://orgmode.org/manual/Working-with-Source-Code.html][Working with source code]]
 
-Installation:
-- [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Package-Installation.html][Package installation]]
-
 * source
 ** elisp
-*** prereq
-
-To be able to tangle:
-#+header: :noweb-ref source-elisp-prereq
-#+begin_src emacs-lisp
-  (org-babel-do-load-languages
-   'org-babel-load-languages
-   '((emacs-lisp . t)
-     (org . t)
-#+end_src
-
-To be able to execute code from [[id:exec-sh][sh]].
-#+header: :noweb-ref source-elisp-prereq
-#+begin_src emacs-lisp
-     (shell . t)
-#+end_src
-
-#+header: :noweb-ref source-elisp-prereq
-#+begin_src emacs-lisp
-     ))
-#+end_src
-
 *** init
-**** attrib
-
-#+header: :noweb-ref source-elisp-init
-#+begin_src emacs-lisp
-  ;; init.el --- Emacs init file
-  ;; Adapted from:
-  ;; - https://github.com/ianyepan/yay-evil-emacs
-#+end_src
-
 **** group
 
-#+header: :noweb-ref source-elisp-init
+#+header: :noweb-ref source-init
 #+begin_src emacs-lisp
   (defgroup erw/config nil "erw's config"
     :prefix "erw/config")
 #+end_src
 
-**** archives
+**** debug
 
-#+header: :noweb-ref source-elisp-init
+
+#+header: :noweb-ref source-init
 #+begin_src emacs-lisp
-  (require 'package)
-  (add-to-list 'package-archives '("gnu" . "https://elpa.gnu.org/packages/"))
-  (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/"))
-  (add-to-list 'package-archives '("org" . "https://orgmode.org/elpa/"))
+  (defun erw/default-directory-watcher (symbol newval operation where)
+    "Watch for changes to `default-directory`.
+  SYMBOL is the variable being watched.
+  NEWVAL is the new value of the variable.
+  OPERATION is the operation performed on the variable.
+  WHERE is the buffer where the variable was changed."
+    (message "default-directory changed in %s: %s → %s"
+             (buffer-name where)
+             (symbol-value symbol)  ;; Old value
+             newval))  ;; New value
+
+  (add-variable-watcher 'default-directory #'erw/default-directory-watcher)
+#+end_src
+
+**** straight
+
+#+header: :noweb-ref source-init
+#+begin_src emacs-lisp
+  (defvar bootstrap-version)
+  (let ((bootstrap-file
+         (expand-file-name
+          "straight/repos/straight.el/bootstrap.el"
+          (or (bound-and-true-p straight-base-dir)
+              user-emacs-directory)))
+        (bootstrap-version 7))
+    (unless (file-exists-p bootstrap-file)
+      (with-current-buffer
+          (url-retrieve-synchronously
+           "https://raw.githubusercontent.com/radian-software/straight.el/develop/install.el"
+           'silent 'inhibit-cookies)
+        (goto-char (point-max))
+        (eval-print-last-sexp)))
+    (load bootstrap-file nil 'nomessage))
+#+end_src
+
+#+header: :noweb-ref source-init
+#+begin_src emacs-lisp
+  ;; Ensure Org is loaded early
+  (straight-use-package 'org)
 #+end_src
 
 **** use-package
 
-#+header: :noweb-ref source-elisp-init
+#+header: :noweb-ref source-init
 #+begin_src emacs-lisp
-  (unless (package-installed-p 'use-package)
-    (package-refresh-contents)
-    (package-install 'use-package))
+  (straight-use-package 'use-package)
+#+end_src
+
+#+header: :noweb-ref source-init
+#+begin_src emacs-lisp
+  ;;  (unless (package-installed-p 'use-package)
+  ;;    (package-refresh-contents)
+  ;;    (package-install 'use-package))
   (eval-and-compile
-  (setq use-package-always-ensure t)) 
+    (setq use-package-always-ensure t)) 
   ;; (setq use-package-always-defer t))
 #+end_src
 
@@ -132,7 +133,7 @@ To be able to execute code from [[id:exec-sh][sh]].
 :END:
 
 #+name: source-elisp-this-directory
-#+header: :noweb-ref source-elisp-init
+#+header: :noweb-ref source-init
 #+begin_src emacs-lisp
   (defcustom erw/this-directory "/home/erwann/github/rogard/persemacs/" "where this package is located"
     :group 'erw/config)
@@ -140,7 +141,7 @@ To be able to execute code from [[id:exec-sh][sh]].
 
 ***** load
 
-#+header: :noweb-ref source-elisp-init
+#+header: :noweb-ref source-init
 #+begin_src emacs-lisp
   (let* ((remote-emacs-dir (expand-file-name ".emacs.d" erw/this-directory)))
     (org-babel-load-file (expand-file-name "config.org" remote-emacs-dir)))
@@ -163,7 +164,7 @@ To be able to execute code from [[id:exec-sh][sh]].
 
 #+header: :noweb-ref source-sh-symlink
 #+begin_src sh
-  link_name="${HOME}/.emacs"
+  link_name="${user_init_file}"
 
   if [[ -f "${link_name}" ]]; then
       cp "${link_name}" "${HOME}/.emacs.bak" || {
@@ -220,15 +221,22 @@ To be able to execute code from [[id:exec-sh][sh]].
 
 #+header: :noweb  yes
 #+begin_src emacs-lisp
-<<source-elisp-init>>
+  <<source-init>>
 #+end_src
+
+#+RESULTS:
+: Loaded /home/erwann/github/rogard/persemacs/.emacs.d/config.el
 
 ** sh
 :PROPERTIES:
 :header-args: :tangle "./symlink.sh"
 :END:
 
+Requirement:
+- Load =./.emacs.d/init.el=
+
 #+header: :noweb  yes
+#+header: :var user_init_file=(symbol-value 'user-init-file)
 #+begin_src emacs-lisp
   <<source-sh-preamble>>
   <<source-sh-symlink>>
@@ -239,28 +247,18 @@ To be able to execute code from [[id:exec-sh][sh]].
 :custom_id: _execute
 :END:
 
-** elisp
+** symlink
 :PROPERTIES:
-:custom_id: _exec-elisp
+:postinit_bool: true
 :END:
 
-*** prereq
-:PROPERTIES:
-:prereq_bool: true
-:END:
-
-#+header: :noweb yes
 #+begin_src emacs-lisp
-  <<source-elisp-prereq>>
+  (load-file ./init.el)
 #+end_src
 
-#+RESULTS:
-
-** sh
-:PROPERTIES:
-:custom_id: _exec-sh
-:prereq_bool: false
-:END:
+#+begin_src emacs-lisp
+  (require 'ob-shell)
+#+end_src
 
 #+begin_src sh
   (file='symlink.sh';
@@ -279,19 +277,9 @@ To be able to execute code from [[id:exec-sh][sh]].
 * trash
 *** early
 
-#+header: :noweb-ref source-elisp-init-disable
+#+header: :noweb-ref source-init-disable
 #+begin_src emacs-lisp
   ;; https://emacs.stackexchange.com/a/76249
   ;; (setq package-enable-at-startup nil) 
 #+end_src
-
-*** workaround
-
-#+header: :noweb-ref source-elisp-init-disable
-#+begin_src emacs-lisp
-  ;; Emacs calls package-initialize before evaluating your init file (since 27.1)
-  ;; (package-initialize) 
-  (setq gnutls-algorithm-priority "NORMAL:-VERS-TLS1.3") ;; workaround bug in Emacs 26.2
-#+end_src
-
 

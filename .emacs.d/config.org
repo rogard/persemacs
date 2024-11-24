@@ -40,6 +40,15 @@ Managing source code:
 - [[https://orgmode.org/manual/Working-with-Source-Code.html][Working with source code]]
 
 * source
+** attrib
+
+#+header: :noweb-ref source-elisp-init
+#+begin_src emacs-lisp
+  ;; config.el --- Emacs config file
+  ;; Adapted from:
+  ;; - https://github.com/ianyepan/yay-evil-emacs
+#+end_src
+
 ** variable
 *** const
 
@@ -58,33 +67,33 @@ Managing source code:
 #+header: :noweb-ref source-erw-extra
 #+begin_src emacs-lisp
   (defcustom erw/config-owner 'erw/const-owner-at-hostname
-  "constant expanding to owner"
-  :type 'string
-  :group 'erw/config)
+    "constant expanding to owner"
+    :type 'string
+    :group 'erw/config)
 #+end_src
 
 **** capture-target
 
-#+header: :noweb-ref source-package-org
+#+header: :noweb-ref source-package
 #+begin_src elisp
-    (defcustom erw/config-capture-target "/home/erwann/src/org/capture.org" "capture target location"
-      :group 'erw/config )
+  (defcustom erw/config-capture-target "/home/erwann/src/org/capture.org" "capture target location"
+    :group 'erw/config )
 #+end_src
 
 **** capture-template
 
-#+header: :noweb-ref source-package-org
+#+header: :noweb-ref source-package
 #+begin_src elisp
-    (defcustom erw/config-capture-template "/home/erwann/.emacs.d/capture_core_tpl" "capture template location"
-      :group 'erw/config)
+  (defcustom erw/config-capture-template "/home/erwann/.emacs.d/capture_core_tpl" "capture template location"
+    :group 'erw/config)
 #+end_src
 
 **** agenda-files
 
-#+header: :noweb-ref source-package-org
+#+header: :noweb-ref source-package
 #+begin_src elisp
-    (defcustom erw/config-agenda-files (list (symbol-value 'erw/config-capture-target)) "agenda files"
-      :group 'erw/config)
+  (defcustom erw/config-agenda-files (list (symbol-value 'erw/config-capture-target)) "agenda files"
+    :group 'erw/config)
 #+end_src
 
 ** package
@@ -93,73 +102,77 @@ Managing source code:
 Reference:
 - https://github.com/minad/corfu
 
-#+name: source-package-corfu
+#+header: :noweb-ref source-package
 #+begin_src emacs-lisp
   (use-package corfu
-  ;; Optional customizations
-  :custom
-  ;; (corfu-cycle t)                ;; Enable cycling for `corfu-next/previous'
-  (corfu-auto t)                 ;; Enable auto completion
-  ;; (corfu-separator ?\s)          ;; Orderless field separator
-  ;; (corfu-quit-at-boundary nil)   ;; Never quit at completion boundary
-  ;; (corfu-quit-no-match nil)      ;; Never quit, even if there is no match
-  ;; (corfu-preview-current nil)    ;; Disable current candidate preview
-  ;; (corfu-preselect 'prompt)      ;; Preselect the prompt
-  ;; (corfu-on-exact-match nil)     ;; Configure handling of exact matches
-  ;; (corfu-scroll-margin 5)        ;; Use scroll margin
+    :straight t
+    ;; Optional customizations
+    :custom
+    ;; (corfu-cycle t)                ;; Enable cycling for `corfu-next/previous'
+    (corfu-auto t)                 ;; Enable auto completion
+    ;; (corfu-separator ?\s)          ;; Orderless field separator
+    ;; (corfu-quit-at-boundary nil)   ;; Never quit at completion boundary
+    ;; (corfu-quit-no-match nil)      ;; Never quit, even if there is no match
+    ;; (corfu-preview-current nil)    ;; Disable current candidate preview
+    ;; (corfu-preselect 'prompt)      ;; Preselect the prompt
+    ;; (corfu-on-exact-match nil)     ;; Configure handling of exact matches
+    ;; (corfu-scroll-margin 5)        ;; Use scroll margin
 
-  ;; Enable Corfu only for certain modes.
-  ;; :hook ((prog-mode . corfu-mode)
-  ;;        (shell-mode . corfu-mode)
-  ;;        (eshell-mode . corfu-mode))
+    ;; Enable Corfu only for certain modes.
+    ;; :hook ((prog-mode . corfu-mode)
+    ;;        (shell-mode . corfu-mode)
+    ;;        (eshell-mode . corfu-mode))
 
-  ;; Recommended: Enable Corfu globally.  This is recommended since Dabbrev can
-  ;; be used globally (M-/).  See also the customization variable
-  ;; `global-corfu-modes' to exclude certain modes.
-  :init
-  (global-corfu-mode))
+    ;; Recommended: Enable Corfu globally.  This is recommended since Dabbrev can
+    ;; be used globally (M-/).  See also the customization variable
+    ;; `global-corfu-modes' to exclude certain modes.
+    :init
+    (global-corfu-mode))
 
-;; A few more useful configurations...
-(use-package emacs
-  :init
-  ;; TAB cycle if there are only few candidates
-  ;; (setq completion-cycle-threshold 3)
+  ;; A few more useful configurations...
+  (use-package emacs
+    :straight t
+    :init
+    ;; TAB cycle if there are only few candidates
+    ;; (setq completion-cycle-threshold 3)
 
-  ;; Enable indentation+completion using the TAB key.
-  ;; `completion-at-point' is often bound to M-TAB.
-  (setq tab-always-indent 'complete)
+    ;; Enable indentation+completion using the TAB key.
+    ;; `completion-at-point' is often bound to M-TAB.
+    (setq tab-always-indent 'complete)
 
-  ;; Emacs 30 and newer: Disable Ispell completion function. As an alternative,
-  ;; try `cape-dict'.
-  (setq text-mode-ispell-word-completion nil)
+    ;; Emacs 30 and newer: Disable Ispell completion function. As an alternative,
+    ;; try `cape-dict'.
+    (setq text-mode-ispell-word-completion nil)
 
-  ;; Emacs 28 and newer: Hide commands in M-x which do not apply to the current
-  ;; mode.  Corfu commands are hidden, since they are not used via M-x. This
-  ;; setting is useful beyond Corfu.
-  (setq read-extended-command-predicate #'command-completion-default-include-p))
+    ;; Emacs 28 and newer: Hide commands in M-x which do not apply to the current
+    ;; mode.  Corfu commands are hidden, since they are not used via M-x. This
+    ;; setting is useful beyond Corfu.
+    (setq read-extended-command-predicate #'command-completion-default-include-p))
 #+end_src
 
-#+name: source-package-corfu-disable
+#+header: :noweb-ref source-package
 #+begin_src emacs-lisp
   (use-package corfu
-  :ensure
-  :demand
-  :custom
-  (corfu-auto t)
-  (corfu-quit-at-boundary 'separator)
-  (corfu-quit-no-match 'separator)
-  (corfu-scroll-margin 0)
-  (corfu-separator ?\s)
-  (corfu-popupinfo-delay '(0.5 . 0.2))
-  :config
-  (global-corfu-mode)
-  (corfu-popupinfo-mode +1))
+    :straight t
+    :ensure
+    :demand
+    :custom
+    (corfu-auto t)
+    (corfu-quit-at-boundary 'separator)
+    (corfu-quit-no-match 'separator)
+    (corfu-scroll-margin 0)
+    (corfu-separator ?\s)
+    (corfu-popupinfo-delay '(0.5 . 0.2))
+    :config
+    (global-corfu-mode)
+    (corfu-popupinfo-mode +1))
 #+end_src
 *** dashboard
 
-#+name: source-package-dashboard
+#+header: :noweb-ref source-package
 #+begin_src emacs-lisp
   (use-package dashboard
+    :straight t
     :config
     (dashboard-setup-startup-hook)
     (setq dashboard-startup-banner 'logo
@@ -171,9 +184,10 @@ Reference:
 
 *** doomemacs
 
-#+name: source-package-doomemacs
+#+header: :noweb-ref source-package
 #+begin_src emacs-lisp
-(use-package doom-themes
+  (use-package doom-themes
+    :straight t
     :config
     ;; Global settings (defaults)
     (setq doom-themes-enable-bold t    ; if nil, bold is universally disabled
@@ -198,15 +212,16 @@ Reference:
 
 *** ekg
 
-#+name: source-package-ekg
+#+header: :noweb-ref source-package
 #+begin_src emacs-lisp
-  (use-package ekg)
+  (use-package ekg
+    :disabled t)
 #+end_src
 
 *** emacs
 **** ui
 
-#+header: :noweb-ref source-package-emacs
+#+header: :noweb-ref source-package
 #+begin_src emacs-lisp
   (use-package emacs ;; pseudo-package
     :config
@@ -215,6 +230,8 @@ Reference:
           frame-resize-pixelwise t
           default-directory "~/")
 
+    (set-face-attribute 'default nil :height 180)
+    
     ;; Omit default startup screen
     (setq inhibit-startup-screen t)
 
@@ -236,17 +253,21 @@ Reference:
 :custom_id: _source-quickstart
 :END:
 
-#+header: :noweb-ref source-package-emacs
+TODO:
+- Is this warranged with =straight.el=?
+
+#+header: :noweb-ref source-package
 #+begin_src elisp
   (setq package-quickstart t)
 #+end_src
 
 *** files
 
-#+name: source-package-files
+#+header: :noweb-ref source-package
 #+header :noweb-ref source-package-emacs-file-tweaks
 #+begin_src emacs-lisp
   (use-package files
+    :straight t
     :config
     (setq confirm-kill-processes nil
           create-lockfiles nil ; don't create .# files (crashes 'npm start')
@@ -258,9 +279,10 @@ Reference:
 Reference:
 - [[https://github.com/federicotdn/flymake-shellcheck][flymate-shellcheck]]
 
-#+header: :noweb-ref source-package-flymake
+#+header: :noweb-ref source-package
 #+begin_src emacs-lisp
   (use-package flymake-shellcheck
+    :straight t
     :ensure nil ;; built-in
     :commands flymake-shellcheck-load
     :init
@@ -289,10 +311,11 @@ Reference:
 Reference:
 - [[https://github.com/bash-lsp/bash-language-server][bash-lsp/bash-language-server]]
 
-#+header: :noweb-ref source-package-lsp-mode
+#+header: :noweb-ref source-package
 #+begin_src emacs-lisp
   (use-package lsp-mode
-    :hook ((sh-mode) . lsp-deferred) ; XYZ are to be replaced by python, c++, etc.
+    :straight t
+    :hook ((sh-mode python-mode) . lsp-deferred)
     :commands lsp
     )
 #+end_src
@@ -300,28 +323,40 @@ Reference:
 Commands:
 - =M-x lsp-ui-imenu=
 - =M-x lsp-describe-sessions=
-
 #+header: :noweb-ref source-package-lsp-mode-disable
 #+begin_src emacs-lisp
   (use-package lsp-ui
-  :commands lsp-ui-mode
-  :config
-  (setq lsp-ui-doc-enable nil)
-  (setq lsp-ui-doc-header t)
-  (setq lsp-ui-doc-include-signature t)
-  (setq lsp-ui-doc-border (face-foreground 'default))
-  (setq lsp-ui-sideline-show-code-actions t)
-  (setq lsp-ui-sideline-delay 0.05))
+    :straight t
+    :commands lsp-ui-mode
+    :config
+    (setq lsp-ui-doc-enable nil)
+    (setq lsp-ui-doc-header t)
+    (setq lsp-ui-doc-include-signature t)
+    (setq lsp-ui-doc-border (face-foreground 'default))
+    (setq lsp-ui-sideline-show-code-actions t)
+    (setq lsp-ui-sideline-delay 0.05))
+#+end_src
+
+*** dash
+
+Merely exploring it.
+
+#+header: :noweb-ref source-package
+#+begin_src emacs-lisp
+  (use-package dash
+    :straight t)
 #+end_src
 
 *** markdown
 
-#+name: source-package-markdown-mode
+#+header: :noweb-ref source-package
 #+begin_src emacs-lisp
   (use-package markdown-mode
+    :straight t
     :hook (markdown-mode . visual-line-mode))
 
   (use-package web-mode
+    :straight t
     :mode (("\\.html?\\'" . web-mode)
            ("\\.css\\'"   . web-mode)
            ("\\.jsx?\\'"  . web-mode)
@@ -342,64 +377,70 @@ Resource:
 
 **** custom
 
-#+header: :noweb-ref source-package-org
+#+header: :noweb-ref source-package
 #+begin_src emacs-lisp
   (use-package org
+    :straight t
     :custom
     (org-read-date-force-compatible-dates nil) ;; extends calendar
     (org-log-into-drawer t)
     (org-capture-templates
      '(("c" "Core" entry
-	(file+headline (symbol-value 'erw/config-capture-target) "Capture")
-	(file (symbol-value 'erw/config-capture-template)))))
+        (file+headline (symbol-value 'erw/config-capture-target) "Capture")
+        (file (symbol-value 'erw/config-capture-template)))))
     (org-refile-targets '((nil :regexp . "^:refile_bool: true$")))
     (org-agenda-files (symbol-value 'erw/config-agenda-files))
     (org-fold-core-style 'overlays) ;; https://lists.nongnu.org/archive/html/emacs-orgmode/2024-04/msg00497.html
-  )
+    )
 #+end_src
 
 **** hook
 
-#+header: :noweb-ref source-package-org
+#+header: :noweb-ref source-package
 #+begin_src emacs-lisp
-    (use-package org
-      :hook ((org-mode . visual-line-mode)
-	     (org-mode . org-indent-mode)))
+  (use-package org
+    :straight t
+    :hook ((org-mode . visual-line-mode)
+  	 (org-mode . org-indent-mode)))
 #+end_src
 
 **** config
 
-#+header: :noweb-ref source-package-org
+#+header: :noweb-ref source-package
 #+begin_src emacs-lisp
   (use-package org
-      :config
-      (org-babel-do-load-languages
-       'org-babel-load-languages
-       '((emacs-lisp . t)
-	 (latex . t)
-	 (org . t)
-	 (python . t)
-	 (shell . t)
-	 (lua . t)))
-      )
+    :straight t
+    :config
+    (org-babel-do-load-languages
+     'org-babel-load-languages
+     '((emacs-lisp . t)
+       (latex . t)
+       (org . t)
+       (python . t)
+       (shell . t)
+       (lua . t)))
+    )
 #+end_src
 
 *** org-bullets
 
 #+header:  :noweb-ref source-package-org-bullets
 #+begin_src emacs-lisp
-  (use-package org-bullets :hook (org-mode . org-bullets-mode))
+  (use-package org-bullets
+    :straight t
+    :hook (org-mode . org-bullets-mode))
 #+end_src
 
 *** vertico
 
-Reference
+Reference:
 - https://github.com/minad/vertico
 
-#+header: :noweb-ref source-package-vertico
+#+header: :noweb-ref source-package
 #+begin_src emacs-lisp
-    ;; Enable vertico
+  ;; Enable vertico
   (use-package vertico
+    :straight t
     :init
     (vertico-mode)
 
@@ -417,33 +458,35 @@ Reference
     )
 #+end_src
 
-#+header: :noweb-ref source-package-vertico
+#+header: :noweb-ref source-package
 #+begin_src emacs-lisp
   ;; Persist history over Emacs restarts. Vertico sorts by history position.
   (use-package savehist
+    :straight t
     :init
     (savehist-mode))
 #+end_src
 
-#+header: :noweb-ref source-package-vertico
+#+header: :noweb-ref source-package
 #+begin_src emacs-lisp
   ;; A few more useful configurations...
   (use-package emacs
+    :straight t
     :init
     ;; Add prompt indicator to `completing-read-multiple'.
     ;; We display [CRM<separator>], e.g., [CRM,] if the separator is a comma.
     (defun crm-indicator (args)
       (cons (format "[CRM%s] %s"
-		    (replace-regexp-in-string
-		     "\\`\\[.*?]\\*\\|\\[.*?]\\*\\'" ""
-		     crm-separator)
-		    (car args))
-	    (cdr args)))
+  		  (replace-regexp-in-string
+  		   "\\`\\[.*?]\\*\\|\\[.*?]\\*\\'" ""
+  		   crm-separator)
+  		  (car args))
+  	  (cdr args)))
     (advice-add #'completing-read-multiple :filter-args #'crm-indicator)
 
     ;; Do not allow the cursor in the minibuffer prompt
     (setq minibuffer-prompt-properties
-	  '(read-only t cursor-intangible t face minibuffer-prompt))
+  	'(read-only t cursor-intangible t face minibuffer-prompt))
     (add-hook 'minibuffer-setup-hook #'cursor-intangible-mode)
 
     ;; Support opening new minibuffers from inside existing minibuffers.
@@ -457,9 +500,10 @@ Reference
 
 *** web-mode
 
-#+name: source-package-web-mode
+#+header: :noweb-ref source-package
 #+begin_src emacs-lisp
   (use-package web-mode
+    :straight t
     :mode (("\\.html?\\'" . web-mode)
            ("\\.css\\'"   . web-mode)
            ("\\.jsx?\\'"  . web-mode)
@@ -479,35 +523,34 @@ Resource:
 - https://emacs.stackexchange.com/a/75819
 - https://github.com/kawabata/wolfram-mode/tree/be680190cac6ccf579dbce107deaae495928d1b3
   
-#+header: :noweb-ref source-package-wolfram
+#+header: :noweb-ref source-package-disabled
 #+begin_src emacs-lisp
-  ;; Org also enables languages when loaded with ‘require’ statement.
   (require 'ob-mathematica "/home/erwann/github/ob-mathematica/ob-mathematica.el")
 #+end_src
 
-#+header: :noweb-ref source-package-wolfram
+#+header: :noweb-ref source-package-disabled
 #+begin_src emacs-lisp
-(use-package wolfram-mode
-  :ensure t
-  ;; :commands (wolfram-mode run-wolfram) ;; Uncomment if needed
-  :mode (("\\.m\\'" . wolfram-mode)
-         ("\\.nb\\'" . wolfram-mode))
-  :init
-  (setq wolfram-program "/usr/local/Wolfram/WolframEngine/14.0/SystemFiles/Kernel/Binaries/Linux-x86-64/WolframKernel")
-  ;; Uncomment and adjust the following line if you need to set wolfram-path
-  ;; (setq wolfram-path "/Owners/yourownername/Library/WolframEngine/12.3/Applications")
-)
+  (use-package wolfram-mode
+    :disabled t
+    ;; :commands (wolfram-mode run-wolfram) ;; Uncomment if needed
+    :mode (("\\.m\\'" . wolfram-mode)
+           ("\\.nb\\'" . wolfram-mode))
+    :init
+    (setq wolfram-program "/usr/local/Wolfram/WolframEngine/14.0/SystemFiles/Kernel/Binaries/Linux-x86-64/WolframKernel")
+    ;; Uncomment and adjust the following line if you need to set wolfram-path
+    ;; (setq wolfram-path "/Owners/yourownername/Library/WolframEngine/12.3/Applications")
+    )
 #+end_src
 
 ** other
 *** capture
 :PROPERTIES:
-:todo_bool:     true
+:todo_bool: true
 :END:
 
 #+name: property-refile
 #+begin_src org
-  #+property: refile_bool_ALL true false
+  ,#+property: refile_bool_ALL true false
 #+end_src
 
 #+name: org-capture-tpl
@@ -527,27 +570,7 @@ Resource:
 #+header: :tangle yes
 #+header: :noweb yes
 #+begin_src emacs-lisp
-  <<source-package-corfu>>
-  <<source-package-dashboard>>
-  <<source-package-doomemacs>>
-  <<source-package-el-mock>>
-  <<source-package-emacs>>
-  <<source-package-files>>
-  <<source-package-flymake>>
-  <<source-package-lsp-mode>>
-  <<source-package-markdown-mode>>
-  <<source-package-org>>
-  <<source-package-org-bullets>>
-  <<source-package-scroll-bar>>
-  <<source-package-vertico>>
-  <<source-package-web-mode>>
-#+end_src
-
-#+header: :tangle no
-#+header: :noweb yes
-#+begin_src emacs-lisp
-<<source-package-ekg>>
-<<source-package-wolfram>>
+  <<source-package>>
 #+end_src
 
 *** extra
@@ -568,6 +591,9 @@ In connection with [[id:source-quickstart][this]], optionally execute:
   (package-quickstart-refresh)
 #+end_src
 
+#+RESULTS:
+: t
+
 * trash
 ** resource
 *** article
@@ -587,7 +613,3 @@ Keywords:
 #+end_src
 
 **** [[https://www.gnu.org/software/emacs/manual/html_node/elisp/Profiling.html][Profiling]]
-
-
-
-
