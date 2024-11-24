@@ -139,6 +139,9 @@ Managing source code:
     :group 'erw/config)
 #+end_src
 
+#+RESULTS: source-elisp-this-directory
+: erw/this-directory
+
 ***** load
 
 #+header: :noweb-ref source-init
@@ -233,12 +236,16 @@ Managing source code:
 :END:
 
 Requirement:
-- Load =./config/init.el=
+- Execute [[id:_load-init][=this=]]
 
 #+header: :noweb  yes
-#+header: :var user_init_file=(symbol-value 'user-init-file)
-#+begin_src emacs-lisp
+#+begin_src sh
   <<source-sh-preamble>>
+#+end_src
+
+#+header: :noweb  yes
+#+header: :var user_init_file=(expand-file-name user-init-file)
+#+begin_src sh
   <<source-sh-symlink>>
 #+end_src
 
@@ -247,14 +254,22 @@ Requirement:
 :custom_id: _execute
 :END:
 
+** load-init
+:PROPERTIES:
+:custom_id: _load-init
+:END:
+
+#+begin_src emacs-lisp
+  (load-file "./config/init.el")
+#+end_src
+
 ** symlink
 :PROPERTIES:
 :postinit_bool: true
 :END:
 
-#+begin_src emacs-lisp
-  (load-file ./init.el)
-#+end_src
+Requirement:
+- Execute [[id:_load-init][=this=]]
 
 #+begin_src emacs-lisp
   (require 'ob-shell)
@@ -272,7 +287,6 @@ Requirement:
 #+end_src
 
 #+RESULTS:
-: Symlink created and Emacs verified successfully.
 
 * trash
 *** early

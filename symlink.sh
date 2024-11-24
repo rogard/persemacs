@@ -1,12 +1,14 @@
 #!/usr/bin/env bash
-link_name="${HOME}/.emacs"
+
+user_init_file='/home/erwann/.emacs'
+link_name="${user_init_file}"
 
 if [[ -f "${link_name}" ]]; then
     cp "${link_name}" "${HOME}/.emacs.bak" || {
         echo "Failed to create backup of ${link_name}"; exit 1;
     }
 fi
-target="${PWD}/.emacs.d/init.el"
+target="${PWD}/config/init.el"
 
 if [[ ! -f "${target}" ]]; then
     echo "Target ${target} not found"; exit 1;

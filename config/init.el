@@ -38,5 +38,5 @@ WHERE is the buffer where the variable was changed."
 ;; (setq use-package-always-defer t))
 (defcustom erw/this-directory "/home/erwann/github/rogard/persemacs/" "where this package is located"
   :group 'erw/config)
-(let* ((remote-emacs-dir (expand-file-name ".emacs.d" erw/this-directory)))
+(let* ((remote-emacs-dir (expand-file-name "config" erw/this-directory)))
   (org-babel-load-file (expand-file-name "config.org" remote-emacs-dir)))

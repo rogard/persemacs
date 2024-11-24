@@ -103,7 +103,7 @@
         default-directory "~/")
 
   (set-face-attribute 'default nil :height 180)
-  
+
   ;; Omit default startup screen
   (setq inhibit-startup-screen t)
 
@@ -129,6 +129,8 @@
   :straight t
   :hook ((sh-mode python-mode) . lsp-deferred)
   :commands lsp
+  :config
+  (setq lsp-auto-guess-root t) ;; https://www.reddit.com/r/emacs/comments/17bntg3/how_to_set_up_lspjava_so_that_it_works_for_an
   )
 (use-package dash
   :straight t)
@@ -164,7 +166,7 @@
 (use-package org
   :straight t
   :hook ((org-mode . visual-line-mode)
-	 (org-mode . org-indent-mode)))
+         (org-mode . org-indent-mode)))
 (use-package org
   :straight t
   :config
@@ -208,16 +210,16 @@
   ;; We display [CRM<separator>], e.g., [CRM,] if the separator is a comma.
   (defun crm-indicator (args)
     (cons (format "[CRM%s] %s"
-		  (replace-regexp-in-string
-		   "\\`\\[.*?]\\*\\|\\[.*?]\\*\\'" ""
-		   crm-separator)
-		  (car args))
-	  (cdr args)))
+                  (replace-regexp-in-string
+                   "\\`\\[.*?]\\*\\|\\[.*?]\\*\\'" ""
+                   crm-separator)
+                  (car args))
+          (cdr args)))
   (advice-add #'completing-read-multiple :filter-args #'crm-indicator)
 
   ;; Do not allow the cursor in the minibuffer prompt
   (setq minibuffer-prompt-properties
-	'(read-only t cursor-intangible t face minibuffer-prompt))
+        '(read-only t cursor-intangible t face minibuffer-prompt))
   (add-hook 'minibuffer-setup-hook #'cursor-intangible-mode)
 
   ;; Support opening new minibuffers from inside existing minibuffers.
