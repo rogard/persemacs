@@ -3,14 +3,14 @@
 #+property: header-args :tangle no
 
 #+begin_src org
-  This Emacs Org file contains a subset of my Emacs configuration, with the rest located in =.emacs.d=.
+  This Emacs Org file contains a subset of my Emacs configuration, with the rest located in =./config=.
 #+end_src
 
 * doc
 ** abstract
 
 #+begin_src org
-  This file can be used to generate =./.emacs.d/init.el= (1) and =symlink.sh= (2) for use with ~emacs -Q~. Loading (1) bootstraps with =straight.el= and loads =./emacs.d/config.el=. Executing (2) links (1) to ~user-init-file~.
+  This file can be used to generate =./config/init.el= (1) and =symlink.sh= (2) for use with ~emacs -Q~. Loading (1) bootstraps with =straight.el= and loads =./emacs.d/config.el=. Executing (2) links (1) to ~user-init-file~.
 #+end_src
 
 ** requirement
@@ -143,7 +143,7 @@ Managing source code:
 
 #+header: :noweb-ref source-init
 #+begin_src emacs-lisp
-  (let* ((remote-emacs-dir (expand-file-name ".emacs.d" erw/this-directory)))
+  (let* ((remote-emacs-dir (expand-file-name "config" erw/this-directory)))
     (org-babel-load-file (expand-file-name "config.org" remote-emacs-dir)))
 #+end_src
 
@@ -177,7 +177,7 @@ Managing source code:
 
 #+header: :noweb-ref source-sh-symlink
 #+begin_src sh
-  target="${PWD}/.emacs.d/init.el"
+  target="${PWD}/config/init.el"
 
   if [[ ! -f "${target}" ]]; then
       echo "Target ${target} not found"; exit 1;
@@ -216,7 +216,7 @@ Managing source code:
 
 ** elisp
 :PROPERTIES:
-:header-args: :tangle "./.emacs.d/init.el"
+:header-args: :tangle "./config/init.el"
 :END:
 
 #+header: :noweb  yes
@@ -225,7 +225,7 @@ Managing source code:
 #+end_src
 
 #+RESULTS:
-: Loaded /home/erwann/github/rogard/persemacs/.emacs.d/config.el
+: Loaded /home/erwann/github/rogard/persemacs/config/config.el
 
 ** sh
 :PROPERTIES:
@@ -233,7 +233,7 @@ Managing source code:
 :END:
 
 Requirement:
-- Load =./.emacs.d/init.el=
+- Load =./config/init.el=
 
 #+header: :noweb  yes
 #+header: :var user_init_file=(symbol-value 'user-init-file)
