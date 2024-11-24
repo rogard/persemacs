@@ -10,7 +10,7 @@
 ** abstract
 
 #+begin_src org
-  This file can be used to generate =./config/init.el= (1) and =symlink.sh= (2) for use with ~emacs -Q~. Loading (1) bootstraps with =straight.el= and loads =./emacs.d/config.el=. Executing (2) links (1) to ~user-init-file~.
+  This file can be used to generate =./config/init.el= (1) and =symlink.sh= (2), using only =emacs -Q=. Loading (1) bootstraps with =straight.el= and loads =./config/main.el=. Executing (2) links (1) to ~user-init-file~.
 #+end_src
 
 ** requirement
