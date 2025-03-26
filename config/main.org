@@ -97,6 +97,15 @@ Managing source code:
 #+end_src
 
 ** package
+*** auctex
+
+#+header: :noweb-ref source-package
+#+begin_src emacs-lisp
+  (use-package auctex
+  :straight t
+  ;; https://emacs.stackexchange.com/a/81504/41724
+  )
+#+end_src
 *** corfu
 
 Reference:
@@ -212,7 +221,7 @@ Reference:
 
 *** ekg
 
-#+header: :noweb-ref source-package
+#+header: :noweb-ref source-disabled
 #+begin_src emacs-lisp
   (use-package ekg
     :disabled)
@@ -245,6 +254,9 @@ Reference:
           scroll-preserve-screen-position t
           auto-window-vscroll nil)
     )
+
+  ;; (setq global-whitespace-mode t) ;; reminder
+
   ;;	  scroll-conservatively 101 ; >100
 #+end_src
 
@@ -315,7 +327,7 @@ Reference:
 #+begin_src emacs-lisp
   (use-package lsp-mode
     :straight t
-    :hook ((sh-mode python-mode) . lsp-deferred)
+    :hook ((sh-mode python-mode json-mode tex-mode) . lsp-deferred)
     :commands lsp
     :config
     (setq lsp-auto-guess-root t) ;; https://www.reddit.com/r/emacs/comments/17bntg3/how_to_set_up_lspjava_so_that_it_works_for_an
@@ -341,12 +353,28 @@ Commands:
 
 *** dash
 
-Merely exploring it.
-
 #+header: :noweb-ref source-package
 #+begin_src emacs-lisp
   (use-package dash
     :straight t)
+#+end_src
+
+*** ob
+
+#+header: :noweb-ref source-package
+#+begin_src emacs-lisp
+  (use-package ob-json
+  :straight
+  (:host github :repo "sgpthomas/ob-json" :files ("ob-json.el"))
+  :after org)
+#+end_src
+
+#+header: :noweb-ref source-package
+#+begin_src emacs-lisp
+  (use-package ob-yaml
+  :straight
+  (:host github :repo "llhotka/ob-yaml" :files ("ob-yaml.el"))
+  :after org)
 #+end_src
 
 *** markdown
@@ -393,6 +421,7 @@ Resource:
     (org-refile-targets '((nil :regexp . "^:refile_bool: true$")))
     (org-agenda-files (symbol-value 'erw/config-agenda-files))
     (org-fold-core-style 'overlays) ;; https://lists.nongnu.org/archive/html/emacs-orgmode/2024-04/msg00497.html
+    (tex-fontify-script nil)
     )
 #+end_src
 
@@ -420,7 +449,10 @@ Resource:
        (org . t)
        (python . t)
        (shell . t)
-       (lua . t)))
+       (lua . t)
+       (yaml . t)
+       (json . t)
+  	 ))
     )
 #+end_src
 
@@ -525,7 +557,7 @@ Resource:
 - https://emacs.stackexchange.com/a/75819
 - https://github.com/kawabata/wolfram-mode/tree/be680190cac6ccf579dbce107deaae495928d1b3
   
-#+header: :noweb-ref source-package
+#+header: :noweb-ref source-disabled
 #+begin_src emacs-lisp
   (use-package wolfram-mode
     :disabled
