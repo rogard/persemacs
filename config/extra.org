@@ -74,7 +74,6 @@ Emacs-org:
   { "key" : "Y" }
 #+end_src
 
-
 ** el
 *** group
 
@@ -215,7 +214,7 @@ Emacs-org:
 #+begin_src emacs-lisp
   (defun erw/filter-block-names (regex &optional file)
     "Filter the source block names using REGEX in FILE."
-    (let ((block-names (org-babel-src-block-names file)))
+    (let ((block-names (reverse (org-babel-src-block-names file))))
       (cl-remove-if-not (lambda (block) (string-match-p regex block)) block-names)))
 #+end_src
 

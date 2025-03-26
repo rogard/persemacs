@@ -4,6 +4,10 @@
   :group 'erw/config)
 (defcustom erw/config-agenda-files (list (symbol-value 'erw/config-capture-target)) "agenda files"
   :group 'erw/config)
+(use-package auctex
+:straight t
+;; https://emacs.stackexchange.com/a/81504/41724
+)
 (use-package corfu
   :straight t
   ;; Optional customizations
@@ -93,8 +97,6 @@
   (doom-themes-treemacs-config)
   ;; Corrects (and improves) org-mode's native fontification.
   (doom-themes-org-config))
-(use-package ekg
-  :disabled)
 (use-package emacs ;; pseudo-package
   :config
   (setq frame-title-format '("Misterwann")
@@ -117,6 +119,9 @@
         scroll-preserve-screen-position t
         auto-window-vscroll nil)
   )
+
+;; (setq global-whitespace-mode t) ;; reminder
+
 ;;	  scroll-conservatively 101 ; >100
 (setq package-quickstart t)
 (use-package flymake-shellcheck
@@ -127,13 +132,21 @@
   (add-hook 'sh-mode-hook 'flymake-shellcheck-load))
 (use-package lsp-mode
   :straight t
-  :hook ((sh-mode python-mode) . lsp-deferred)
+  :hook ((sh-mode python-mode json-mode tex-mode) . lsp-deferred)
   :commands lsp
   :config
   (setq lsp-auto-guess-root t) ;; https://www.reddit.com/r/emacs/comments/17bntg3/how_to_set_up_lspjava_so_that_it_works_for_an
   )
 (use-package dash
   :straight t)
+(use-package ob-json
+:straight
+(:host github :repo "sgpthomas/ob-json" :files ("ob-json.el"))
+:after org)
+(use-package ob-yaml
+:straight
+(:host github :repo "llhotka/ob-yaml" :files ("ob-yaml.el"))
+:after org)
 (use-package markdown-mode
   :straight t
   :hook (markdown-mode . visual-line-mode))
@@ -162,6 +175,7 @@
   (org-refile-targets '((nil :regexp . "^:refile_bool: true$")))
   (org-agenda-files (symbol-value 'erw/config-agenda-files))
   (org-fold-core-style 'overlays) ;; https://lists.nongnu.org/archive/html/emacs-orgmode/2024-04/msg00497.html
+  (tex-fontify-script nil)
   )
 (use-package org
   :straight t
@@ -177,7 +191,10 @@
      (org . t)
      (python . t)
      (shell . t)
-     (lua . t)))
+     (lua . t)
+     (yaml . t)
+     (json . t)
+	 ))
   )
 ;; Enable vertico
 (use-package vertico
@@ -241,18 +258,6 @@
   (setq web-mode-css-indent-offset 2)    ; CSS
   (setq web-mode-code-indent-offset 2)   ; JS/JSX/TS/TSX
   (setq web-mode-content-types-alist '(("jsx" . "\\.js[x]?\\'"))))
-(use-package wolfram-mode
-  :disabled
-  ;; :commands (wolfram-mode run-wolfram) ;; Uncomment if needed
-  :mode (("\\.m\\'" . wolfram-mode)
-         ("\\.nb\\'" . wolfram-mode))
-  :init
-  (setq wolfram-program "/usr/local/Wolfram/WolframEngine/14.0/SystemFiles/Kernel/Binaries/Linux-x86-64/WolframKernel")
-  ;; Uncomment and adjust the following line if you need to set wolfram-path
-  ;; (setq wolfram-path "/Owners/yourownername/Library/WolframEngine/12.3/Applications")
-  :config
-    (require 'ob-mathematica "/home/erwann/github/ob-mathematica/ob-mathematica.el")
-)
 
 (defconst erw/const-owner-at-hostname (concat (getenv "OWNER") "@" (system-name)))
 (defcustom erw/config-owner 'erw/const-owner-at-hostname

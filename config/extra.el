@@ -36,3 +36,36 @@
             (value-range (erw/table-range tbl-id value-address file-name)))
         (org-lookup-first key key-range value-range 'string-match-p))))
 (defalias 'erw/table-lookup 'erw/function-table-lookup)
+(defun erw/function-filter-elements (type regex)
+  "Filter elements of the given TYPE from the current Org buffer by matching their name with REGEX."
+  (let* ((parsed-buffer (org-element-parse-buffer))
+         (elements (org-element-map parsed-buffer type 
+                                  (lambda (elem) (org-element-property :name elem)))))
+         (-filter (lambda (elem) (string-match-p regex elem)) elements)))
+(defalias 'erw/filter-elements 'erw/function-filter-elements)
+(defun erw/filter-block-names (regex &optional file)
+  "Filter the source block names using REGEX in FILE."
+  (let ((block-names (reverse (org-babel-src-block-names file))))
+    (cl-remove-if-not (lambda (block) (string-match-p regex block)) block-names)))
+(defun erw/noweb-expand (name)
+  "Expands block NAME"
+  (let* ((block (org-babel-find-named-block name))
+	 (info (when block
+		 (save-excursion
+                   (goto-char block)
+                   (org-babel-get-src-block-info t)))))
+    (when info
+      (org-babel-expand-noweb-references info))))
+(defun __erw/noweb-concat-rest (separator &rest names)
+  "Concatenate the blocks NAMEs using SEPARATOR"
+  (mapconcat #'erw/noweb-expand names separator))
+(defun __erw/noweb-concat-list (separator &optional names)
+  "Concatenate the blocks NAMEs using SEPARATOR"
+  (apply #'__erw/noweb-concat-rest separator names))
+(defun erw/noweb-concat (separator &rest names)
+  "Concatenate the blocks NAMEs using SEPARATOR."
+  (if (and names
+           (listp (car names))
+           (null (cdr names)))
+      (__erw/noweb-concat-list separator (car names))
+    (__erw/noweb-concat-rest separator names)))
