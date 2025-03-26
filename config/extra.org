@@ -62,6 +62,19 @@ Emacs-org:
 | "foo" | "./foo" |
 | "bar" | "./bar" |
 
+*** src
+
+#+name: foo-bar
+#+begin_src json
+  { "key" : "X" }
+#+end_src
+
+#+name: foo-qux
+#+begin_src json
+  { "key" : "Y" }
+#+end_src
+
+
 ** el
 *** group
 
@@ -185,6 +198,67 @@ Emacs-org:
 #+RESULTS:
 : y
 
+*** element
+
+#+header: :noweb-ref source-elisp
+#+begin_src emacs-lisp
+  (defun erw/function-filter-elements (type regex)
+    "Filter elements of the given TYPE from the current Org buffer by matching their name with REGEX."
+    (let* ((parsed-buffer (org-element-parse-buffer))
+           (elements (org-element-map parsed-buffer type 
+                                    (lambda (elem) (org-element-property :name elem)))))
+           (-filter (lambda (elem) (string-match-p regex elem)) elements)))
+  (defalias 'erw/filter-elements 'erw/function-filter-elements)
+#+end_src
+
+#+header: :noweb-ref source-elisp
+#+begin_src emacs-lisp
+  (defun erw/filter-block-names (regex &optional file)
+    "Filter the source block names using REGEX in FILE."
+    (let ((block-names (org-babel-src-block-names file)))
+      (cl-remove-if-not (lambda (block) (string-match-p regex block)) block-names)))
+#+end_src
+
+*** noweb
+
+#+header: :noweb-ref source-elisp
+#+begin_src emacs-lisp
+  (defun erw/noweb-expand (name)
+    "Expands block NAME"
+    (let* ((block (org-babel-find-named-block name))
+  	 (info (when block
+  		 (save-excursion
+                     (goto-char block)
+                     (org-babel-get-src-block-info t)))))
+      (when info
+        (org-babel-expand-noweb-references info))))
+#+end_src
+
+#+header: :noweb-ref source-elisp
+#+begin_src emacs-lisp
+  (defun __erw/noweb-concat-rest (separator &rest names)
+    "Concatenate the blocks NAMEs using SEPARATOR"
+    (mapconcat #'erw/noweb-expand names separator))
+  (defun __erw/noweb-concat-list (separator &optional names)
+    "Concatenate the blocks NAMEs using SEPARATOR"
+    (apply #'__erw/noweb-concat-rest separator names))
+  (defun erw/noweb-concat (separator &rest names)
+    "Concatenate the blocks NAMEs using SEPARATOR."
+    (if (and names
+             (listp (car names))
+             (null (cdr names)))
+        (__erw/noweb-concat-list separator (car names))
+      (__erw/noweb-concat-rest separator names)))
+#+end_src
+
+#+header: :noweb-ref elisp-example
+#+begin_src emacs-lisp
+  (format "{%s}" (erw/noweb-concat ", " (erw/filter-block-names "foo[a-z]*")))
+#+end_src
+
+#+RESULTS:
+: {{ "key" : "Y" }, { "key" : "X" }}
+
 * tangle
 ** extra
 :PROPERTIES:
@@ -196,6 +270,9 @@ Emacs-org:
   <<doc-license>>
   <<source-elisp>>
 #+end_src
+
+#+RESULTS:
+: erw/noweb-concat
 
 * miscellany
 ** trash
