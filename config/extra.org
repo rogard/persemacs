@@ -50,6 +50,15 @@ For each source blocks below:
 Emacs-org:
 - [[https://orgmode.org/manual/Working-with-Source-Code.html][Working with source code]]
 
+* install
+*** dash
+
+#+header: :noweb-ref elisp-install
+#+begin_src emacs-lisp
+  (use-package dash
+  :ensure t)
+#+end_src
+
 * source
 ** org
 *** table
@@ -77,7 +86,7 @@ Emacs-org:
 ** el
 *** group
 
-#+header: :noweb-ref source-elisp
+#+header: :noweb-ref elisp-source
 #+begin_src emacs-lisp
     (defgroup erw/extra nil "erw's extra elisp functionality"
       :prefix "erw/")
@@ -86,7 +95,7 @@ Emacs-org:
 *** string
 **** wrap-single-quotes
 
-#+header: :noweb-ref source-elisp
+#+header: :noweb-ref elisp-source
 #+begin_src emacs-lisp
   (defun erw/function-string-wrap-single-quotes (filename)
     "Wraps STRING with single quotes if absent."
@@ -113,7 +122,7 @@ Emacs-org:
 *** table
 **** field-address
 
-#+header: :noweb-ref source-elisp
+#+header: :noweb-ref elisp-source
 #+begin_src emacs-lisp
   (defun erw/function-table-field-address (index)
     "Table address for field INDEX"
@@ -134,7 +143,7 @@ Emacs-org:
 
 **** get-range
 
-#+header: :noweb-ref source-elisp
+#+header: :noweb-ref elisp-source
 #+begin_src emacs-lisp
   (defun erw/function-table-get-range-at-file (tbl-id range-address &optional file-name)
     "Get list of values in RANGE-ADDRESS from TBL-ID at FILE-NAME.
@@ -163,7 +172,7 @@ Emacs-org:
 
 **** lookup
 
-#+header: :noweb-ref source-elisp
+#+header: :noweb-ref elisp-source
 #+begin_src emacs-lisp
     (defun erw/function-table-lookup (tbl-id key &optional file-name key-index value-index match-predicate)
       "Lookup field KEY-INDEX and return corresponding entry in field VALUE-INDEX from table TBL-ID."
@@ -199,7 +208,7 @@ Emacs-org:
 
 *** element
 
-#+header: :noweb-ref source-elisp
+#+header: :noweb-ref elisp-source
 #+begin_src emacs-lisp
   (defun erw/filter-block-names (regex &optional file)
     "Filter the source block names using REGEX in FILE."
@@ -212,7 +221,7 @@ Emacs-org:
 
 *** function
 
-#+header: :noweb-ref source-elisp
+#+header: :noweb-ref elisp-source
 #+begin_src emacs-lisp
 (defun erw/compose (arg &rest functions)
       (-reduce-r (lambda (fn acc) (funcall fn acc)) (append (reverse functions) (list arg))))
@@ -231,7 +240,7 @@ Emacs-org:
 
 *** noweb
 
-#+header: :noweb-ref source-elisp
+#+header: :noweb-ref elisp-source
 #+begin_src emacs-lisp
   (defun erw/noweb-expand (name)
     "Expands block NAME"
@@ -247,7 +256,7 @@ Emacs-org:
 #+RESULTS:
 : erw/noweb-expand
 
-#+header: :noweb-ref source-elisp
+#+header: :noweb-ref elisp-source
 #+begin_src emacs-lisp
   (defun __erw/noweb-concat-rest (separator &optional fn &rest names)
     "Implementation for REST"
@@ -293,7 +302,8 @@ Emacs-org:
 #+header: :noweb yes
 #+begin_src emacs-lisp
   <<doc-license>>
-  <<source-elisp>>
+  <<elisp-install>>
+  <<elisp-source>>
 #+end_src
 
 #+RESULTS:
@@ -304,7 +314,7 @@ Emacs-org:
 *** path
 **** from-table
 
-#+header: :noweb-ref source-elisp-disable
+#+header: :noweb-ref elisp-source-disable
 #+begin_src emacs-lisp
     (defun erw/function-path-from-table (tbl-name key &optional child)
       (let* ((parent (erw/table-lookup tbl-name key)))
@@ -340,7 +350,7 @@ Emacs-org:
 
 Redundant with file-name-as-directory
 
-#+header: :noweb-ref source-elisp-disable
+#+header: :noweb-ref elisp-source-disable
 #+begin_src emacs-lisp
   (defun erw/ensure-directory (path)
     "Ensures PATH ends with a slash"
@@ -405,7 +415,7 @@ Redundant with file-name-as-directory
 
 *** filter-elements
 
-#+header: :noweb-ref source-elisp
+#+header: :noweb-ref elisp-source
 #+begin_src emacs-lisp
   (defun erw/function-filter-elements (type regex)
     "Filter elements of the given TYPE from the current Org buffer by matching their name with REGEX."
@@ -415,7 +425,6 @@ Redundant with file-name-as-directory
            (-filter (lambda (elem) (string-match-p regex elem)) elements)))
   (defalias 'erw/filter-elements 'erw/function-filter-elements)
 #+end_src
-
 
 ** scratchpad
 *** tangle

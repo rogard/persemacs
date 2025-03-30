@@ -2,6 +2,8 @@
 ;;  Copyright (C) 2024 — Erwann Rogard
 ;;  Released under GPL 3.0
 ;;  See https://www.gnu.org/licenses/gpl-3.0.en.html
+(use-package dash
+:ensure t)
 (defgroup erw/extra nil "erw's extra elisp functionality"
   :prefix "erw/")
 (defun erw/function-string-wrap-single-quotes (filename)
@@ -36,17 +38,12 @@
             (value-range (erw/table-range tbl-id value-address file-name)))
         (org-lookup-first key key-range value-range 'string-match-p))))
 (defalias 'erw/table-lookup 'erw/function-table-lookup)
-(defun erw/function-filter-elements (type regex)
-  "Filter elements of the given TYPE from the current Org buffer by matching their name with REGEX."
-  (let* ((parsed-buffer (org-element-parse-buffer))
-         (elements (org-element-map parsed-buffer type 
-                                  (lambda (elem) (org-element-property :name elem)))))
-         (-filter (lambda (elem) (string-match-p regex elem)) elements)))
-(defalias 'erw/filter-elements 'erw/function-filter-elements)
 (defun erw/filter-block-names (regex &optional file)
   "Filter the source block names using REGEX in FILE."
   (let ((block-names (reverse (org-babel-src-block-names file))))
-    (cl-remove-if-not (lambda (block) (string-match-p regex block)) block-names)))
+    (-filter (lambda (block) (string-match-p regex block)) block-names)))
+(defun erw/compose (arg &rest functions)
+      (-reduce-r (lambda (fn acc) (funcall fn acc)) (append (reverse functions) (list arg))))
 (defun erw/noweb-expand (name)
   "Expands block NAME"
   (let* ((block (org-babel-find-named-block name))
@@ -56,16 +53,24 @@
                    (org-babel-get-src-block-info t)))))
     (when info
       (org-babel-expand-noweb-references info))))
-(defun __erw/noweb-concat-rest (separator &rest names)
-  "Concatenate the blocks NAMEs using SEPARATOR"
-  (mapconcat #'erw/noweb-expand names separator))
-(defun __erw/noweb-concat-list (separator &optional names)
-  "Concatenate the blocks NAMEs using SEPARATOR"
-  (apply #'__erw/noweb-concat-rest separator names))
-(defun erw/noweb-concat (separator &rest names)
-  "Concatenate the blocks NAMEs using SEPARATOR."
-  (if (and names
-           (listp (car names))
-           (null (cdr names)))
-      (__erw/noweb-concat-list separator (car names))
-    (__erw/noweb-concat-rest separator names)))
+(defun __erw/noweb-concat-rest (separator &optional fn &rest names)
+  "Implementation for REST"
+  (let ((fn (or fn #'identity)))
+    (mapconcat (lambda (name) (funcall fn (erw/noweb-expand name))) names separator)))
+(defun __erw/noweb-concat-list (separator &optional fn names)
+  "Implementation for LIST"
+  (apply #'__erw/noweb-concat-rest separator fn names))
+(defun erw/noweb-concat (separator &optional fn &rest names)
+  "Expand, pass to a function, and concatenate blocks using SEPARATOR, FN, and NAMES.
+Dispatches based on whether NAMES is a list or individual arguments."
+  (when names
+    (if (and (listp (car names)) (null (cdr names))) ;; Single list argument case
+        (__erw/noweb-concat-list separator fn (car names))
+      (apply #'__erw/noweb-concat-rest separator fn names)))))
+(defun erw/function-filter-elements (type regex)
+  "Filter elements of the given TYPE from the current Org buffer by matching their name with REGEX."
+  (let* ((parsed-buffer (org-element-parse-buffer))
+         (elements (org-element-map parsed-buffer type 
+                                  (lambda (elem) (org-element-property :name elem)))))
+         (-filter (lambda (elem) (string-match-p regex elem)) elements)))
+(defalias 'erw/filter-elements 'erw/function-filter-elements)
