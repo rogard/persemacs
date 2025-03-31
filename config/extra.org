@@ -97,11 +97,11 @@ Emacs-org:
 
 #+header: :noweb-ref elisp-source
 #+begin_src emacs-lisp
-  (defun erw/function-string-wrap-single-quotes (filename)
+  (defun erw/function-string-wrap-single-quotes (string)
     "Wraps STRING with single quotes if absent."
-    (if (string-match-p "^'.*'$" filename)
+    (if (string-match-p "^'.*'$" string)
        string
-      (concat "'" filename "'")))
+      (concat "'" string "'")))
   (defalias 'erw/wrap-single-quotes 'erw/function-string-wrap-single-quotes)
 #+end_src
 
@@ -271,7 +271,7 @@ Emacs-org:
     (when names
       (if (and (listp (car names)) (null (cdr names))) ;; Single list argument case
           (__erw/noweb-concat-list separator fn (car names))
-        (apply #'__erw/noweb-concat-rest separator fn names)))))
+        (apply #'__erw/noweb-concat-rest separator fn names))))
 #+end_src
 
 #+RESULTS:

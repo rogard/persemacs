@@ -6,11 +6,11 @@
 :ensure t)
 (defgroup erw/extra nil "erw's extra elisp functionality"
   :prefix "erw/")
-(defun erw/function-string-wrap-single-quotes (filename)
+(defun erw/function-string-wrap-single-quotes (string)
   "Wraps STRING with single quotes if absent."
-  (if (string-match-p "^'.*'$" filename)
+  (if (string-match-p "^'.*'$" string)
      string
-    (concat "'" filename "'")))
+    (concat "'" string "'")))
 (defalias 'erw/wrap-single-quotes 'erw/function-string-wrap-single-quotes)
 (defun erw/function-table-field-address (index)
   "Table address for field INDEX"
@@ -66,7 +66,7 @@ Dispatches based on whether NAMES is a list or individual arguments."
   (when names
     (if (and (listp (car names)) (null (cdr names))) ;; Single list argument case
         (__erw/noweb-concat-list separator fn (car names))
-      (apply #'__erw/noweb-concat-rest separator fn names)))))
+      (apply #'__erw/noweb-concat-rest separator fn names))))
 (defun erw/function-filter-elements (type regex)
   "Filter elements of the given TYPE from the current Org buffer by matching their name with REGEX."
   (let* ((parsed-buffer (org-element-parse-buffer))
