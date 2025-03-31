@@ -293,6 +293,32 @@ Emacs-org:
 #+RESULTS:
 : <{ "key" : "X" }>, <{ "key" : "Y" }>
 
+*** src-block
+
+#+begin_src emacs-lisp
+  (defun erw/src-block-element (name) "Return the whole block element"
+         (save-excursion
+  	 (goto-char (org-babel-find-named-block name))
+  	 (org-element-at-point)))
+#+end_src
+
+#+begin_src emacs-lisp
+  (defun erw/src-block-properties (name &rest properties)
+    "Return block properties from the named block element. Defaults to :value if no properties are given."
+    (let* ((element (erw/src-block-element name))  ;; Use erw/src-block-element to get the block
+           (props (if properties
+                      properties
+                    '(:value))))  ;; Default to :value if no properties are provided
+      (mapcar (lambda (prop)
+                (org-element-property prop element))  ;; Get each property using org-element-property
+              props)))
+#+end_src
+
+#+header :noweb-ref elisp-example
+#+begin_src emacs-lisp
+(erw/src-block-properties "foo-bar" :value :language)
+#+end_src
+
 * tangle
 ** extra
 :PROPERTIES:
