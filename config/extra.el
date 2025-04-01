@@ -67,13 +67,13 @@ Dispatches based on whether NAMES is a list or individual arguments."
     (if (and (listp (car names)) (null (cdr names))) ;; Single list argument case
         (__erw/noweb-concat-list separator fn (car names))
       (apply #'__erw/noweb-concat-rest separator fn names))))
-(defun erw/src-block-info (name)
+(defun erw/src-block-info (name &optional no-eval)
   "Gets info of block NAME"
-  (let* ((block (org-babel-find-named-block name))
+  (let ((block (org-babel-find-named-block name)))
 	 (when block
 		 (save-excursion
                    (goto-char block)
-                   (org-babel-get-src-block-info t))))))
+                   (org-babel-get-src-block-info no-eval)))))
 (defun erw/src-block-element (name) "Return the whole block element"
        (save-excursion
 	 (goto-char (org-babel-find-named-block name))
