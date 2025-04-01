@@ -223,8 +223,8 @@ Emacs-org:
 
 #+header: :noweb-ref elisp-source
 #+begin_src emacs-lisp
-(defun erw/compose (arg &rest functions)
-      (-reduce-r (lambda (fn acc) (funcall fn acc)) (append (reverse functions) (list arg))))
+  (defun erw/compose (arg &rest functions)
+    (-reduce-r (lambda (fn acc) (funcall fn acc)) (append (reverse functions) (list arg))))
 #+end_src
 
 #+RESULTS:
@@ -295,6 +295,23 @@ Emacs-org:
 
 *** src-block
 
+#+header: :noweb-ref elisp-source
+#+begin_src emacs-lisp
+  (defun erw/src-block-info (name)
+    "Gets info of block NAME"
+    (let* ((block (org-babel-find-named-block name))
+  	 (when block
+  		 (save-excursion
+                     (goto-char block)
+                     (org-babel-get-src-block-info t))))))
+#+end_src
+
+#+header :noweb-ref elisp-example
+#+begin_src emacs-lisp
+(erw/src-block-info "foo-bar" :value :language)
+#+end_src
+
+#+header: :noweb-ref elisp-source
 #+begin_src emacs-lisp
   (defun erw/src-block-element (name) "Return the whole block element"
          (save-excursion
@@ -302,6 +319,7 @@ Emacs-org:
   	 (org-element-at-point)))
 #+end_src
 
+#+header: :noweb-ref elisp-source
 #+begin_src emacs-lisp
   (defun erw/src-block-properties (name &rest properties)
     "Return block properties from the named block element. Defaults to :value if no properties are given."

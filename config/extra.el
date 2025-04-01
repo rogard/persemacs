@@ -43,7 +43,7 @@
   (let ((block-names (reverse (org-babel-src-block-names file))))
     (-filter (lambda (block) (string-match-p regex block)) block-names)))
 (defun erw/compose (arg &rest functions)
-      (-reduce-r (lambda (fn acc) (funcall fn acc)) (append (reverse functions) (list arg))))
+  (-reduce-r (lambda (fn acc) (funcall fn acc)) (append (reverse functions) (list arg))))
 (defun erw/noweb-expand (name)
   "Expands block NAME"
   (let* ((block (org-babel-find-named-block name))
@@ -67,6 +67,26 @@ Dispatches based on whether NAMES is a list or individual arguments."
     (if (and (listp (car names)) (null (cdr names))) ;; Single list argument case
         (__erw/noweb-concat-list separator fn (car names))
       (apply #'__erw/noweb-concat-rest separator fn names))))
+(defun erw/src-block-info (name)
+  "Gets info of block NAME"
+  (let* ((block (org-babel-find-named-block name))
+	 (when block
+		 (save-excursion
+                   (goto-char block)
+                   (org-babel-get-src-block-info t))))))
+(defun erw/src-block-element (name) "Return the whole block element"
+       (save-excursion
+	 (goto-char (org-babel-find-named-block name))
+	 (org-element-at-point)))
+(defun erw/src-block-properties (name &rest properties)
+  "Return block properties from the named block element. Defaults to :value if no properties are given."
+  (let* ((element (erw/src-block-element name))  ;; Use erw/src-block-element to get the block
+         (props (if properties
+                    properties
+                  '(:value))))  ;; Default to :value if no properties are provided
+    (mapcar (lambda (prop)
+              (org-element-property prop element))  ;; Get each property using org-element-property
+            props)))
 (defun erw/function-filter-elements (type regex)
   "Filter elements of the given TYPE from the current Org buffer by matching their name with REGEX."
   (let* ((parsed-buffer (org-element-parse-buffer))
