@@ -297,18 +297,21 @@ Emacs-org:
 
 #+header: :noweb-ref elisp-source
 #+begin_src emacs-lisp
-  (defun erw/src-block-info (name)
+  (defun erw/src-block-info (name &optional no-eval)
     "Gets info of block NAME"
-    (let* ((block (org-babel-find-named-block name))
+    (let ((block (org-babel-find-named-block name)))
   	 (when block
   		 (save-excursion
                      (goto-char block)
-                     (org-babel-get-src-block-info t))))))
+                     (org-babel-get-src-block-info no-eval)))))
 #+end_src
+
+#+RESULTS:
+: erw/src-block-info
 
 #+header :noweb-ref elisp-example
 #+begin_src emacs-lisp
-(erw/src-block-info "foo-bar" :value :language)
+(erw/src-block-info "foo-bar")
 #+end_src
 
 #+header: :noweb-ref elisp-source
@@ -334,7 +337,7 @@ Emacs-org:
 
 #+header :noweb-ref elisp-example
 #+begin_src emacs-lisp
-(erw/src-block-properties "foo-bar" :value :language)
+  (erw/src-block-properties "foo-bar" :value :language)
 #+end_src
 
 * tangle
