@@ -73,14 +73,22 @@ Emacs-org:
 
 *** src
 
-#+name: foo-bar
+#+name: json-foo-bar
 #+begin_src json
   { "key" : "X" }
 #+end_src
 
-#+name: foo-qux
+#+RESULTS: json-foo-bar
+
+#+name: json-foo-qux
 #+begin_src json
   { "key" : "Y" }
+#+end_src
+
+#+name: bar-qux
+#+header: :var value="qux"
+#+begin_src sh
+  echo "${value}"
 #+end_src
 
 ** el
@@ -219,6 +227,11 @@ Emacs-org:
 #+RESULTS:
 : erw/filter-block-names
 
+#+begin_src emacs-lisp
+  (defun erw/element-headers-as-properties (element) "Element properties retrievable using plist-get"
+         (flatten-list  (mapcar (lambda (string) (org-babel-parse-header-arguments string)) (org-element-property element))))
+#+end_src
+
 *** function
 
 #+header: :noweb-ref elisp-source
@@ -279,7 +292,7 @@ Emacs-org:
 
 #+header: :noweb-ref elisp-example
 #+begin_src emacs-lisp
-  (erw/noweb-concat ", " (lambda (ex) (format "<%s>" ex)) "foo-bar" "foo-qux")
+  (erw/noweb-concat ", " (lambda (ex) (format "<%s>" ex)) "json-foo-bar" "json-foo-qux")
 #+end_src
 
 #+RESULTS:
@@ -287,11 +300,46 @@ Emacs-org:
 
 #+header: :noweb-ref elisp-example
 #+begin_src emacs-lisp
-  (erw/noweb-concat ", " (lambda (ex) (format "<%s>" ex)) '("foo-bar" "foo-qux"))
+  (erw/noweb-concat ", " (lambda (ex) (format "<%s>" ex)) '("json-foo-bar" "json-foo-qux"))
 #+end_src
 
 #+RESULTS:
-: <{ "key" : "X" }>, <{ "key" : "Y" }>
+: <{ "key" : "value" }>, <{ "key" : "Y" }>
+
+*** shell
+
+#+header: :noweb-ref elisp-source
+#+begin_src emacs-lisp
+  (defun erw/jq-file (file filter)
+    "Apply a jq filter to a JSON file and return the result."
+    (let ((command (format "jq '%s' %s" filter file)))
+      (shell-command-to-string command)))
+#+end_src
+
+#+RESULTS:
+: erw/jq-file
+
+#+header: :noweb-ref elisp-source
+#+begin_src emacs-lisp
+  (defun erw/jq-string (string filter)
+    "Apply a jq filter to a JSON string and return the result."
+    (let ((temp-file (make-temp-file "jq-input-" nil nil string)))
+      (unwind-protect
+          (erw/jq-file temp-file filter)
+        (delete-file temp-file))))
+#+end_src
+
+#+RESULTS:
+: erw/jq-string
+
+#+header: :noweb-ref elisp-example
+#+header: :var json-object=(org-babel-ref-resolve "json-foo-bar")
+#+begin_src emacs-lisp
+  (erw/jq-string json-object ".key")
+#+end_src
+
+#+RESULTS:
+: "X"
 
 *** src-block
 
@@ -311,8 +359,11 @@ Emacs-org:
 
 #+header :noweb-ref elisp-example
 #+begin_src emacs-lisp
-(erw/src-block-info "foo-bar")
+(erw/src-block-info "json-foo-bar")
 #+end_src
+
+#+RESULTS:
+| json | { "key" : "X" } | ((:colname-names) (:rowname-names) (:result-params replace) (:result-type . value) (:results . replace) (:exports . code) (:tangle . no) (:hlines . no) (:noweb . no) (:cache . no) (:session . none)) |   | json-foo-bar | 1239 | (ref:%s) |
 
 #+header: :noweb-ref elisp-source
 #+begin_src emacs-lisp
@@ -321,6 +372,16 @@ Emacs-org:
   	 (goto-char (org-babel-find-named-block name))
   	 (org-element-at-point)))
 #+end_src
+
+#+header :noweb-ref elisp-example
+#+begin_src emacs-lisp
+  (erw/src-block-element "bar-qux")
+#+end_src
+
+#+RESULTS:
+| src-block | (:standard-properties [1371 1414 nil nil 1459 2 nil nil element t (49 . 1371) nil nil nil extra.org nil nil (section (:standard-properties [1223 1223 1223 1459 1459 0 nil section element t (22 . 1327) 1223 1459 nil extra.org nil nil (headline (:standard-properties [1214 1214 1223 1459 1459 0 (:title) nil nil t (38 . 1214) 1225 1459 3 extra.org [org-element-deferred org-element--headline-deferred nil t] nil (headline (:standard-properties [1071 1071 1078 1459 1459 0 (:title) nil nil t (53 . 1071) 1080 1459 2 extra.org [org-element-deferred org-element--headline-deferred nil t] nil (headline (:standard-properties [1062 1062 1071 9639 9639 0 (:title) nil nil t (53 . 1062) 1073 9637 1 extra.org nil nil (org-data (:standard-properties [1 1 1 15801 15801 0 nil org-data nil t nil 3 15801 nil extra.org nil nil nil] :path /home/erwann/github/rogard/persemacs/config/extra.org :fragile-cache nil :CATEGORY extra))] :pre-blank 0 :raw-value [org-element-deferred org-element--headline-parse-title (t) t] :title [org-element-deferred org-element--headline-parse-title (t) t] :level [org-element-deferred org-element--headline-parse-title (t) t] :priority [org-element-deferred org-element--headline-parse-title (t) t] :tags [org-element-deferred org-element--headline-parse-title (t) t] :todo-keyword [org-element-deferred org-element--headline-parse-title (t) t] :todo-type [org-element-deferred org-element--headline-parse-title (t) t] :footnote-section-p [org-element-deferred org-element--headline-parse-title (t) t] :archivedp [org-element-deferred org-element--headline-parse-title (t) t] :commentedp [org-element-deferred org-element--headline-parse-title (t) t] :fragile-cache nil))] :pre-blank 0 :raw-value [org-element-deferred org-element--headline-parse-title (t) t] :title [org-element-deferred org-element--headline-parse-title (t) t] :level [org-element-deferred org-element--headline-parse-title (t) t] :priority [org-element-deferred org-element--headline-parse-title (t) t] :tags [org-element-deferred org-element--headline-parse-title (t) t] :todo-keyword [org-element-deferred org-element--headline-parse-title (t) t] :todo-type [org-element-deferred org-element--headline-parse-title (t) t] :footnote-section-p [org-element-deferred org-element--headline-parse-title (t) t] :archivedp [org-element-deferred org-element--headline-parse-title (t) t] :commentedp [org-element-deferred org-element--headline-parse-title (t) t] :fragile-cache nil))] :pre-blank 1 :raw-value [org-element-deferred org-element--headline-parse-title (t) t] :title [org-element-deferred org-element--headline-parse-title (t) t] :level [org-element-deferred org-element--headline-parse-title (t) t] :priority [org-element-deferred org-element--headline-parse-title (t) t] :tags [org-element-deferred org-element--headline-parse-title (t) t] :todo-keyword [org-element-deferred org-element--headline-parse-title (t) t] :todo-type [org-element-deferred org-element--headline-parse-title (t) t] :footnote-section-p [org-element-deferred org-element--headline-parse-title (t) t] :archivedp [org-element-deferred org-element--headline-parse-title (t) t] :commentedp [org-element-deferred org-element--headline-parse-title (t) t] :fragile-cache nil))] :fragile-cache nil))] :language sh :switches nil :parameters nil :number-lines nil :preserve-indent nil :retain-labels t :use-labels t :label-fmt nil :value   echo "${value}" |
+:name bar-qux :header (:var value="qux")) |
+:name json-foo-bar) |
 
 #+header: :noweb-ref elisp-source
 #+begin_src emacs-lisp
@@ -335,10 +396,25 @@ Emacs-org:
               props)))
 #+end_src
 
+#+header: :noweb-ref elisp-example
+#+header: :results verbatim raw
+#+begin_src emacs-lisp
+  (erw/src-block-properties "bar-qux" :header)
+#+end_src
+
+#+RESULTS:
+((":var value=\"qux\""))
+
 #+header :noweb-ref elisp-example
 #+begin_src emacs-lisp
-  (erw/src-block-properties "foo-bar" :value :language)
+  (org-babel-parse-header-arguments
+   (mapconcat (lambda (pair) (concat (car pair) " " (cadr pair)))
+              (erw/src-block-properties "bar-qux" :header)
+              " "))
 #+end_src
+
+#+RESULTS:
+: ((:var . value="qux"))
 
 * tangle
 ** extra
