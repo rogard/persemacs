@@ -69,7 +69,7 @@ Dispatches based on whether NAMES is a list or individual arguments."
       (apply #'__erw/noweb-concat-rest separator fn names))))
 (defun erw/jq-file (file filter)
   "Apply a jq filter to a JSON file and return the result."
-  (let ((command (format "jq '%s' %s" filter file)))
+  (let ((command (format "jq -c '%s' %s" filter file)))
     (shell-command-to-string command)))
 (defun erw/jq-string (string filter)
   "Apply a jq filter to a JSON string and return the result."
