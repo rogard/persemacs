@@ -12,6 +12,9 @@
      string
     (concat "'" string "'")))
 (defalias 'erw/wrap-single-quotes 'erw/function-string-wrap-single-quotes)
+(defun erw/string-join (&optional separator &rest strings)
+  "Join STRINGS with an optional SEPARATOR, defaulting to space. Skip nil values."
+  (mapconcat #'identity (delq nil strings) (or separator " ")))
 (defun erw/function-table-field-address (index)
   "Table address for field INDEX"
   (format "@1$%d..@>$%d" index index))
