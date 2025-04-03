@@ -308,12 +308,35 @@ Emacs-org:
 
 *** shell
 
+#+begin_src emacs-lisp
+(defun erw/sh-check (command &optional re)
+  "Issues a warning if the shell does not match RE; then executes shell COMMAND."
+  (let ((re (or re "bash$")))
+    (unless (string-match-p re (format "%s" shell-file-name))
+      (warn "Warning: expecting shell to match %s; got %s" re shell-file-name))
+    (shell-command-to-string command)))
+#+end_src
+
+#+RESULTS:
+: erw/sh-check
+
+#+header: :noweb-ref elisp-example
+#+header: :results code
+#+begin_src emacs-lisp
+  (erw/sh-check "echo \"foo\"" "fish$")
+#+end_src
+
+#+RESULTS:
+#+begin_src emacs-lisp
+"foo\n"
+#+end_src
+
 #+header: :noweb-ref elisp-source
 #+begin_src emacs-lisp
   (defun erw/jq-file (file filter)
     "Apply a jq filter to a JSON file and return the result."
     (let ((command (format "jq -c '%s' %s" filter file)))
-      (shell-command-to-string command)))
+      (erw/sh-check command)))
 #+end_src
 
 #+RESULTS:
@@ -333,13 +356,16 @@ Emacs-org:
 : erw/jq-string
 
 #+header: :noweb-ref elisp-example
+#+header: :results code
 #+header: :var json-object=(org-babel-ref-resolve "json-foo-bar")
 #+begin_src emacs-lisp
-  (erw/jq-string json-object ".key")
+  (string-trim-right (erw/jq-string json-object ".key"))
 #+end_src
 
 #+RESULTS:
-: "X"
+#+begin_src emacs-lisp
+"\"X\""
+#+end_src
 
 *** src-block
 
