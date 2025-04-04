@@ -351,47 +351,48 @@ Emacs-org:
 "foo\n"
 #+end_src
 
+*** jq
+
 #+header: :noweb-ref elisp-source
 #+begin_src emacs-lisp
-  (defun erw/jq-file (file filter)
+  (defun erw/jq-file (filter file &optional options)
     "Apply a jq filter to a JSON file and return the result."
-    (let ((command (format "jq -c '%s' %s" filter file)))
+    (let ((command (format (erw/string-join " " "jq" options "'%s'" "%s") filter file)))
       (erw/sh-check command)))
 #+end_src
 
 #+RESULTS:
 : erw/jq-file
 
-#+begin_src emacs-lisp
-(mapconcat #'identity (delq nil '("foo" nil "bar")) " ")
-#+end_src
-
-#+RESULTS:
-: foo bar
-
 #+header: :noweb-ref elisp-source
 #+begin_src emacs-lisp
-  (defun erw/jq-string (string filter)
+  (defun erw/jq-string (filter string &optional options)
     "Apply a jq filter to a JSON string and return the result."
-    (let ((temp-file (make-temp-file "jq-input-" nil nil string)))
-      (unwind-protect
-          (erw/jq-file temp-file filter)
-        (delete-file temp-file))))
+    (let* ((temp-file (make-temp-file nil nil ".json"))
+           (result (progn
+                     (with-temp-file temp-file
+                       (insert string))
+                     (erw/jq-file filter temp-file options))))
+      (delete-file temp-file)
+      (format "%s" result)))
 #+end_src
 
 #+RESULTS:
 : erw/jq-string
 
 #+header: :noweb-ref elisp-example
-#+header: :results code
+#+header: :results raw
 #+header: :var json-object=(org-babel-ref-resolve "json-foo-bar")
-#+begin_src emacs-lisp
-  (string-trim-right (erw/jq-string json-object ".key"))
+#+header: :wrap src json
+#+begin_src emacs-lisp  
+  (erw/jq-string "." json-object)
 #+end_src
 
 #+RESULTS:
-#+begin_src emacs-lisp
-"\"X\""
+#+begin_src json
+{
+  "key": "X"
+}
 #+end_src
 
 *** src-block
