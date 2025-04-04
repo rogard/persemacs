@@ -70,16 +70,19 @@ Dispatches based on whether NAMES is a list or individual arguments."
     (if (and (listp (car names)) (null (cdr names))) ;; Single list argument case
         (__erw/noweb-concat-list separator fn (car names))
       (apply #'__erw/noweb-concat-rest separator fn names))))
-(defun erw/jq-file (file filter)
+(defun erw/jq-file (filter file &optional options)
   "Apply a jq filter to a JSON file and return the result."
-  (let ((command (format "jq -c '%s' %s" filter file)))
+  (let ((command (format (erw/string-join " " "jq" options "'%s'" "%s") filter file)))
     (erw/sh-check command)))
-(defun erw/jq-string (string filter)
+(defun erw/jq-string (filter string &optional options)
   "Apply a jq filter to a JSON string and return the result."
-  (let ((temp-file (make-temp-file "jq-input-" nil nil string)))
-    (unwind-protect
-        (erw/jq-file temp-file filter)
-      (delete-file temp-file))))
+  (let* ((temp-file (make-temp-file nil nil ".json"))
+         (result (progn
+                   (with-temp-file temp-file
+                     (insert string))
+                   (erw/jq-file filter temp-file options))))
+    (delete-file temp-file)
+    (format "%s" result)))
 (defun erw/src-block-info (name &optional no-eval)
   "Gets info of block NAME"
   (let ((block (org-babel-find-named-block name)))
