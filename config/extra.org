@@ -385,14 +385,12 @@ Emacs-org:
 #+header: :var json-object=(org-babel-ref-resolve "json-foo-bar")
 #+header: :wrap src json
 #+begin_src emacs-lisp  
-  (erw/jq-string "." json-object)
+  (erw/jq-string "." json-object "-c")
 #+end_src
 
 #+RESULTS:
 #+begin_src json
-{
-  "key": "X"
-}
+{"key":"X"}
 #+end_src
 
 *** src-block
