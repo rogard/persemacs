@@ -351,7 +351,56 @@ Emacs-org:
 "foo\n"
 #+end_src
 
-*** jq
+*** json
+**** safe
+
+#+begin_src emacs-lisp
+  (defcustom erw/json-safe-alist
+    '(("\t" . "\\\\t"))
+    "An association list of (REGEXP . REPLACEMENT) pairs to make strings JSON-safe."
+    :group 'erw/extra)
+#+end_src
+
+#+RESULTS:
+: erw/json-safe-alist
+
+#+begin_src emacs-lisp
+  (defun erw/json-safe (string &optional first &rest re-rep)
+    "Make a string JSON-safe by replacing regex patterns with replacements from alist."
+    (if first
+        (if (null re-rep)
+            string
+          (let* ((pair (car re-rep))
+                 (re (car pair))
+                 (rep (cdr pair))
+                 (result (replace-regexp-in-string re rep string)))
+            (apply 'erw/json-safe result t (cdr re-rep))))
+      (apply 'erw/json-safe string t erw/json-safe-alist)))
+#+end_src
+
+#+RESULTS:
+: erw/json-safe
+
+#+header: :noweb-ref elisp-example
+#+header: :results verbatim
+#+begin_src emacs-lisp
+  (erw/json-safe "{ \"key\": \"foo	bar\" }" t '("\t" . "\\\\t"))
+#+end_src
+
+#+RESULTS:
+: "{ \"key\": \"foo\\tbar\" }"
+
+#+header: :noweb-ref elisp-example
+#+header: :results verbatim
+#+begin_src emacs-lisp
+(erw/json-safe "{ \"key\": \"foo	bar\" }")
+#+end_src
+
+#+RESULTS:
+: "{ \"key\": \"foo\\tbar\" }"
+
+**** jq
+***** file
 
 #+header: :noweb-ref elisp-source
 #+begin_src emacs-lisp
@@ -363,6 +412,8 @@ Emacs-org:
 
 #+RESULTS:
 : erw/jq-file
+
+***** string
 
 #+header: :noweb-ref elisp-source
 #+begin_src emacs-lisp

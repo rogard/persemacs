@@ -56,7 +56,7 @@ Managing source code:
 *** init
 **** group
 
-#+header: :noweb-ref source-init
+#+header: :noweb-ref el-init
 #+begin_src emacs-lisp
   (defgroup erw/config nil "erw's config"
     :prefix "erw/config")
@@ -64,7 +64,7 @@ Managing source code:
 
 **** debug
 
-#+header: :noweb-ref source-disabled
+#+header: :noweb-ref el-disabled
 #+begin_src emacs-lisp
   ;;  (defun erw/default-directory-watcher (symbol newval operation where)
   ;;    "Watch for changes to `default-directory`.
@@ -84,7 +84,7 @@ Managing source code:
 
 **** straight
 
-#+header: :noweb-ref source-init
+#+header: :noweb-ref el-init
 #+begin_src emacs-lisp
   (defvar bootstrap-version)
   (let ((bootstrap-file
@@ -103,7 +103,7 @@ Managing source code:
     (load bootstrap-file nil 'nomessage))
 #+end_src
 
-#+header: :noweb-ref source-init
+#+header: :noweb-ref el-init
 #+begin_src emacs-lisp
   ;; Ensure Org is loaded early
   (straight-use-package 'org)
@@ -111,12 +111,12 @@ Managing source code:
 
 **** use-package
 
-#+header: :noweb-ref source-init
+#+header: :noweb-ref el-init
 #+begin_src emacs-lisp
   (straight-use-package 'use-package)
 #+end_src
 
-#+header: :noweb-ref source-init
+#+header: :noweb-ref el-init
 #+begin_src emacs-lisp
   ;;  (unless (package-installed-p 'use-package)
   ;;    (package-refresh-contents)
@@ -133,19 +133,19 @@ Managing source code:
 :custom_id: _this-directory
 :END:
 
-#+name: source-elisp-this-directory
-#+header: :noweb-ref source-init
+#+name: el-elisp-this-directory
+#+header: :noweb-ref el-init
 #+begin_src emacs-lisp
   (defcustom erw/this-directory "/home/erwann/github/rogard/persemacs/" "where this package is located"
     :group 'erw/config)
 #+end_src
 
-#+RESULTS: source-elisp-this-directory
+#+RESULTS: el-elisp-this-directory
 : erw/this-directory
 
 ***** load
 
-#+header: :noweb-ref source-init
+#+header: :noweb-ref el-init
 #+begin_src emacs-lisp
   (let* ((remote-emacs-dir (expand-file-name "config" erw/this-directory)))
     (org-babel-load-file (expand-file-name "main.org" remote-emacs-dir)))
@@ -157,7 +157,7 @@ Managing source code:
 :customize_bool: true
 :END:
 
-#+header: :noweb-ref source-sh-preamble
+#+header: :noweb-ref sh-preamble
 #+name: sh-shebang
 #+begin_src shell
   #!/usr/bin/env bash
@@ -166,7 +166,7 @@ Managing source code:
 *** symlink
 **** link_name
 
-#+header: :noweb-ref source-sh-symlink
+#+header: :noweb-ref sh-symlink
 #+begin_src sh
   link_name="${user_init_file}"
 
@@ -179,7 +179,7 @@ Managing source code:
 
 **** target
 
-#+header: :noweb-ref source-sh-symlink
+#+header: :noweb-ref sh-symlink
 #+begin_src sh
   target="${PWD}/config/init.el"
 
@@ -190,7 +190,7 @@ Managing source code:
 
 **** do-link
 
-#+header: :noweb-ref source-sh-symlink
+#+header: :noweb-ref sh-symlink
 #+begin_src sh
   ln -sf "${target}" "${link_name}" || {
       echo "Failed to create symlink"; exit 1;
@@ -199,7 +199,7 @@ Managing source code:
 
 **** launch-kill
 
-#+header: :noweb-ref source-sh-symlink
+#+header: :noweb-ref sh-symlink
 #+begin_src sh
   emacs --batch --eval "(kill-emacs)" || {
       echo "Failed to launch Emacs with the new symlink"; exit 1;
@@ -208,7 +208,7 @@ Managing source code:
 
 **** message 
 
-#+header: :noweb-ref source-sh-symlink
+#+header: :noweb-ref sh-symlink
 #+begin_src sh
   echo "Symlink created and Emacs verified successfully."
 #+end_src
@@ -225,7 +225,7 @@ Managing source code:
 
 #+header: :noweb  yes
 #+begin_src emacs-lisp
-  <<source-init>>
+  <<el-init>>
 #+end_src
 
 ** sh
@@ -238,13 +238,13 @@ Requirement:
 
 #+header: :noweb  yes
 #+begin_src sh
-  <<source-sh-preamble>>
+  <<sh-preamble>>
 #+end_src
 
 #+header: :noweb  yes
 #+header: :var user_init_file=(expand-file-name user-init-file)
 #+begin_src sh
-  <<source-sh-symlink>>
+  <<sh-symlink>>
 #+end_src
 
 * execute
@@ -289,7 +289,7 @@ Requirement:
 * trash
 *** early
 
-#+header: :noweb-ref source-init-disable
+#+header: :noweb-ref el-init-disable
 #+begin_src emacs-lisp
   ;; https://emacs.stackexchange.com/a/76249
   ;; (setq package-enable-at-startup nil) 

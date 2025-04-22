@@ -1,3 +1,6 @@
+;; main.el --- Emacs config file
+;; Adapted from:
+;; - https://github.com/ianyepan/yay-evil-emacs
 (defcustom erw/config-capture-target "/home/erwann/src/org/capture.org" "capture target location"
   :group 'erw/config )
 (defcustom erw/config-capture-template "/home/erwann/.emacs.d/capture_core_tpl" "capture template location"
@@ -96,7 +99,11 @@
   (setq doom-themes-treemacs-theme "doom-atom") ; use "doom-colors" for less minimal icon theme
   (doom-themes-treemacs-config)
   ;; Corrects (and improves) org-mode's native fontification.
-  (doom-themes-org-config))
+  (doom-themes-org-config)
+  ;; Override show-paren match face to make it more visible
+  (set-face-background 'show-paren-match "yellow")
+  (set-face-foreground 'show-paren-match "black")
+  )
 (use-package emacs ;; pseudo-package
   :config
   (setq frame-title-format '("Misterwann")
@@ -124,6 +131,14 @@
 
 ;;	  scroll-conservatively 101 ; >100
 (setq package-quickstart t)
+;;  (use-package files
+;;    :straight t
+  (use-package emacs
+    :straight t
+    :config
+    (setq confirm-kill-processes nil
+          create-lockfiles nil ; don't create .# files (crashes 'npm start')
+          make-backup-files nil))
 (use-package flymake-shellcheck
   :straight t
   :ensure nil ;; built-in
@@ -132,7 +147,7 @@
   (add-hook 'sh-mode-hook 'flymake-shellcheck-load))
 (use-package lsp-mode
   :straight t
-  :hook ((sh-mode python-mode json-mode tex-mode) . lsp-deferred)
+  :hook ((sh-mode python-mode json-mode tex-mode emacs-lisp-mode) . lsp-deferred)
   :commands lsp
   :config
   (setq lsp-auto-guess-root t) ;; https://www.reddit.com/r/emacs/comments/17bntg3/how_to_set_up_lspjava_so_that_it_works_for_an
@@ -169,10 +184,10 @@
   (org-read-date-force-compatible-dates nil) ;; extends calendar
   (org-log-into-drawer t)
   (org-capture-templates
-   '(("c" "Core" entry
-      (file+headline (symbol-value 'erw/config-capture-target) "Capture")
-      (file (symbol-value 'erw/config-capture-template)))))
-  (org-refile-targets '((nil :regexp . "^:refile_bool: true$")))
+   `(("c" "Core" entry
+      (file+headline ,erw/config-capture-target "Capture")
+      (file ,erw/config-capture-template))))
+  (org-refile-targets '((nil :regexp . "^:refile: true$")))
   (org-agenda-files (symbol-value 'erw/config-agenda-files))
   (org-fold-core-style 'overlays) ;; https://lists.nongnu.org/archive/html/emacs-orgmode/2024-04/msg00497.html
   (tex-fontify-script nil)
