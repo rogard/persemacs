@@ -69,6 +69,8 @@
   :config
   (global-corfu-mode)
   (corfu-popupinfo-mode +1))
+(use-package dash
+  :straight t)
 (use-package dashboard
   :straight t
   :config
@@ -100,10 +102,8 @@
   (doom-themes-treemacs-config)
   ;; Corrects (and improves) org-mode's native fontification.
   (doom-themes-org-config)
-  ;; Override show-paren match face to make it more visible
   (set-face-background 'show-paren-match "yellow")
-  (set-face-foreground 'show-paren-match "black")
-  )
+  (set-face-foreground 'show-paren-match "black"))
 (use-package emacs ;; pseudo-package
   :config
   (setq frame-title-format '("Misterwann")
@@ -152,16 +152,6 @@
   :config
   (setq lsp-auto-guess-root t) ;; https://www.reddit.com/r/emacs/comments/17bntg3/how_to_set_up_lspjava_so_that_it_works_for_an
   )
-(use-package dash
-  :straight t)
-(use-package ob-json
-:straight
-(:host github :repo "sgpthomas/ob-json" :files ("ob-json.el"))
-:after org)
-(use-package ob-yaml
-:straight
-(:host github :repo "llhotka/ob-yaml" :files ("ob-yaml.el"))
-:after org)
 (use-package markdown-mode
   :straight t
   :hook (markdown-mode . visual-line-mode))
@@ -178,6 +168,14 @@
   (setq web-mode-css-indent-offset 2)    ; CSS
   (setq web-mode-code-indent-offset 2)   ; JS/JSX/TS/TSX
   (setq web-mode-content-types-alist '(("jsx" . "\\.js[x]?\\'"))))
+(use-package ob-json
+:straight
+(:host github :repo "sgpthomas/ob-json" :files ("ob-json.el"))
+:after org)
+(use-package ob-yaml
+:straight
+(:host github :repo "llhotka/ob-yaml" :files ("ob-yaml.el"))
+:after org)
 (use-package org
   :straight t
   :custom
@@ -187,7 +185,6 @@
    `(("c" "Core" entry
       (file+headline ,erw/config-capture-target "Capture")
       (file ,erw/config-capture-template))))
-  (org-refile-targets '((nil :regexp . "^:refile: true$")))
   (org-agenda-files (symbol-value 'erw/config-agenda-files))
   (org-fold-core-style 'overlays) ;; https://lists.nongnu.org/archive/html/emacs-orgmode/2024-04/msg00497.html
   (tex-fontify-script nil)
@@ -211,6 +208,8 @@
      (json . t)
 	 ))
   )
+(use-package org-ql
+:straight (:host github :repo "alphapapa/org-ql"))
 ;; Enable vertico
 (use-package vertico
   :straight t

@@ -169,6 +169,14 @@ Reference:
     (global-corfu-mode)
     (corfu-popupinfo-mode +1))
 #+end_src
+*** dash
+
+#+header: :noweb-ref el-package
+#+begin_src emacs-lisp
+  (use-package dash
+    :straight t)
+#+end_src
+
 *** dashboard
 
 #+header: :noweb-ref el-package
@@ -347,32 +355,6 @@ Commands:
     (setq lsp-ui-sideline-delay 0.05))
 #+end_src
 
-*** dash
-
-#+header: :noweb-ref el-package
-#+begin_src emacs-lisp
-  (use-package dash
-    :straight t)
-#+end_src
-
-*** ob
-
-#+header: :noweb-ref el-package
-#+begin_src emacs-lisp
-  (use-package ob-json
-  :straight
-  (:host github :repo "sgpthomas/ob-json" :files ("ob-json.el"))
-  :after org)
-#+end_src
-
-#+header: :noweb-ref el-package
-#+begin_src emacs-lisp
-  (use-package ob-yaml
-  :straight
-  (:host github :repo "llhotka/ob-yaml" :files ("ob-yaml.el"))
-  :after org)
-#+end_src
-
 *** markdown
 
 #+header: :noweb-ref el-package
@@ -395,6 +377,24 @@ Commands:
     (setq web-mode-content-types-alist '(("jsx" . "\\.js[x]?\\'"))))
 #+end_src
 
+*** ob
+
+#+header: :noweb-ref el-package
+#+begin_src emacs-lisp
+  (use-package ob-json
+  :straight
+  (:host github :repo "sgpthomas/ob-json" :files ("ob-json.el"))
+  :after org)
+#+end_src
+
+#+header: :noweb-ref el-package
+#+begin_src emacs-lisp
+  (use-package ob-yaml
+  :straight
+  (:host github :repo "llhotka/ob-yaml" :files ("ob-yaml.el"))
+  :after org)
+#+end_src
+
 *** org
 
 Resource:
@@ -414,7 +414,6 @@ Resource:
      `(("c" "Core" entry
         (file+headline ,erw/config-capture-target "Capture")
         (file ,erw/config-capture-template))))
-    (org-refile-targets '((nil :regexp . "^:refile: true$")))
     (org-agenda-files (symbol-value 'erw/config-agenda-files))
     (org-fold-core-style 'overlays) ;; https://lists.nongnu.org/archive/html/emacs-orgmode/2024-04/msg00497.html
     (tex-fontify-script nil)
@@ -454,11 +453,19 @@ Resource:
 
 *** org-bullets
 
-#+header:  :noweb-ref el-package-org-bullets
+#+header:  :noweb-ref el-package-disabled
 #+begin_src emacs-lisp
   (use-package org-bullets
     :straight t
     :hook (org-mode . org-bullets-mode))
+#+end_src
+
+*** ql
+
+#+header:  :noweb-ref el-package
+#+begin_src emacs-lisp
+  (use-package org-ql
+    :straight (:host github :repo "alphapapa/org-ql"))
 #+end_src
 
 *** vertico
