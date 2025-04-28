@@ -53,8 +53,7 @@ Managing source code:
 
 * source
 ** elisp
-*** init
-**** group
+*** group
 
 #+header: :noweb-ref el-init
 #+begin_src emacs-lisp
@@ -62,7 +61,7 @@ Managing source code:
     :prefix "erw/config")
 #+end_src
 
-**** debug
+*** debug
 
 #+header: :noweb-ref el-disabled
 #+begin_src emacs-lisp
@@ -82,7 +81,7 @@ Managing source code:
   ;; (remove-variable-watcher 'default-directory #'erw/default-directory-watcher)
 #+end_src
 
-**** straight
+*** straight
 
 #+header: :noweb-ref el-init
 #+begin_src emacs-lisp
@@ -109,7 +108,7 @@ Managing source code:
   (straight-use-package 'org)
 #+end_src
 
-**** use-package
+*** use-package
 
 #+header: :noweb-ref el-init
 #+begin_src emacs-lisp
@@ -126,8 +125,8 @@ Managing source code:
   ;; (setq use-package-always-defer t))
 #+end_src
 
-**** config
-***** location
+*** config
+**** location
 :PROPERTIES:
 :customize_bool: true
 :custom_id: _this-directory
@@ -143,7 +142,7 @@ Managing source code:
 #+RESULTS: el-elisp-this-directory
 : erw/this-directory
 
-***** load
+**** load
 
 #+header: :noweb-ref el-init
 #+begin_src emacs-lisp
@@ -181,7 +180,7 @@ Managing source code:
 
 #+header: :noweb-ref sh-symlink
 #+begin_src sh
-  target="${PWD}/config/init.el"
+  target="${PWD}/init.el"
 
   if [[ ! -f "${target}" ]]; then
       echo "Target ${target} not found"; exit 1;
