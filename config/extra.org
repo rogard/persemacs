@@ -100,6 +100,36 @@ Emacs-org:
       :prefix "erw/")
 #+end_src
 
+*** subtree
+
+#+header: :noweb-ref el-subtree
+#+begin_src emacs-lisp
+  (defun erw/org-subtree--paste (target-file target-pos &optional level-fn)
+    "Pastes the subtree in the clipboard into TARGET."
+    (let ((level-fn (or level-fn (lambda (level) (+ level 1))))
+          level)
+      (with-current-buffer (find-file-noselect target-file)
+        (goto-char target-pos)
+        (setq level (funcall level-fn (org-current-level)))
+        (org-end-of-subtree)
+        (org-paste-subtree level nil nil t)
+        (save-buffer))))
+#+end_src
+
+#+RESULTS:
+: erw/org-subtree--paste
+
+#+header: :noweb-ref el-subtree
+#+begin_src emacs-lisp
+  (defun erw/org-subtree-paste ()
+    "Paste the subtree from the clipboard into the current buffer at point."
+    (interactive)
+    (erw/org-subtree--paste (buffer-file-name) (point)))
+#+end_src
+
+#+RESULTS:
+: erw/org-subtree-paste
+
 *** string
 **** wrap-single-quotes
 

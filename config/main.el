@@ -3,9 +3,11 @@
 ;; - https://github.com/ianyepan/yay-evil-emacs
 (defcustom erw/config-capture-target "/home/erwann/src/org/capture.org" "capture target location"
   :group 'erw/config )
-(defcustom erw/config-capture-template "/home/erwann/.emacs.d/capture_core_tpl" "capture template location"
+(defcustom erw/config-capture-template "/home/erwann/src/txt/capture_core_tpl" "capture template location"
   :group 'erw/config)
-(defcustom erw/config-agenda-files (list (symbol-value 'erw/config-capture-target)) "agenda files"
+(defcustom erw/config-agenda-files 
+  (list erw/config-capture-target) 
+  "agenda files"
   :group 'erw/config)
 (use-package auctex
 :straight t
@@ -209,7 +211,7 @@
 	 ))
   )
 (use-package org-ql
-:straight (:host github :repo "alphapapa/org-ql"))
+  :straight (:host github :repo "alphapapa/org-ql"))
 ;; Enable vertico
 (use-package vertico
   :straight t

@@ -64,6 +64,7 @@ Managing source code:
     :type 'string
     :group 'erw/config)
 #+end_src
+
 **** capture
 ***** target
 
@@ -77,7 +78,7 @@ Managing source code:
 
 #+header: :noweb-ref el-package
 #+begin_src elisp
-  (defcustom erw/config-capture-template "/home/erwann/.emacs.d/capture_core_tpl" "capture template location"
+  (defcustom erw/config-capture-template "/home/erwann/src/txt/capture_core_tpl" "capture template location"
     :group 'erw/config)
 #+end_src
 
@@ -85,8 +86,10 @@ Managing source code:
 
 #+header: :noweb-ref el-package
 #+begin_src elisp
-  (defcustom erw/config-agenda-files (list (symbol-value 'erw/config-capture-target)) "agenda files"
-    :group 'erw/config)
+(defcustom erw/config-agenda-files 
+  (list erw/config-capture-target) 
+  "agenda files"
+  :group 'erw/config)
 #+end_src
 
 ** package
@@ -451,15 +454,6 @@ Resource:
     )
 #+end_src
 
-*** org-bullets
-
-#+header:  :noweb-ref el-package-disabled
-#+begin_src emacs-lisp
-  (use-package org-bullets
-    :straight t
-    :hook (org-mode . org-bullets-mode))
-#+end_src
-
 *** ql
 
 #+header:  :noweb-ref el-package
@@ -628,6 +622,16 @@ In connection with [[id:source-quickstart][this]], optionally execute:
 : t
 
 * trash
+** package
+*** org-bullets
+
+#+header:  :noweb-ref el-package-disabled
+#+begin_src emacs-lisp
+  (use-package org-bullets
+    :straight t
+    :hook (org-mode . org-bullets-mode))
+#+end_src
+
 ** resource
 *** article
 - [[https://www.masteringemacs.org/article/speed-up-emacs-libjansson-native-elisp-compilation][Speed up Emacs with libjansson and native elisp compilation - by Mickey Peterson]]
