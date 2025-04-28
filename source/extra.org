@@ -16,33 +16,9 @@
 #+name: doc-license
 #+begin_src emacs-lisp
   ;;  persemacs-extra — extra elisp functionality
-  ;;  Copyright (C) 2024 — Erwann Rogard
+  ;;  Copyright (C) 2024—2025 — Erwann Rogard
   ;;  Released under GPL 3.0
   ;;  See https://www.gnu.org/licenses/gpl-3.0.en.html
-#+end_src
-
-** requirement
-:PROPERTIES:
-:custom_id: _doc-req
-:END:
-
-*** machine
-:PROPERTIES:
-:custom_id: _doc-req-machine
-:END:
-
-Installed:
-#+name: doc-install
-| Emacs |
-
-** workflow
-
-For each source blocks below:
-- Execute it
-- Process the matches as indicated
-
-#+begin_src emacs-lisp
-  (org-occur "header-args: :tangle" nil nil)
 #+end_src
 
 ** reference
@@ -51,9 +27,9 @@ Emacs-org:
 - [[https://orgmode.org/manual/Working-with-Source-Code.html][Working with source code]]
 
 * install
-*** dash
+** dash
 
-#+header: :noweb-ref elisp-install
+#+header: :noweb-ref el-shared
 #+begin_src emacs-lisp
   (use-package dash
   :ensure t)
@@ -94,7 +70,7 @@ Emacs-org:
 ** el
 *** group
 
-#+header: :noweb-ref elisp-source
+#+header: :noweb-ref el-shared
 #+begin_src emacs-lisp
     (defgroup erw/extra nil "erw's extra elisp functionality"
       :prefix "erw/")
@@ -133,7 +109,7 @@ Emacs-org:
 *** string
 **** wrap-single-quotes
 
-#+header: :noweb-ref elisp-source
+#+header: :noweb-ref el-beta
 #+begin_src emacs-lisp
   (defun erw/function-string-wrap-single-quotes (string)
     "Wraps STRING with single quotes if absent."
@@ -159,7 +135,7 @@ Emacs-org:
 
 **** join
 
-#+header: :noweb-ref elisp-source
+#+header: :noweb-ref el-string
 #+begin_src emacs-lisp
   (defun erw/string-join (&optional separator &rest strings)
     "Join STRINGS with an optional SEPARATOR, defaulting to space. Skip nil values."
@@ -171,7 +147,7 @@ Emacs-org:
 
 #+header: :noweb-ref elisp-example
 #+begin_src emacs-lisp
-(erw/string-join ", " "foo" nil "qux")
+  (erw/string-join ", " "foo" nil "qux")
 #+end_src
 
 #+RESULTS:
@@ -180,7 +156,7 @@ Emacs-org:
 *** table
 **** field-address
 
-#+header: :noweb-ref elisp-source
+#+header: :noweb-ref el-beta
 #+begin_src emacs-lisp
   (defun erw/function-table-field-address (index)
     "Table address for field INDEX"
@@ -201,7 +177,7 @@ Emacs-org:
 
 **** get-range
 
-#+header: :noweb-ref elisp-source
+#+header: :noweb-ref el-beta
 #+begin_src emacs-lisp
   (defun erw/function-table-get-range-at-file (tbl-id range-address &optional file-name)
     "Get list of values in RANGE-ADDRESS from TBL-ID at FILE-NAME.
@@ -230,7 +206,7 @@ Emacs-org:
 
 **** lookup
 
-#+header: :noweb-ref elisp-source
+#+header: :noweb-ref el-beta
 #+begin_src emacs-lisp
     (defun erw/function-table-lookup (tbl-id key &optional file-name key-index value-index match-predicate)
       "Lookup field KEY-INDEX and return corresponding entry in field VALUE-INDEX from table TBL-ID."
@@ -266,7 +242,7 @@ Emacs-org:
 
 *** element
 
-#+header: :noweb-ref elisp-source
+#+header: :noweb-ref el-beta
 #+begin_src emacs-lisp
   (defun erw/filter-block-names (regex &optional file)
     "Filter the source block names using REGEX in FILE."
@@ -284,7 +260,7 @@ Emacs-org:
 
 *** function
 
-#+header: :noweb-ref elisp-source
+#+header: :noweb-ref el-beta
 #+begin_src emacs-lisp
   (defun erw/compose (arg &rest functions)
     (-reduce-r (lambda (fn acc) (funcall fn acc)) (append (reverse functions) (list arg))))
@@ -295,7 +271,7 @@ Emacs-org:
 
 #+header: :noweb-ref elisp-example
 #+begin_src emacs-lisp
-(erw/compose 4 #'sqrt (lambda (x) (+ 1 x)))
+  (erw/compose 4 #'sqrt (lambda (x) (+ 1 x)))
 #+end_src
 
 #+RESULTS:
@@ -303,7 +279,7 @@ Emacs-org:
 
 *** noweb
 
-#+header: :noweb-ref elisp-source
+#+header: :noweb-ref el-beta
 #+begin_src emacs-lisp
   (defun erw/noweb-expand (name)
     "Expands block NAME"
@@ -319,7 +295,7 @@ Emacs-org:
 #+RESULTS:
 : erw/noweb-expand
 
-#+header: :noweb-ref elisp-source
+#+header: :noweb-ref el-beta
 #+begin_src emacs-lisp
   (defun __erw/noweb-concat-rest (separator &optional fn &rest names)
     "Implementation for REST"
@@ -358,13 +334,14 @@ Emacs-org:
 
 *** shell
 
+#+header: :noweb-ref el-shell
 #+begin_src emacs-lisp
-(defun erw/sh-check (command &optional re)
-  "Issues a warning if the shell does not match RE; then executes shell COMMAND."
-  (let ((re (or re "bash$")))
-    (unless (string-match-p re (format "%s" shell-file-name))
-      (warn "Warning: expecting shell to match %s; got %s" re shell-file-name))
-    (shell-command-to-string command)))
+  (defun erw/sh-check (command &optional re)
+    "Issues a warning if the shell does not match RE; then executes shell COMMAND."
+    (let ((re (or re "bash$")))
+      (unless (string-match-p re (format "%s" shell-file-name))
+        (warn "Warning: expecting shell to match %s; got %s" re shell-file-name))
+      (shell-command-to-string command)))
 #+end_src
 
 #+RESULTS:
@@ -382,8 +359,20 @@ Emacs-org:
 #+end_src
 
 *** json
+**** load
+
+#+header: :noweb-ref el-json
+#+begin_src emacs-lisp
+  (let ((prefix "./") (ext ".el"))
+    (dolist (string '("shared" "string"))
+      (load-file (concat prefix string ext))))
+#+end_src
+
+#+RESULTS:
+
 **** safe
 
+#+header: :noweb-ref el-json
 #+begin_src emacs-lisp
   (defcustom erw/json-safe-alist
     '(("\t" . "\\\\t"))
@@ -394,18 +383,36 @@ Emacs-org:
 #+RESULTS:
 : erw/json-safe-alist
 
+#+header: :noweb-ref el-json
 #+begin_src emacs-lisp
-  (defun erw/json-safe (string &optional first &rest re-rep)
-    "Make a string JSON-safe by replacing regex patterns with replacements from alist."
-    (if first
-        (if (null re-rep)
-            string
-          (let* ((pair (car re-rep))
-                 (re (car pair))
-                 (rep (cdr pair))
-                 (result (replace-regexp-in-string re rep string)))
-            (apply 'erw/json-safe result t (cdr re-rep))))
-      (apply 'erw/json-safe string t erw/json-safe-alist)))
+  (defun erw/json--safe (string &rest re-rep)
+    "Make a STRING JSON-safe by replacing REGEXP-REPLACEMENT pairs in RE-REP"
+    (if (null re-rep)
+        string
+      (let* ((pair (car re-rep))
+             (re (car pair))
+             (rep (cdr pair))
+             (result (replace-regexp-in-string re rep string)))
+        (apply 'erw/json--safe result (cdr re-rep)))))
+#+end_src
+
+#+RESULTS:
+: erw/json--safe
+
+#+header: :noweb-ref elisp-example
+#+header: :results verbatim
+#+begin_src emacs-lisp
+  (erw/json--safe "{ \"key\": \"foo	bar\" }" '("\t" . "\\\\t"))
+#+end_src
+
+#+RESULTS:
+: "{ \"key\": \"foo\\tbar\" }"
+
+#+header: :noweb-ref el-json
+#+begin_src emacs-lisp
+  (defun erw/json-safe (string)
+    "Recursively apply REGEXP-REPLACEMENT pairs in RE-REP to STRING."
+    (apply 'erw/json--safe string erw/json-safe-alist))
 #+end_src
 
 #+RESULTS:
@@ -414,16 +421,7 @@ Emacs-org:
 #+header: :noweb-ref elisp-example
 #+header: :results verbatim
 #+begin_src emacs-lisp
-  (erw/json-safe "{ \"key\": \"foo	bar\" }" t '("\t" . "\\\\t"))
-#+end_src
-
-#+RESULTS:
-: "{ \"key\": \"foo\\tbar\" }"
-
-#+header: :noweb-ref elisp-example
-#+header: :results verbatim
-#+begin_src emacs-lisp
-(erw/json-safe "{ \"key\": \"foo	bar\" }")
+  (erw/json-safe "{ \"key\": \"foo	bar\" }")
 #+end_src
 
 #+RESULTS:
@@ -432,10 +430,10 @@ Emacs-org:
 **** jq
 ***** file
 
-#+header: :noweb-ref elisp-source
+#+header: :noweb-ref el-json
 #+begin_src emacs-lisp
   (defun erw/jq-file (filter file &optional options)
-    "Apply a jq filter to a JSON file and return the result."
+    "Apply a jq FILTER to a JSON file and return the result."
     (let ((command (format (erw/string-join " " "jq" options "'%s'" "%s") filter file)))
       (erw/sh-check command)))
 #+end_src
@@ -445,7 +443,7 @@ Emacs-org:
 
 ***** string
 
-#+header: :noweb-ref elisp-source
+#+header: :noweb-ref el-json
 #+begin_src emacs-lisp
   (defun erw/jq-string (filter string &optional options)
     "Apply a jq filter to a JSON string and return the result."
@@ -476,7 +474,7 @@ Emacs-org:
 
 *** src-block
 
-#+header: :noweb-ref elisp-source
+#+header: :noweb-ref el-beta
 #+begin_src emacs-lisp
   (defun erw/src-block-info (name &optional no-eval)
     "Gets info of block NAME"
@@ -498,7 +496,7 @@ Emacs-org:
 #+RESULTS:
 | json | { "key" : "X" } | ((:colname-names) (:rowname-names) (:result-params replace) (:result-type . value) (:results . replace) (:exports . code) (:tangle . no) (:hlines . no) (:noweb . no) (:cache . no) (:session . none)) |   | json-foo-bar | 1239 | (ref:%s) |
 
-#+header: :noweb-ref elisp-source
+#+header: :noweb-ref el-beta
 #+begin_src emacs-lisp
   (defun erw/src-block-element (name) "Return the whole block element"
          (save-excursion
@@ -511,7 +509,7 @@ Emacs-org:
   (erw/src-block-element "bar-qux")
 #+end_src
 
-#+header: :noweb-ref elisp-source
+#+header: :noweb-ref el-beta
 #+begin_src emacs-lisp
   (defun erw/src-block-properties (name &rest properties)
     "Return block properties from the named block element. Defaults to :value if no properties are given."
@@ -545,260 +543,53 @@ Emacs-org:
 : ((:var . value="qux"))
 
 * tangle
-** extra
+** shared
 :PROPERTIES:
-:header-args: :tangle ./extra.el
+:header-args: :tangle ./shared.el
 :END:
 
 #+header: :noweb yes
 #+begin_src emacs-lisp
   <<doc-license>>
-  <<elisp-install>>
-  <<elisp-source>>
+  <<el-shared>>
 #+end_src
 
 #+RESULTS:
 : erw/noweb-concat
 
-* miscellany
-** trash
-*** path
-**** from-table
-
-#+header: :noweb-ref elisp-source-disable
-#+begin_src emacs-lisp
-    (defun erw/function-path-from-table (tbl-name key &optional child)
-      (let* ((parent (erw/table-lookup tbl-name key)))
-	   (parent "./foo/"))
-           (if child
-                     (expand-file-name child (file-name-as-directory parent))
-                   (expand-file-name parent))))
-  (defalias 'erw/path-from-table 'erw/function-path-from-table)
-#+end_src
-
-#+RESULTS:
-: erw/path-from-table
-
-#+header: :noweb-ref elisp-example
-#+header: :results value
-#+begin_src emacs-lisp
-(erw/path-from-table "tbl-foo-bar-dir" "foo")
-#+end_src
-
-#+RESULTS:
-: /home/erwann/github/rogard/persemacs/.emacs.d/foo/
-
-#+header: :noweb-ref elisp-example
-#+header: :results value
-#+begin_src emacs-lisp
-(erw/path-from-table "tbl-foo-bar-dir" "foo" "bar")
-#+end_src
-
-#+RESULTS:
-: /home/erwann/github/rogard/persemacs/.emacs.d/foo/bar
-
-*** ensure-directory
-
-Redundant with file-name-as-directory
-
-#+header: :noweb-ref elisp-source-disable
-#+begin_src emacs-lisp
-  (defun erw/ensure-directory (path)
-    "Ensures PATH ends with a slash"
-    (if (not (string-match-p "/$" path))
-        (concat path "/")
-      path))
-#+end_src
-
-#+RESULTS:
-: erw/ensure-directory
-
-#+header: :noweb-ref elisp-example
-#+begin_src emacs-lisp
-(erw/ensure-directory "foo")
-#+end_src
-
-#+RESULTS:
-: foo/
-
-*** jtable-range
-
-#+header: :noweb-ref debug
-#+begin_src emacs-lisp
-(defun j/remote-table-range (path name range)
-  (with-current-buffer (find-file-noselect path)
-  (org-table-get-remote-range name range)))
-#+end_src
-
-#+RESULTS:
-: j/remote-table-range
-
-#+name: tbl-foo-bar-string
-| "foo" | "x" |
-| "bar" | "y" |
-
-#+header: :noweb-ref debug
-#+header: :results value verbatim
-#+begin_src emacs-lisp
-(j/remote-table-range (buffer-file-name) "tbl-foo-bar-string" (format "@1$%d..@>$%d" 2 2))
-#+end_src
-
-#+RESULTS:
-: (#("\"x\"" 0 3 (wrap-prefix #("      " 0 6 (face org-indent)) line-prefix #("      " 0 6 (face org-indent)) face org-table fontified t)) #("\"y\"" 0 3 (wrap-prefix #("      " 0 6 (face org-indent)) line-prefix #("      " 0 6 (face org-indent)) face org-table fontified t)))
-
-#+header: :results verbatim
-#+begin_src emacs-lisp
-  (let ((result  #("\"x\"" 0 3 (wrap-prefix #("      " 0 6 (face org-indent)) line-prefix #("      " 0 6 (face org-indent)) face org-table fontified t))))
-  (substring-no-properties result))
-#+end_src
-
-#+RESULTS:
-: "\"x\""
-
-#+header: :results verbatim
-#+begin_src emacs-lisp
-  (let ((result-with-properties  #("\"x\"" 0 3 (wrap-prefix #("      " 0 6 (face org-indent)) line-prefix #("      " 0 6 (face org-indent)) face org-table fontified t))))
-  (substring-no-properties (substring result 1 -1)))
-#+end_src
-
-#+RESULTS:
-: "x"
-
-*** filter-elements
-
-#+header: :noweb-ref elisp-source
-#+begin_src emacs-lisp
-  (defun erw/function-filter-elements (type regex)
-    "Filter elements of the given TYPE from the current Org buffer by matching their name with REGEX."
-    (let* ((parsed-buffer (org-element-parse-buffer))
-           (elements (org-element-map parsed-buffer type 
-                                    (lambda (elem) (org-element-property :name elem)))))
-           (-filter (lambda (elem) (string-match-p regex elem)) elements)))
-  (defalias 'erw/filter-elements 'erw/function-filter-elements)
-#+end_src
-
-** scratchpad
-*** tangle
+** subtree
 :PROPERTIES:
-:header-args: :tangle (erw/table-to-path "tbl-foo-bar-dir" "foo" "test.el")
+:header-args: :tangle ./subtree.el
 :END:
 
+#+header: :noweb yes
 #+begin_src emacs-lisp
-  (message "testing %s" "foo")
-#+end_src
-
-*** table
-
-#+begin_src emacs-lisp
-  (org-table-get-remote-range "const-path" "@1$1..@>$1")
+  <<doc-license>>
+  <<el-subtree>>
 #+end_src
 
 #+RESULTS:
-: unique-directory
+: erw/noweb-concat
 
-#+header: :results value
+** string
+:PROPERTIES:
+:header-args: :tangle ./string.el
+:END:
+
+#+header: :noweb yes
 #+begin_src emacs-lisp
-   (org-table-get-remote-range "foobar" (format "@1$%d..@>$%d" 1 1))
+  <<doc-license>>
+  <<el-string>>
 #+end_src
 
-#+RESULTS:
-| foo | bar |
+** shell
+:PROPERTIES:
+:header-args: :tangle ./shell.el
+:END:
 
-#+header: :results value
+#+header: :noweb yes
 #+begin_src emacs-lisp
-   (org-table-get-remote-range "file:/home/erwann/.emacs.d/config.org::foobar" (format "@1$%d..@>$%d" 1 1))
+  <<doc-license>>
+  <<el-shell>>
 #+end_src
-
-
-#+begin_src emacs-lisp
-  (org-lookup-first "unique-directory"
-                    (erw/function-table-get-field "const-path" 1)
-                    (erw/function-table-get-field "const-path" 2)))
-#+end_src
-
-#+RESULTS:
-: "/home/erwann/unique"
-
-*** list
-
-#+header: example-plist-get-1
-#+begin_src emacs-lisp
-  (let ((my-listp (list 'foo "x" 'bar "y")))
-    (plist-get my-listp 'foo))
-#+end_src
-
-#+RESULTS:
-: x
-
-#+header: example-plist-get-2
-#+begin_src emacs-lisp
-  (let ((my-listp '("foo" "x" bar "y")))
-    (list (plist-get my-listp 'bar 'eq)
-     (plist-get my-listp "foo" 'string-match-p)))
-#+end_src
-
-#+RESULTS:
-| y | x |
-
-#+name: debug-a
-#+begin_src emacs-lisp
-  (let ((my-alist '(("foo" . "x")
-                 ("bar" . "y"))))
-      (cdr (assoc "foo" my-alist)))
-#+end_src
-
-#+RESULTS: debug-a
-: x
-
-#+name: debug-b
-#+begin_src emacs-lisp
-  (makunbound 'my-pair)
-  (makunbound 'my-pair-x)
-  (makunbound 'my-pair-y)
-  (defun my-pair (key value)
-    (cons key value))
-  (defun my-pair-x (key)
-    (my-pair key "x"))
-  (defun my-pair-y (key)
-    (my-pair key "y"))
-  (let ((my-alist `(,(my-pair-x "foo")
-                    , (my-pair-y "bar"))))
-    (cdr (assoc "foo" my-alist)))
-#+end_src
-
-#+RESULTS: debug-b
-: ((foo . x) (bar . y))
-
-#+begin_src emacs-lisp
-      (defconst my-alist '(("us-ascii" . "text")
-                     ("utf-8" . "text")
-       ("utf-16" . "text")
-       ("utf-32" . "text")
-       ("iso-8859-1" . "text")
-       ("iso-8859-2" . "text")
-       ("iso-8859-15" . "text")
-       ("windows-1252" . "text")
-       ("euc-jp" . "text")
-       ("shift_jis" . "text")
-       ("euc-kr" . "text")
-       ("big5" . "text")
-       ("gb2312" . "text")
-       ("binary" . "binary")))
-      (alist-get "big5" my-alist nil nil 'equal)
-;;      (cdr (assoc "big5" my-alist)))
-#+end_src
-
-#+RESULTS:
-: text
-
-#+name: setup-1
-#+begin_src emacs-lisp
-  (defun my-fun () (message "%s" "foo"))
-  (defvar my-var (my-fun))
-  (symbol-value 'my-var)
-#+end_src
-
-#+RESULTS:
-: foo
-
 

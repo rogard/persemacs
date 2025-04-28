@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 
+user_init_file='/home/erwann/.emacs'
 link_name="${user_init_file}"
 
 if [[ -f "${link_name}" ]]; then
