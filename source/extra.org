@@ -26,15 +26,6 @@
 Emacs-org:
 - [[https://orgmode.org/manual/Working-with-Source-Code.html][Working with source code]]
 
-* install
-** dash
-
-#+header: :noweb-ref el-shared
-#+begin_src emacs-lisp
-  (use-package dash
-  :ensure t)
-#+end_src
-
 * source
 ** org
 *** table
@@ -68,6 +59,14 @@ Emacs-org:
 #+end_src
 
 ** el
+*** package
+
+#+header: :noweb-ref el-shared
+#+begin_src emacs-lisp
+  (use-package dash
+  :ensure t)
+#+end_src
+
 *** group
 
 #+header: :noweb-ref el-shared

@@ -33,29 +33,67 @@ Managing source code:
 - [[https://orgmode.org/manual/Working-with-Source-Code.html][Working with source code]]
 
 * source
-** attrib
+** txt
+*** capture-tpl
 
-#+header: :noweb-ref el-package
+#+name: org-capture-tpl
+#+begin_src org
+,* %^{heading}
+:PROPERTIES:
+:created_on: %^T
+:uname:    %(eval erw/config-owner)
+:END:
+#+end_src
+
+** org
+*** capture
+
+#+name: org-capture-org
+#+begin_src org
+  ,#+title: capture
+  ,#+startup: logdrawer
+  ,#+startup: fold
+  ,#+startup: hideblocks
+  ,#+property: comp-lang_ALL tex py cpp elisp org
+  ,#+property: custom_id
+  ,#+property: completed_on
+  ,* Archive
+  ,* Headings
+  ,* Capture
+  ,* View
+#+end_src
+
+** el
+*** doc
+
+#+header: :noweb-ref el-shared
 #+begin_src emacs-lisp
-  ;; main.el --- Emacs config file
-  ;; Adapted from:
+  ;;  persemacs-config — Emacs config file
+  ;;  Copyright (C) 2024—2025 — Erwann Rogard
+  ;;  Released under GPL 3.0
+  ;;  See https://www.gnu.org/licenses/gpl-3.0.en.html
+#+end_src
+
+#+header: :noweb-ref el-shared
+#+begin_src emacs-lisp
+  ;; Initially adapted from:
   ;; - https://github.com/ianyepan/yay-evil-emacs
 #+end_src
 
-** variable
-*** const
+*** variable
+**** const
 
 #+header: :noweb-ref el-owner
 #+begin_src emacs-lisp
   (defconst erw/const-owner-at-hostname (concat (getenv "OWNER") "@" (system-name)))
 #+end_src
 
-*** custom
+**** custom
 :PROPERTIES:
 :customize_bool: true
 :END:
 
-**** owner
+***** owner
 
 #+header: :noweb-ref el-owner
 #+begin_src emacs-lisp
@@ -65,8 +103,8 @@ Managing source code:
     :group 'erw/config)
 #+end_src
 
-**** capture
-***** target
+***** capture
+****** target
 
 #+header: :noweb-ref el-package
 #+begin_src elisp
@@ -74,7 +112,7 @@ Managing source code:
     :group 'erw/config )
 #+end_src
 
-***** template
+****** template
 
 #+header: :noweb-ref el-package
 #+begin_src elisp
@@ -82,7 +120,7 @@ Managing source code:
     :group 'erw/config)
 #+end_src
 
-**** agenda-files
+***** agenda-files
 
 #+header: :noweb-ref el-package
 #+begin_src elisp
@@ -92,17 +130,17 @@ Managing source code:
   :group 'erw/config)
 #+end_src
 
-** package
-*** auctex
+*** package
+**** auctex
 
 #+header: :noweb-ref el-package
 #+begin_src emacs-lisp
   (use-package auctex
-  :straight t
-  ;; https://emacs.stackexchange.com/a/81504/41724
-  )
+    :straight t
+    ;; https://emacs.stackexchange.com/a/81504/41724
+    )
 #+end_src
-*** corfu
+**** corfu
 
 Reference:
 - https://github.com/minad/corfu
@@ -172,7 +210,7 @@ Reference:
     (global-corfu-mode)
     (corfu-popupinfo-mode +1))
 #+end_src
-*** dash
+**** dash
 
 #+header: :noweb-ref el-package
 #+begin_src emacs-lisp
@@ -180,7 +218,7 @@ Reference:
     :straight t)
 #+end_src
 
-*** dashboard
+**** dashboard
 
 #+header: :noweb-ref el-package
 #+begin_src emacs-lisp
@@ -195,7 +233,7 @@ Reference:
           dashboard-set-footer nil))
 #+end_src
 
-*** doomemacs
+**** doomemacs
 
 #+header: :noweb-ref el-package
 #+begin_src emacs-lisp
@@ -225,7 +263,7 @@ Reference:
     (set-face-foreground 'show-paren-match "black"))
 #+end_src
 
-*** ekg
+**** ekg
 
 #+header: :noweb-ref source-disabled
 #+begin_src emacs-lisp
@@ -233,8 +271,8 @@ Reference:
     :disabled)
 #+end_src
 
-*** emacs
-**** ui
+**** emacs
+***** ui
 
 #+header: :noweb-ref el-package
 #+begin_src emacs-lisp
@@ -266,7 +304,7 @@ Reference:
   ;;	  scroll-conservatively 101 ; >100
 #+end_src
 
-**** quickstart
+***** quickstart
 :PROPERTIES:
 :custom_id: _source-quickstart
 :END:
@@ -279,7 +317,7 @@ TODO:
   (setq package-quickstart t)
 #+end_src
 
-*** files
+**** files
 
 #+header: :noweb-ref el-package
 #+begin_src emacs-lisp
@@ -293,7 +331,7 @@ TODO:
           make-backup-files nil))
 #+end_src
 
-*** flymake
+**** flymake
 
 Reference:
 - [[https://github.com/federicotdn/flymake-shellcheck][flymate-shellcheck]]
@@ -308,7 +346,7 @@ Reference:
     (add-hook 'sh-mode-hook 'flymake-shellcheck-load))
 #+end_src
 
-*** lsp
+**** lsp
 :LOGBOOK:
 - Note taken on [2024-06-20 Thu 15:25] \\
   Inside =debug.sh=, =Flymake= ensures that when a token is selected, the corresponding doc appears.
@@ -358,7 +396,7 @@ Commands:
     (setq lsp-ui-sideline-delay 0.05))
 #+end_src
 
-*** markdown
+**** markdown
 
 #+header: :noweb-ref el-package
 #+begin_src emacs-lisp
@@ -380,7 +418,7 @@ Commands:
     (setq web-mode-content-types-alist '(("jsx" . "\\.js[x]?\\'"))))
 #+end_src
 
-*** ob
+**** ob
 
 #+header: :noweb-ref el-package
 #+begin_src emacs-lisp
@@ -398,13 +436,13 @@ Commands:
   :after org)
 #+end_src
 
-*** org
+**** org
 
 Resource:
 - https://orgmode.org/worg/org-contrib/babel/languages/index.html
 - https://orgmode.org/manual/Languages.html
 
-**** custom
+***** custom
 
 #+header: :noweb-ref el-package
 #+begin_src emacs-lisp
@@ -423,7 +461,7 @@ Resource:
     )
 #+end_src
 
-**** hook
+***** hook
 
 #+header: :noweb-ref el-package
 #+begin_src emacs-lisp
@@ -433,7 +471,7 @@ Resource:
            (org-mode . org-indent-mode)))
 #+end_src
 
-**** config
+***** config
 
 #+header: :noweb-ref el-package
 #+begin_src emacs-lisp
@@ -454,7 +492,7 @@ Resource:
     )
 #+end_src
 
-*** ql
+**** ql
 
 #+header:  :noweb-ref el-package
 #+begin_src emacs-lisp
@@ -462,7 +500,7 @@ Resource:
     :straight (:host github :repo "alphapapa/org-ql"))
 #+end_src
 
-*** vertico
+**** vertico
 
 Reference:
 - https://github.com/minad/vertico
@@ -529,7 +567,7 @@ Reference:
     (setq read-extended-command-predicate #'command-completion-default-include-p))
 #+end_src
 
-*** web-mode
+**** web-mode
 
 #+header: :noweb-ref el-package
 #+begin_src emacs-lisp
@@ -546,7 +584,7 @@ Reference:
     (setq web-mode-code-indent-offset 2)   ; JS/JSX/TS/TSX
     (setq web-mode-content-types-alist '(("jsx" . "\\.js[x]?\\'"))))
 #+end_src
-*** wolfram
+**** wolfram
 
 Resource:
 - https://github.com/tririver/ob-mathematica/
@@ -570,29 +608,8 @@ Resource:
   )
 #+end_src
 
-** other
-*** capture
-:PROPERTIES:
-:todo_bool: true
-:END:
-
-#+name: property-refile
-#+begin_src org
-  ,#+property: refile_bool_ALL true false
-#+end_src
-
-#+name: org-capture-tpl
-#+begin_src org
-  ,* %^{heading}
-  :PROPERTIES:
-  :created_on: %^T
-  :uname:    %(eval erw/config-owner)
-  :refile_bool: %^{refile_bool|false}p
-  :END:
-#+end_src
-
 * tangle
-*** package
+** package
 
 #+header: :tangle yes
 #+header: :noweb yes
@@ -600,7 +617,7 @@ Resource:
   <<el-package>>
 #+end_src
 
-*** owner
+** owner
 :PROPERTIES:
 :customize_bool: true
 :END:
