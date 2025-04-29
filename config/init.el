@@ -1,16 +1,23 @@
 (defgroup erw/config nil "erw's config"
   :prefix "erw/config")
-(defvar bootstrap-version)
+(defcustom erw/config-install-url
+  "https://raw.githubusercontent.com/radian-software/straight.el/develop/install.el"
+  "URL to download the straight.el bootstrap script."
+  :group 'erw/config)
+(defcustom erw/config-manager-version
+  7
+  "Bootstrap version for straight.el."
+  :group 'erw/config)
 (let ((bootstrap-file
        (expand-file-name
-        "straight/repos/straight.el/bootstrap.el"
+        erw/config-bootstrap-relative-path
         (or (bound-and-true-p straight-base-dir)
             user-emacs-directory)))
-      (bootstrap-version 7))
+      (bootstrap-version erw/config-manager-version))
   (unless (file-exists-p bootstrap-file)
     (with-current-buffer
         (url-retrieve-synchronously
-         "https://raw.githubusercontent.com/radian-software/straight.el/develop/install.el"
+         erw/config-install-url
          'silent 'inhibit-cookies)
       (goto-char (point-max))
       (eval-print-last-sexp)))
@@ -24,7 +31,5 @@
 (eval-and-compile
   (setq use-package-always-ensure t)) 
 ;; (setq use-package-always-defer t))
-(defcustom erw/this-directory "/home/erwann/github/rogard/persemacs/" "where this package is located"
-  :group 'erw/config)
-(let* ((remote-emacs-dir (expand-file-name "config" erw/this-directory)))
-  (org-babel-load-file (expand-file-name "main.org" remote-emacs-dir)))
+(dolist (file '("shared.org" "package.org"))
+  (org-babel-load-file (expand-file-name file)))
