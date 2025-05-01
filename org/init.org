@@ -1,0 +1,283 @@
+#+title: init.org
+#+author: Erwann Rogard 
+#+property: header-args :tangle no
+
+* source
+** org
+
+#+name: org-license
+#+begin_src org
+  persemacs — Emacs configuration and functionality
+  Copyright (C) 2024—2025 — Erwann Rogard
+  Released under GPL 3.0
+  See https://www.gnu.org/licenses/gpl-3.0.en.html
+#+end_src
+
+#+begin_src org
+  Initially adapted from:
+  - https://github.com/ianyepan/yay-evil-emacs
+#+end_src
+
+** elisp
+*** comment
+
+#+name: el-license
+#+begin_src emacs-lisp :results value raw
+(mapconcat
+ (lambda (line) (concat ";; " line))
+ (split-string (org-babel-ref-resolve "org-license") "\n")
+ "\n")
+#+end_src
+
+#+RESULTS: el-license
+;; persemacs — Emacs configuration and functionality
+;; Copyright (C) 2024—2025 — Erwann Rogard
+;; Released under GPL 3.0
+;; See https://www.gnu.org/licenses/gpl-3.0.en.html
+
+*** const
+**** license
+
+#+header: :noweb-ref el-init
+#+begin_src emacs-lisp
+  (defconst erw/license (org-babel-ref-resolve "org-license"))
+#+end_src
+
+**** directory
+
+#+header: :noweb-ref el-init
+#+name: el-root-directory
+#+begin_src emacs-lisp
+  (defconst erw/root-directory 
+    (expand-file-name "..")
+    "Root directory")
+#+end_src
+
+#+RESULTS:
+: erw/root-directory
+
+#+header: :noweb-ref scratchpad
+#+begin_src emacs-lisp
+  (symbol-value 'erw/root-directory)
+#+end_src
+
+#+RESULTS:
+: /home/erwann/github/rogard/persemacs
+
+#+header: :noweb-ref el-init
+#+begin_src emacs-lisp
+  (eval-and-compile
+    (dolist (ext '("el" "org" "sh"))
+      (eval `(erw/define-directory ,ext))))
+#+end_src
+
+**** tangle
+
+#+header: :noweb-ref el-init
+#+begin_src emacs-lisp
+  ;; should contain only el code
+  (defconst erw/init-tangle-prefix '("config") "Tells initialization to tangle <prefix>.org")
+#+end_src
+
+*** eval
+**** manager
+
+#+header: :noweb-ref el-init
+#+begin_src emacs-lisp
+  ;; https://github.com/radian-software/straight.el?tab=readme-ov-file#getting-started
+  (defvar bootstrap-version)
+  (let ((bootstrap-file
+         (expand-file-name
+          "straight/repos/straight.el/bootstrap.el"
+          (or (bound-and-true-p straight-base-dir)
+              user-emacs-directory)))
+        (bootstrap-version 7))
+    (unless (file-exists-p bootstrap-file)
+      (with-current-buffer
+          (url-retrieve-synchronously
+           "https://raw.githubusercontent.com/radian-software/straight.el/develop/install.el"
+           'silent 'inhibit-cookies)
+        (goto-char (point-max))
+        (eval-print-last-sexp)))
+    (load bootstrap-file nil 'nomessage))
+#+end_src
+
+#+header: :noweb-ref el-init
+#+begin_src emacs-lisp
+  ;; Ensure Org is loaded early
+  (straight-use-package 'org)
+#+end_src
+
+**** package
+
+#+header: :noweb-ref el-init
+#+begin_src emacs-lisp
+  (straight-use-package 'use-package)
+#+end_src
+
+#+header: :noweb-ref el-init
+#+begin_src emacs-lisp
+  ;;  (unless (package-installed-p 'use-package)
+  ;;    (package-refresh-contents)
+  ;;    (package-install 'use-package))
+  (eval-and-compile
+    (setq use-package-always-ensure t))
+  ;; (setq use-package-always-defer t))
+#+end_src
+
+**** other
+
+#+header: :noweb-ref el-init
+#+begin_src emacs-lisp
+(dolist (prefix (erw/init-tangle-prefix))
+  (let ((root-name "..")
+        file-org file-el)
+    (dolist (ext '("org" "el"))
+      (let* ((dir-name (expand-file-name ext root-name))
+             (base-name (concat prefix "." ext))
+             (full-path (expand-file-name base-name dir-name)))
+        (set (intern (concat "file-" ext)) full-path)))
+    (with-current-buffer (find-file-noselect file-org)
+      (org-babel-tangle nil file-el))
+    (load-file file-el)))
+#+end_src
+
+*** function
+**** debug
+
+#+header: :noweb-ref el-disabled
+#+begin_src emacs-lisp
+  ;;  (defun erw/default-directory-watcher (symbol newval operation where)
+  ;;    "Watch for changes to `default-directory`.
+  ;;  SYMBOL is the variable being watched.
+  ;;  NEWVAL is the new value of the variable.
+  ;;  OPERATION is the operation performed on the variable.
+  ;;  WHERE is the buffer where the variable was changed."
+  ;;    (message "default-directory changed in %s: %s → %s"
+  ;;             (buffer-name where)
+  ;;             (symbol-value symbol)  ;; Old value
+  ;;             newval))  ;; New value
+  ;;
+  ;; (add-variable-watcher 'default-directory #'erw/default-directory-watcher)
+  ;;
+  ;; (remove-variable-watcher 'default-directory #'erw/default-directory-watcher)
+#+end_src
+
+** sh
+*** shebang
+:PROPERTIES:
+:customize_bool: true
+:END:
+
+#+header: :noweb-ref sh-shebang
+#+name: sh-shebang
+#+begin_src shell
+  #!/usr/bin/env bash
+#+end_src
+
+*** symlink
+**** link_name
+
+#+header: :noweb-ref sh-symlink
+#+begin_src sh
+  if [[ -f "${link_name}" ]]; then      
+      cp "${link_name}" "${link_name}.bak" || {
+          echo "Failed to create backup of ${link_name}"; exit 1;
+      }
+  fi
+#+end_src
+
+**** target
+
+#+header: :noweb-ref sh-symlink
+#+begin_src sh
+  target="${PWD}/init.el"
+
+  if [[ ! -f "${target}" ]]; then
+      echo "Target ${target} not found"; exit 1;
+  fi
+#+end_src
+
+**** do-link
+
+#+header: :noweb-ref sh-symlink
+#+begin_src sh
+  ln -sf "${target}" "${link_name}" || {
+      echo "Failed to create symlink"; exit 1;
+  }
+#+end_src
+
+**** launch-kill
+
+#+header: :noweb-ref sh-symlink
+#+begin_src sh
+  emacs --batch --eval "(kill-emacs)" || {
+      echo "Failed to launch Emacs with the new symlink"; exit 1;
+  }
+#+end_src
+
+**** message 
+
+#+header: :noweb-ref sh-symlink
+#+begin_src sh
+  echo "Symlink created and Emacs verified successfully."
+#+end_src
+
+* tangle
+:PROPERTIES:
+:custom_id: _tangle
+:END:
+
+** elisp
+:PROPERTIES:
+:header-args: :tangle "../el/init.el"
+:END:
+
+#+header: :noweb yes
+#+begin_src emacs-lisp
+  <<el-license>>
+  <<el-init>>
+#+end_src
+
+** sh
+:PROPERTIES:
+:header-args: :tangle "../sh/symlink.sh"
+:END:
+
+#+RESULTS:
+: /home/erwann/.emacs
+
+#+header: :noweb yes
+#+header: :var link_name=(symbol-value 'user-init-file)
+#+begin_src sh
+echo "${link_name}"
+#+end_src
+
+* execute
+** sh
+
+#+header: :noweb yes
+#+begin_src emacs-lisp
+  <<el-root-directory>>
+  (load-file (expand-file-name "init.el" erw/el-directory))
+#+end_src
+
+#+begin_src sh
+  file="../sh/symlink.sh"
+  chmod +x "${file}"
+  source "${file}"
+#+end_src
+
+* scratchpad
+
+#+name: txt-foo
+#+begin_src org
+ foo
+ bar
+#+end_src
+
+#+header: :noweb yes
+#+begin_src emacs-lisp
+(org-info-find-node "txt-foo")
+#+end_src
+
