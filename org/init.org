@@ -3,80 +3,47 @@
 #+property: header-args :tangle no
 
 * source
-** org
-
-#+name: org-license
-#+begin_src org
-  persemacs — Emacs configuration and functionality
-  Copyright (C) 2024—2025 — Erwann Rogard
-  Released under GPL 3.0
-  See https://www.gnu.org/licenses/gpl-3.0.en.html
-#+end_src
-
-#+begin_src org
-  Initially adapted from:
-  - https://github.com/ianyepan/yay-evil-emacs
-#+end_src
-
 ** elisp
 *** comment
 
-#+name: el-license
+#+header: :noweb-ref el-init
 #+begin_src emacs-lisp :results value raw
-(mapconcat
- (lambda (line) (concat ";; " line))
- (split-string (org-babel-ref-resolve "org-license") "\n")
- "\n")
-#+end_src
-
-#+RESULTS: el-license
 ;; persemacs — Emacs configuration and functionality
 ;; Copyright (C) 2024—2025 — Erwann Rogard
 ;; Released under GPL 3.0
 ;; See https://www.gnu.org/licenses/gpl-3.0.en.html
+#+end_src
 
 *** const
-**** license
-
-#+header: :noweb-ref el-init
-#+begin_src emacs-lisp
-  (defconst erw/license (org-babel-ref-resolve "org-license"))
-#+end_src
-
-**** directory
-
-#+header: :noweb-ref el-init
-#+name: el-root-directory
-#+begin_src emacs-lisp
-  (defconst erw/root-directory 
-    (expand-file-name "..")
-    "Root directory")
-#+end_src
-
-#+RESULTS:
-: erw/root-directory
-
-#+header: :noweb-ref scratchpad
-#+begin_src emacs-lisp
-  (symbol-value 'erw/root-directory)
-#+end_src
-
-#+RESULTS:
-: /home/erwann/github/rogard/persemacs
-
-#+header: :noweb-ref el-init
-#+begin_src emacs-lisp
-  (eval-and-compile
-    (dolist (ext '("el" "org" "sh"))
-      (eval `(erw/define-directory ,ext))))
-#+end_src
-
 **** tangle
 
 #+header: :noweb-ref el-init
 #+begin_src emacs-lisp
-  ;; should contain only el code
   (defconst erw/init-tangle-prefix '("config") "Tells initialization to tangle <prefix>.org")
+#+end_src
+
+#+RESULTS:
+: erw/init-tangle-prefix
+
+*** function
+**** debug
+
+#+header: :noweb-ref el-disabled
+#+begin_src emacs-lisp
+  ;;  (defun erw/default-directory-watcher (symbol newval operation where)
+  ;;    "Watch for changes to `default-directory`.
+  ;;  SYMBOL is the variable being watched.
+  ;;  NEWVAL is the new value of the variable.
+  ;;  OPERATION is the operation performed on the variable.
+  ;;  WHERE is the buffer where the variable was changed."
+  ;;    (message "default-directory changed in %s: %s → %s"
+  ;;             (buffer-name where)
+  ;;             (symbol-value symbol)  ;; Old value
+  ;;             newval))  ;; New value
+  ;;
+  ;; (add-variable-watcher 'default-directory #'erw/default-directory-watcher)
+  ;;
+  ;; (remove-variable-watcher 'default-directory #'erw/default-directory-watcher)
 #+end_src
 
 *** eval
@@ -102,11 +69,17 @@
     (load bootstrap-file nil 'nomessage))
 #+end_src
 
+#+RESULTS:
+: t
+
 #+header: :noweb-ref el-init
 #+begin_src emacs-lisp
   ;; Ensure Org is loaded early
   (straight-use-package 'org)
 #+end_src
+
+#+RESULTS:
+: t
 
 **** package
 
@@ -114,6 +87,9 @@
 #+begin_src emacs-lisp
   (straight-use-package 'use-package)
 #+end_src
+
+#+RESULTS:
+: t
 
 #+header: :noweb-ref el-init
 #+begin_src emacs-lisp
@@ -125,43 +101,34 @@
   ;; (setq use-package-always-defer t))
 #+end_src
 
+#+RESULTS:
+: t
+
 **** other
 
 #+header: :noweb-ref el-init
 #+begin_src emacs-lisp
-(dolist (prefix (erw/init-tangle-prefix))
+(dolist (prefix erw/init-tangle-prefix)
   (let ((root-name "..")
         file-org file-el)
     (dolist (ext '("org" "el"))
       (let* ((dir-name (expand-file-name ext root-name))
              (base-name (concat prefix "." ext))
              (full-path (expand-file-name base-name dir-name)))
+        ;; Set the dynamic variables for the file paths
         (set (intern (concat "file-" ext)) full-path)))
-    (with-current-buffer (find-file-noselect file-org)
-      (org-babel-tangle nil file-el))
-    (load-file file-el)))
+    
+    ;; Check if the org file exists before proceeding
+    (if (file-exists-p file-org)
+        (progn
+          ;; Proceed if the Org file exists
+          (with-current-buffer (find-file-noselect file-org)
+            (org-babel-tangle nil file-el))
+          (load-file file-el))
+      (warn "File does not exist: %s" file-org))))  ;; Issue a warning if the Org file doesn't exist
 #+end_src
 
-*** function
-**** debug
-
-#+header: :noweb-ref el-disabled
-#+begin_src emacs-lisp
-  ;;  (defun erw/default-directory-watcher (symbol newval operation where)
-  ;;    "Watch for changes to `default-directory`.
-  ;;  SYMBOL is the variable being watched.
-  ;;  NEWVAL is the new value of the variable.
-  ;;  OPERATION is the operation performed on the variable.
-  ;;  WHERE is the buffer where the variable was changed."
-  ;;    (message "default-directory changed in %s: %s → %s"
-  ;;             (buffer-name where)
-  ;;             (symbol-value symbol)  ;; Old value
-  ;;             newval))  ;; New value
-  ;;
-  ;; (add-variable-watcher 'default-directory #'erw/default-directory-watcher)
-  ;;
-  ;; (remove-variable-watcher 'default-directory #'erw/default-directory-watcher)
-#+end_src
+#+RESULTS:
 
 ** sh
 *** shebang
@@ -191,7 +158,7 @@
 
 #+header: :noweb-ref sh-symlink
 #+begin_src sh
-  target="${PWD}/init.el"
+  target="$(cd .. && pwd)/el/init.el"
 
   if [[ ! -f "${target}" ]]; then
       echo "Target ${target} not found"; exit 1;
@@ -235,22 +202,34 @@
 
 #+header: :noweb yes
 #+begin_src emacs-lisp
-  <<el-license>>
   <<el-init>>
 #+end_src
+
+#+RESULTS:
 
 ** sh
 :PROPERTIES:
 :header-args: :tangle "../sh/symlink.sh"
 :END:
 
-#+RESULTS:
-: /home/erwann/.emacs
+#+begin_src emacs-lisp
+;;  (require 'ob-sh)
+#+end_src
+
+#+begin_src emacs-lisp
+;;  (org-babel-do-load-languages
+;;   'org-babel-load-languages
+;;  '((sh . t)))
+#+end_src
+
+TODO
+- Set link_name using =user-init-file=
 
 #+header: :noweb yes
-#+header: :var link_name=(symbol-value 'user-init-file)
 #+begin_src sh
-echo "${link_name}"
+  <<sh-shebang>>
+  link_name=${HOME}/.emacs
+  <<sh-symlink>>
 #+end_src
 
 * execute
@@ -258,9 +237,14 @@ echo "${link_name}"
 
 #+header: :noweb yes
 #+begin_src emacs-lisp
-  <<el-root-directory>>
-  (load-file (expand-file-name "init.el" erw/el-directory))
+  (load-file (expand-file-name "init.el" "../el"))
 #+end_src
+
+#+RESULTS:
+: t
+
+TODO
+- Make executable
 
 #+begin_src sh
   file="../sh/symlink.sh"
