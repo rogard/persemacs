@@ -104,31 +104,32 @@
 #+RESULTS:
 : t
 
-**** other
+**** org
 
-#+header: :noweb-ref el-init
 #+begin_src emacs-lisp
-(dolist (prefix erw/init-tangle-prefix)
-  (let ((root-name "..")
-        file-org file-el)
-    (dolist (ext '("org" "el"))
-      (let* ((dir-name (expand-file-name ext root-name))
-             (base-name (concat prefix "." ext))
-             (full-path (expand-file-name base-name dir-name)))
-        ;; Set the dynamic variables for the file paths
-        (set (intern (concat "file-" ext)) full-path)))
-    
-    ;; Check if the org file exists before proceeding
-    (if (file-exists-p file-org)
-        (progn
-          ;; Proceed if the Org file exists
-          (with-current-buffer (find-file-noselect file-org)
-            (org-babel-tangle nil file-el))
-          (load-file file-el))
-      (warn "File does not exist: %s" file-org))))  ;; Issue a warning if the Org file doesn't exist
+(require 'org)
 #+end_src
 
 #+RESULTS:
+: org
+
+**** other
+
+#+begin_src emacs-lisp
+  (defun erw/org-tangle-rename (tangle-dir)
+  (let (
+        (tangle-dir (if (directoryp tangle-dir) tangle-dir
+  		    (file-name-as-directory (expand-file-name tangle-dir))))
+        (let 
+  	  ((tangle-rename-fn (lambda ()
+  			       (tangle-file (buffer-file-name))
+  			       (rename-file tangle-file tangle-dir)))
+  			     (add-hook 'org-babel-post-tangle-hook #'erw/org-babel-tangle-rename)
+
+        (file-org "../org/config.org")
+
+
+			     #+end_src
 
 ** sh
 *** shebang
