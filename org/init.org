@@ -19,11 +19,13 @@
 
 #+header: :noweb-ref el-init
 #+begin_src emacs-lisp
-  (defconst erw/init-tangle-prefix '("config") "Tells initialization to tangle <prefix>.org")
+    (defconst erw/init-tangle-prop
+      '((:file "../org/config.org" :lang "emacs-lisp"))
+      "File+lang pairs to tangle as part of initialization")
 #+end_src
 
 #+RESULTS:
-: erw/init-tangle-prefix
+: erw/init-tangle-prop
 
 *** function
 **** debug
@@ -104,32 +106,21 @@
 #+RESULTS:
 : t
 
-**** org
+**** other
 
+#+header: :noweb-ref el-init
 #+begin_src emacs-lisp
-(require 'org)
+  (let ((dir-name (file-name-directory
+  		 (or (file-truename load-file-name) buffer-file-name))))
+    (dolist (pair erw/init-tangle-prop)
+      (let ((source-file (plist-get pair :file))
+  	  (source-lang (plist-get pair :lang)))
+        (with-current-buffer (find-file-noselect (expand-file-name source-file dir-name))
+  	(dolist (target-file (org-babel-tangle nil nil source-lang))
+  	  (load-file target-file))))))
 #+end_src
 
 #+RESULTS:
-: org
-
-**** other
-
-#+begin_src emacs-lisp
-  (defun erw/org-tangle-rename (tangle-dir)
-  (let (
-        (tangle-dir (if (directoryp tangle-dir) tangle-dir
-  		    (file-name-as-directory (expand-file-name tangle-dir))))
-        (let 
-  	  ((tangle-rename-fn (lambda ()
-  			       (tangle-file (buffer-file-name))
-  			       (rename-file tangle-file tangle-dir)))
-  			     (add-hook 'org-babel-post-tangle-hook #'erw/org-babel-tangle-rename)
-
-        (file-org "../org/config.org")
-
-
-			     #+end_src
 
 ** sh
 *** shebang
@@ -254,15 +245,3 @@ TODO
 #+end_src
 
 * scratchpad
-
-#+name: txt-foo
-#+begin_src org
- foo
- bar
-#+end_src
-
-#+header: :noweb yes
-#+begin_src emacs-lisp
-(org-info-find-node "txt-foo")
-#+end_src
-
