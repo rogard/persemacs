@@ -2,6 +2,18 @@
 #+author: Erwann Rogard 
 #+property: header-args :tangle no
 
+This is meta-code for generating Emacs initialization file and ensuring it is loaded at startup.
+
+* doc
+
+Workflow:
+- Customize [[id:el-parameter-add][parameters]]
+- Follow the steps under [[id:execute][execute]]
+
+Noweb-ref:
+- =el-meta= : code used in place
+- =el-init= : code to be tangled
+
 * source
 ** elisp
 *** comment
@@ -14,14 +26,15 @@
 ;; See https://www.gnu.org/licenses/gpl-3.0.en.html
 #+end_src
 
-*** defconst
+*** parameter
+**** list
 
 #+header: :noweb-ref el-meta
 #+begin_src emacs-lisp
-  (defconst erw/init-parameter-list "Initialization parameters")
+  (defvar erw/init-parameter-list nil "Initialization customization (KEY . (VALUE .DESCRIPTION))")
 #+end_src
 
-*** defmacro
+**** macro
 
 #+header: :noweb-ref el-meta
 #+begin_src emacs-lisp
@@ -37,16 +50,23 @@
     (car (cdr (assoc key erw/init-parameter-list))))
 #+end_src
 
-*** parameter
+**** add
+:PROPERTIES:
+:custom_id: el-parameter-add
+:customize_bool: true
+:END:
 
 #+header: :noweb-ref el-meta
 #+begin_src emacs-lisp
-  (erw/init-parameter-add  "init-vc-el" "../el/init.el" "Emacs initialization file (under version control")
+  (erw/init-parameter-add  "init-vc-el" "../el/init.el" "Emacs initialization file (under version control)")
 #+end_src
 
 #+header: :noweb-ref el-meta
 #+begin_src emacs-lisp
-  (erw/init-parameter-add  "init-startup" user-init-file "Emacs initialization file (loaded at startup)")
+  (erw/init-parameter-add  "init-startup"
+  			 ;; guard necessary when testing =el-meta=)
+  			 (or user-init-file "~/.emacs")
+  			 "Emacs initialization file (loaded at startup)")
 #+end_src
 
 #+header: :noweb-ref el-meta
@@ -78,7 +98,7 @@
     (unless (file-exists-p bootstrap-file)
       (with-current-buffer
           (url-retrieve-synchronously           "https://raw.githubusercontent.com/radian-software/straight.el/develop/install.el"
-           'silent 'inhibit-cookies)
+  					      'silent 'inhibit-cookies)
         (goto-char (point-max))
         (eval-print-last-sexp)))
     (load bootstrap-file nil 'nomessage))
@@ -89,7 +109,17 @@
 
 #+header: :noweb-ref el-init
 #+begin_src emacs-lisp
-  ;; Ensure Org is loaded early
+  (straight-use-package 'use-package)
+#+end_src
+
+#+header: :noweb-ref el-scratch
+#+begin_src emacs-lisp
+  ;; https://emacs.stackexchange.com/questions/80853/installing-a-package-with-straight-fails-with-the-error-use-package-unrecog
+  (straight-use-package-mode 1)
+#+end_src
+
+#+header: :noweb-ref el-init
+#+begin_src emacs-lisp
   (straight-use-package 'org)
 #+end_src
 
@@ -97,14 +127,6 @@
 : t
 
 **** use-package
-
-#+header: :noweb-ref el-init
-#+begin_src emacs-lisp
-  (straight-use-package 'use-package)
-#+end_src
-
-#+RESULTS:
-: t
 
 #+header: :noweb-ref el-init
 #+begin_src emacs-lisp
@@ -121,10 +143,7 @@
 
 *** delegate
 
-TODO:
-- meta-ify
-
-#+header: :noweb-ref el-init
+#+header: :noweb-ref el-delegate
 #+begin_src emacs-lisp
   (let ((dir-name (file-name-directory
   		 (or (file-truename load-file-name) buffer-file-name))))
@@ -132,8 +151,10 @@ TODO:
       (let ((source-file (plist-get pair :file))
   	  (source-lang (plist-get pair :lang)))
         (with-current-buffer (find-file-noselect (expand-file-name source-file dir-name))
-  	(dolist (target-file (org-babel-tangle nil nil source-lang))
-  	  (load-file target-file))))))
+  	(message "Visiting buffer %s" (buffer-name))
+  	(let ((target-list (org-babel-tangle nil nil source-lang)))
+  	  (dolist (target-file target-list)
+  	    (load-file target-file)))))))
 #+end_src
 
 #+RESULTS:
@@ -155,9 +176,9 @@ TODO:
 
 #+header: :noweb-ref sh-startup
 #+begin_src sh
-  if [[ -f "${meta_link}" ]]; then      
-      cp "${meta_link}" "${meta_link}.bak" || {
-          echo "Failed to create backup of ${meta_link}"; exit 1;
+  if [[ -f "${meta_startup}" ]]; then      
+      cp "${meta_startup}" "${meta_startup}.bak" || {
+          echo "Failed to create backup of ${meta_startup}"; exit 1;
       }
   fi
 #+end_src
@@ -175,7 +196,7 @@ TODO:
 
 #+header: :noweb-ref sh-startup
 #+begin_src sh
-  ln -sf "${meta_vc_el}" "${meta_link}" || {
+  ln -sf "${meta_vc_el}" "${meta_startup}" || {
       echo "Failed to create link"; exit 1;
   }
 #+end_src
@@ -197,32 +218,36 @@ TODO:
 #+end_src
 
 * execute
+:properties:
+:custom_id: execute
+:end:
+
 ** elisp
 *** meta
 :properties:
-:CUSTOM_ID: exec-el-meta
+:custom_id: exec-el-meta
 :end:
 
-Do over this block:
+Over this block, do:
 - ~M-x ctrl-c-ctrl-c~
 #+header: :noweb yes
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle "../el/meta.el"
   <<el-meta>>
   (let (result)
-    (dolist (key '("init-vc-el" "init-startup" "link-sh")
+    (dolist (key '("init-vc-el" "init-startup" "link-sh"))
       (push (expand-file-name (erw/init-parameter-value key))
             result))
-     result)
+    result)
 #+end_src
 
 #+RESULTS:
 | /home/erwann/github/rogard/persemacs/sh/link.sh | /home/erwann/.emacs | /home/erwann/github/rogard/persemacs/el/init.el |
 
-And for checking's sake:
+Check:
 - ~M-x ctrl-c-ctrl-c~
 #+header: :noweb yes
 #+begin_src emacs-lisp
-(erw/init-parameter-value "delegate-org")
+  (erw/init-parameter-value "delegate-org")
 #+end_src
 
 #+RESULTS:
@@ -235,8 +260,8 @@ And for checking's sake:
 
 Execute:
 - ~org-narrow-to-subtree~
-- ~C-u M-x org-babel-tangle~
-- ~widen~
+- ~M-x org-babel-tangle~
+- ~M-x widen~
 
 #+header: :noweb yes
 #+begin_src emacs-lisp 
@@ -244,13 +269,29 @@ Execute:
 #+end_src
 
 #+header: :noweb yes
-#+header: :var meta-delegate-list=(erw/init-parameter-value "delegate-org")
 #+begin_src emacs-lisp 
   <<el-init>>
 #+end_src
 
+#+begin_src emacs-lisp
+  (eval-and-compile
+#+end_src
+
+#+header: :noweb yes
+#+header: :var meta-delegate-list=(erw/init-parameter-value "delegate-org")
+#+begin_src emacs-lisp 
+  <<el-delegate>>
+#+end_src
+
+#+begin_src emacs-lisp
+  )
+#+end_src
+
 ** sh
 *** meta
+:properties:
+:custom_id: exec-sh-meta
+:end:
 
 Execute:
 - This [[#exec-el-meta][headline]]'s steps
@@ -281,56 +322,22 @@ Execute:
 #+header: :noweb yes
 #+header: :tangle (expand-file-name (erw/init-parameter-value "link-sh"))
 #+header: :var meta_vc_el=(expand-file-name (erw/init-parameter-value "init-vc-el"))
-#+header: :var meta_link=(expand-file-name (erw/init-parameter-value "init-startup"))
+#+header: :var meta_startup=(expand-file-name (erw/init-parameter-value "init-startup"))
 #+begin_src sh
   <<sh-startup>>
 #+end_src
 
-*** other
+*** link
 
-#+header: :noweb yes
-#+begin_src emacs-lisp
-  (let (init-file (expand-file-name (symbol-value 'erw/init-tangle-file)))
-    (load-file init-file))
-#+end_src
-
-#+RESULTS:
-: t
-
+Execute:
+- This [[#exec-el-meta][headline]]'s steps
+- ~M-x ctrl-c-ctrl-c~
+#+header: :var link_sh=(expand-file-name (erw/init-parameter-value "link-sh"))
 #+begin_src sh
-  chmod +x "${target}"
-  source "${target}"
+  chmod +x "${link_sh}"
+  source "${link_sh}"
 #+end_src
 
 #+RESULTS:
+: Link created and Emacs verified successfully.
 
-* scratchpad
-
-#+header: :noweb yes
-#+begin_src emacs-lisp 
-  <<el-meta>>
-#+end_src
-
-#+RESULTS:
-: erw/init-link
-
-#+begin_src emacs-lisp 
-  (symbol-value 'erw/init-tangle-file)
-#+end_src
-
-#+RESULTS:
-: ../el/init.el
-
-
-
-#+header: :noweb yes
-#+header: :noweb-ref el-tangle
-#+begin_src emacs-lisp
-<<el-macro>>
-#+end_src
-
-#+header: :noweb yes
-#+header: :noweb-ref el-post
-#+begin_src emacs-lisp
-<<el-macro>>
-#+end_src

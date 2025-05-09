@@ -2,9 +2,7 @@
 #+author: Erwann Rogard
 #+startup: fold
 
-#+begin_src org
-  This Emacs Org file contains my Emacs configuration. 
-#+end_src
+This Emacs Org file contains meta-code for an Emacs configuration. 
 
 * source
 :PROPERTIES:
@@ -14,24 +12,6 @@
 
 ** org
 *** capture
-**** buffer
-
-Just a suggestion:
-
-#+begin_src org
-  ,#+title: capture
-  ,#+startup: logdrawer
-  ,#+startup: fold
-  ,#+startup: hideblocks
-  ,#+property: comp-lang_ALL tex py cpp elisp org
-  ,#+property: custom_id
-  ,#+property: completed_on
-  ,* Archive
-  ,* Headings
-  ,* Capture
-  ,* View
-#+end_src
-
 **** template
 :PROPERTIES:
 :header-args:org:  :tangle ~/src/txt/capture_tpl
@@ -44,9 +24,8 @@ Just a suggestion:
 :uname:    %(eval erw/config-owner)
 :END:
 #+end_src
-
 ** el
-*** doc
+*** comment
 
 #+header: :noweb-ref el-shared
 #+begin_src emacs-lisp
@@ -90,8 +69,6 @@ Just a suggestion:
 
 *** package
 **** auctex
-
-
 
 #+begin_src emacs-lisp
   (use-package auctex
@@ -388,16 +365,12 @@ Commands:
 
 **** ob
 
-
-
 #+begin_src emacs-lisp
   (use-package ob-json
   :straight
   (:host github :repo "sgpthomas/ob-json" :files ("ob-json.el"))
   :after org)
 #+end_src
-
-
 
 #+begin_src emacs-lisp
   (use-package ob-yaml
@@ -443,9 +416,7 @@ Resource:
            (org-mode . org-indent-mode)))
 #+end_src
 
-***** config
-
-
+***** babel
 
 #+begin_src emacs-lisp
   (use-package org
@@ -570,8 +541,7 @@ Resource:
 - https://emacs.stackexchange.com/a/75819
 - https://github.com/kawabata/wolfram-mode/tree/be680190cac6ccf579dbce107deaae495928d1b3
   
-#+header: :noweb-ref source-disabled
-
+#+header: :tangle no
 #+begin_src emacs-lisp
   (use-package wolfram-mode
     :disabled

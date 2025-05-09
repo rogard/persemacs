@@ -1,4 +1,4 @@
-#+title persemacs-extra
++title persemacs-extra
 #+author: Erwann Rogard
 #+property: header-args :tangle no
 
@@ -8,18 +8,6 @@
 #+end_src
 
 * doc
-** license
-:PROPERTIES:
-:custom_id: _doc-license
-:END:
-
-#+name: doc-license
-#+begin_src emacs-lisp
-  ;;  persemacs-extra — extra elisp functionality
-  ;;  Copyright (C) 2024—2025 — Erwann Rogard
-  ;;  Released under GPL 3.0
-  ;;  See https://www.gnu.org/licenses/gpl-3.0.en.html
-#+end_src
 
 ** reference
 
@@ -59,6 +47,16 @@ Emacs-org:
 #+end_src
 
 ** el
+*** license
+
+#+name: el-license
+#+begin_src emacs-lisp
+  ;;  persemacs-extra — extra elisp functionality
+  ;;  Copyright (C) 2024—2025 — Erwann Rogard
+  ;;  Released under GPL 3.0
+  ;;  See https://www.gnu.org/licenses/gpl-3.0.en.html
+#+end_src
+
 *** package
 
 #+header: :noweb-ref el-shared
@@ -67,15 +65,116 @@ Emacs-org:
   :ensure t)
 #+end_src
 
-*** group
+*** fs
+**** const
+:properties:
+:customize_bool: true
+:end:
 
-#+header: :noweb-ref el-shared
+#+header: :noweb-ref el-fs
 #+begin_src emacs-lisp
-    (defgroup erw/extra nil "erw's extra elisp functionality"
-      :prefix "erw/")
+  (defconst erw/fs-unique-directory (file-name-as-directory "~/unique") "Directory for storing unique files")
 #+end_src
 
-*** subtree
+#+RESULTS:
+: erw/fs-unique-directory
+
+**** unique-file
+***** make
+
+#+header: :noweb-ref el-fs
+#+begin_src emacs-lisp
+  (cl-defun erw/fs-unique-make
+      (&key ((:ext ext-string))
+            ((:directory directory-string) erw/fs-unique-directory)
+            ((:only-name only-name-bool)) )
+    "Create a uniquely named file in the given directory"
+    (let* ((prefix (file-name-as-directory directory-string))
+           (suffix (when ext-string (concat "." ext-string)))
+           (dir-flag nil))
+      (make-temp-file prefix dir-flag suffix)))
+#+end_src
+
+#+RESULTS:
+: erw/fs-unique
+
+#+header: :noweb-ref el-example
+#+begin_src emacs-lisp
+  (let* ((directory-string nil)
+    (args (append (list :ext "org" :only-name t)
+                  (when directory-string (list :directory directory-string)))))
+    (apply #'erw/fs-unique args))
+#+end_src
+
+#+RESULTS:
+: /home/erwann/unique/A3PZfg.org
+
+#+header: :noweb-ref el-example
+#+begin_src emacs-lisp
+  (let* ((directory-string "~/unique")
+    (args (append (list :ext "org" :only-name t)
+                  (when directory-string (list :directory directory-string)))))
+    (apply #'erw/fs-unique args))
+#+end_src
+
+#+RESULTS:
+: /home/erwann/unique/rQa7aE.org
+
+***** clone
+
+#+header: :noweb-ref el-fs
+#+begin_src emacs-lisp
+  (cl-defun erw/fs-unique-clone
+      (&key
+       ((:source source-file))
+       ((:directory directory-string))
+       ((:do-trash trash-bool) t))
+    "Clone SOURCE-FILE to a uniquely named file in DIRECTORY-STRING.
+     If DO-TRASH is non-nil, move the source file to trash.
+     Returns the target-file."
+    (let* ((ext (file-name-extension source-file))
+           (args (append (list :ext ext :only-name nil)
+                         (when directory-string (list :directory directory-string))))
+           (target-file (apply #'erw/fs-unique-make args)))
+      (with-temp-buffer
+        (insert-file-contents source-file)
+        (write-region (point-min) (point-max) target-file))
+      (kill-new target-file)
+      (message "Cloned source file (%s) to unique file: %s" source-file target-file)
+      (when trash-bool
+        (move-file-to-trash source-file)
+        (message "Moved source file to trash: %s" source-file))
+      target-file))
+#+end_src
+
+***** interactive
+
+#+header: :noweb-ref el-fs
+#+begin_src emacs-lisp
+    (cl-defun erw/fs-unique-clone-interactive
+        (source-file &key
+           		 ((:directory directory-string))
+           		 ((:do-trash trash-bool)))
+      "Interactively clone SOURCE-FILE to a uniquely named one."
+      (interactive "fEnter source file")
+      ;; (let (target-file)
+      ;;   (let ((args (list :source source-file)))
+      ;;     (dolist (string '("directory-string" "trash-bool"))
+      ;;   (let ((arg (symbol-value (intern string))))
+      ;;      	  (when arg
+      ;;       (let ((tail (list (intern (concat ":" string)) arg)))
+      ;; 	      (nconc args tail))))))
+      ;;   (setq (target-file (apply #'erw/fs-unique-file-clone args))))
+      ;; (kill-new target-file)  ;; Copy target file to clipboard
+      ;; (message "Cloned %s to: %s (path copied to clipboard)" source-file target-file)
+      )
+#+end_src
+
+#+RESULTS:
+: erw/fs-unique-interactive
+
+*** org
+**** subtree
 
 #+header: :noweb-ref el-subtree
 #+begin_src emacs-lisp
@@ -243,10 +342,11 @@ Emacs-org:
 
 #+header: :noweb-ref el-beta
 #+begin_src emacs-lisp
-  (defun erw/filter-block-names (regex &optional file)
-    "Filter the source block names using REGEX in FILE."
-    (let ((block-names (reverse (org-babel-src-block-names file))))
-      (-filter (lambda (block) (string-match-p regex block)) block-names)))
+(defun erw/filter-block-names (regex &optional file)
+  "Filter the source block names using REGEX in FILE."
+  (let ((block-names (reverse (org-babel-src-block-names file))))
+    (cl-remove-if-not (lambda (block) (string-match-p regex block)) block-names)))
+;; (-filter (lambda (block) (string-match-p regex block)) block-names)))
 #+end_src
 
 #+RESULTS:
@@ -261,8 +361,12 @@ Emacs-org:
 
 #+header: :noweb-ref el-beta
 #+begin_src emacs-lisp
+;;  (defun erw/compose (arg &rest functions)
+;;    (-reduce-r (lambda (fn acc) (funcall fn acc)) (append (reverse functions) (list arg))))
   (defun erw/compose (arg &rest functions)
-    (-reduce-r (lambda (fn acc) (funcall fn acc)) (append (reverse functions) (list arg))))
+  (cl-reduce (lambda (acc fn) (funcall fn acc))
+             (reverse functions)
+             :initial-value arg))
 #+end_src
 
 #+RESULTS:
@@ -373,10 +477,9 @@ Emacs-org:
 
 #+header: :noweb-ref el-json
 #+begin_src emacs-lisp
-  (defcustom erw/json-safe-alist
+  (defconst erw/json-safe-alist
     '(("\t" . "\\\\t"))
-    "An association list of (REGEXP . REPLACEMENT) pairs to make strings JSON-safe."
-    :group 'erw/extra)
+    "An association list of (REGEXP . REPLACEMENT) pairs to make strings JSON-safe.")
 #+end_src
 
 #+RESULTS:
@@ -549,7 +652,7 @@ Emacs-org:
 
 #+header: :noweb yes
 #+begin_src emacs-lisp
-  <<doc-license>>
+  <<el-license>>
   <<el-shared>>
 #+end_src
 
@@ -563,7 +666,7 @@ Emacs-org:
 
 #+header: :noweb yes
 #+begin_src emacs-lisp
-  <<doc-license>>
+  <<el-license>>
   <<el-subtree>>
 #+end_src
 
@@ -577,7 +680,7 @@ Emacs-org:
 
 #+header: :noweb yes
 #+begin_src emacs-lisp
-  <<doc-license>>
+  <<el-license>>
   <<el-string>>
 #+end_src
 
@@ -588,7 +691,32 @@ Emacs-org:
 
 #+header: :noweb yes
 #+begin_src emacs-lisp
-  <<doc-license>>
+  <<el-license>>
   <<el-shell>>
 #+end_src
 
+** fs
+:PROPERTIES:
+:header-args: :tangle ../el/fs.el
+:END:
+
+#+header: :noweb yes
+#+begin_src emacs-lisp
+  <<el-license>>
+  <<el-fs>>
+#+end_src
+
+* scratch
+
+#+begin_src emacs-lisp
+  (cl-defun my-func (source-file
+  		   &key
+         		   ((:directory directory-string))
+         		   ((:do-trash trash-bool)))    
+    "Interactively clone SOURCE-FILE to a uniquely named one."
+    (interactive "fEnter source file")
+    (message "debug: %s" source-file) )
+#+end_src
+
+#+RESULTS:
+: my-func
