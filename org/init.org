@@ -10,10 +10,6 @@ Workflow:
 - Customize [[id:el-parameter-add][parameters]]
 - Follow the steps under [[id:execute][execute]]
 
-Noweb-ref:
-- =el-meta= : code used in place
-- =el-init= : code to be tangled
-
 * source
 ** elisp
 *** comment
@@ -26,7 +22,7 @@ Noweb-ref:
 ;; See https://www.gnu.org/licenses/gpl-3.0.en.html
 #+end_src
 
-*** parameter
+*** meta
 **** list
 
 #+header: :noweb-ref el-meta
@@ -82,13 +78,16 @@ Noweb-ref:
    "List of Org files to delegate to: each is a plist with `:file` (path relative to `init.el`) and `:lang` (the source block language).")
 #+end_src
 
-*** package
-**** straight
+*** to-tangle
+**** package-manager
 
-#+header: :noweb-ref el-init
+#+header: :noweb-ref el-leave-out
 #+begin_src emacs-lisp
   ;; https://github.com/radian-software/straight.el?tab=readme-ov-file#getting-started
-  (defvar bootstrap-version)
+#+end_src
+
+#+header: :noweb-ref el-package-manager
+#+begin_src emacs-lisp
   (let ((bootstrap-file
          (expand-file-name
           "straight/repos/straight.el/bootstrap.el"
@@ -112,11 +111,12 @@ Noweb-ref:
   (straight-use-package 'use-package)
 #+end_src
 
-#+header: :noweb-ref el-scratch
+#+header: :noweb-ref el-leave-out
 #+begin_src emacs-lisp
   ;; https://emacs.stackexchange.com/questions/80853/installing-a-package-with-straight-fails-with-the-error-use-package-unrecog
   (straight-use-package-mode 1)
 #+end_src
+
 
 #+header: :noweb-ref el-init
 #+begin_src emacs-lisp
@@ -126,28 +126,32 @@ Noweb-ref:
 #+RESULTS:
 : t
 
-**** use-package
+**** eval-and-compile
+***** use-package
 
-#+header: :noweb-ref el-init
+#+header: :noweb-ref el-leave-out
 #+begin_src emacs-lisp
   ;;  (unless (package-installed-p 'use-package)
   ;;    (package-refresh-contents)
   ;;    (package-install 'use-package))
-  (eval-and-compile
-    (setq use-package-always-ensure t))
+#+end_src
+
+#+header: :noweb-ref el-eval-and-compile
+#+begin_src emacs-lisp
+    (setq use-package-always-ensure t)
   ;; (setq use-package-always-defer t))
 #+end_src
 
 #+RESULTS:
 : t
 
-*** delegate
+***** delegate
 
-#+header: :noweb-ref el-delegate
+#+header: :noweb-ref el-eval-and-compile
 #+begin_src emacs-lisp
   (let ((dir-name (file-name-directory
   		 (or (file-truename load-file-name) buffer-file-name))))
-    (dolist (pair meta-delegate-list) ;; beta
+    (dolist (pair meta-delegate-list)
       (let ((source-file (plist-get pair :file))
   	  (source-lang (plist-get pair :lang)))
         (with-current-buffer (find-file-noselect (expand-file-name source-file dir-name))
@@ -245,9 +249,8 @@ Over this block, do:
 
 Check:
 - ~M-x ctrl-c-ctrl-c~
-#+header: :noweb yes
 #+begin_src emacs-lisp
-  (erw/init-parameter-value "delegate-org")
+(erw/init-parameter-value "delegate-org")
 #+end_src
 
 #+RESULTS:
@@ -270,7 +273,7 @@ Execute:
 
 #+header: :noweb yes
 #+begin_src emacs-lisp 
-  <<el-init>>
+  <<el-package-manager>>
 #+end_src
 
 #+begin_src emacs-lisp
@@ -280,7 +283,7 @@ Execute:
 #+header: :noweb yes
 #+header: :var meta-delegate-list=(erw/init-parameter-value "delegate-org")
 #+begin_src emacs-lisp 
-  <<el-delegate>>
+  <<el-eval-and-compile>>
 #+end_src
 
 #+begin_src emacs-lisp
