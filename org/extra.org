@@ -62,7 +62,7 @@ Emacs-org:
 #+header: :noweb-ref el-leaveout
 #+begin_src emacs-lisp
   (use-package dash
-  :ensure t)
+    :ensure t)
 #+end_src
 
 *** fs
@@ -182,11 +182,30 @@ Emacs-org:
 : erw/fs-unique-clone-interactive
 
 *** org
+**** element
+
+#+header: :noweb-ref el-beta
+#+begin_src emacs-lisp
+(defun erw/filter-block-names (regex &optional file)
+  "Filter the source block names using REGEX in FILE."
+  (let ((block-names (reverse (org-babel-src-block-names file))))
+    (cl-remove-if-not (lambda (block) (string-match-p regex block)) block-names)))
+;; (-filter (lambda (block) (string-match-p regex block)) block-names)))
+#+end_src
+
+#+RESULTS:
+: erw/filter-block-names
+
+#+begin_src emacs-lisp
+  (defun erw/element-headers-as-properties (element) "Element properties retrievable using plist-get"
+         (flatten-list  (mapcar (lambda (string) (org-babel-parse-header-arguments string)) (org-element-property element))))
+#+end_src
+
 **** subtree
 
-#+header: :noweb-ref el-subtree
+#+header: :noweb-ref el-org
 #+begin_src emacs-lisp
-  (defun erw/org-subtree--paste (target-file target-pos &optional level-fn)
+  (defun erw/org-subtree-paste (target-file target-pos &optional level-fn)
     "Pastes the subtree in the clipboard into TARGET."
     (let ((level-fn (or level-fn (lambda (level) (+ level 1))))
           level)
@@ -201,16 +220,44 @@ Emacs-org:
 #+RESULTS:
 : erw/org-subtree--paste
 
-#+header: :noweb-ref el-subtree
+#+header: :noweb-ref el-org
 #+begin_src emacs-lisp
-  (defun erw/org-subtree-paste ()
+  (defun erw/org-subtree-paste-interactive ()
     "Paste the subtree from the clipboard into the current buffer at point."
     (interactive)
-    (erw/org-subtree--paste (buffer-file-name) (point)))
+    (erw/org-subtree-paste (buffer-file-name) (point)))
 #+end_src
 
 #+RESULTS:
 : erw/org-subtree-paste
+
+**** semantic-map
+
+#+begin_src emacs-lisp
+(defconst erw/org-semantic-map
+  '((org-heading-components
+     :level 0
+     :reduced-level 1
+     :todo-keyword 2
+     :priority 3
+     :headline 4
+     :tags 5))
+  "An alist mapping parser functions to their semantic key-index maps.")
+#+end_src
+
+**** global
+
+#+header: :noweb-ref el-org
+#+begin_src emacs-lisp
+  (cl-defun erw/org-global-header-position-next (&optional buffer)
+    "Return the BUFFER position where the next global header line (e.g. `#+property:`) should be inserted."
+    (with-current-buffer (or buffer (current-buffer))
+      (save-excursion
+        (goto-char (point-min))
+        (while (looking-at "^#\\+\\w+:")
+          (forward-line 1))
+        (point))))
+#+end_src
 
 *** string
 **** wrap-single-quotes
@@ -370,25 +417,6 @@ Emacs-org:
 
 #+RESULTS:
 : y
-
-*** element
-
-#+header: :noweb-ref el-beta
-#+begin_src emacs-lisp
-(defun erw/filter-block-names (regex &optional file)
-  "Filter the source block names using REGEX in FILE."
-  (let ((block-names (reverse (org-babel-src-block-names file))))
-    (cl-remove-if-not (lambda (block) (string-match-p regex block)) block-names)))
-;; (-filter (lambda (block) (string-match-p regex block)) block-names)))
-#+end_src
-
-#+RESULTS:
-: erw/filter-block-names
-
-#+begin_src emacs-lisp
-  (defun erw/element-headers-as-properties (element) "Element properties retrievable using plist-get"
-         (flatten-list  (mapcar (lambda (string) (org-babel-parse-header-arguments string)) (org-element-property element))))
-#+end_src
 
 *** function
 
@@ -692,15 +720,15 @@ Emacs-org:
 #+RESULTS:
 : erw/noweb-concat
 
-** subtree
+** org
 :PROPERTIES:
-:header-args: :tangle ./subtree.el
+:header-args: :tangle "../el/org.el"
 :END:
 
 #+header: :noweb yes
 #+begin_src emacs-lisp
   <<el-license>>
-  <<el-subtree>>
+  <<el-org>>
 #+end_src
 
 #+RESULTS:
