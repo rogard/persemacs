@@ -2,13 +2,25 @@
 #+author: Erwann Rogard 
 #+property: header-args :tangle no
 
-This is meta-code for generating Emacs initialization file and ensuring it is loaded at startup.
+This is meta-code for generating Emacs initialization file and ensuring it is loaded at startup. The actual configuration is done through =module=s.
 
 * doc
-
-Workflow:
+** workflow
 - Customize [[id:el-parameter-add][parameters]]
 - Follow the steps under [[id:execute][execute]]
+
+** log
+*** Meta/tangle split
+:PROPERTIES:
+:created_on: <2025-05-09 Fri 14:05>
+:uname:    @elitebook
+:END:
+:LOGBOOK:
+- Note taken on [2025-05-09 Fri 14:06] \\
+  Constants that are only going to be used for intialization shouldn't persist beyond that point.
+
+  Just an intuition: make greater use of defmacro. Also, see if this kind of arrangment can be adapted for modules.
+:END:
 
 * source
 ** elisp
@@ -78,7 +90,7 @@ Workflow:
    "List of Org files to delegate to: each is a plist with `:file` (path relative to `init.el`) and `:lang` (the source block language).")
 #+end_src
 
-*** to-tangle
+*** tangle
 **** package-manager
 
 #+header: :noweb-ref el-leave-out
@@ -106,7 +118,7 @@ Workflow:
 #+RESULTS:
 : t
 
-#+header: :noweb-ref el-init
+#+header: :noweb-ref el-package-manager
 #+begin_src emacs-lisp
   (straight-use-package 'use-package)
 #+end_src
@@ -118,7 +130,7 @@ Workflow:
 #+end_src
 
 
-#+header: :noweb-ref el-init
+#+header: :noweb-ref el-package-manager
 #+begin_src emacs-lisp
   (straight-use-package 'org)
 #+end_src
@@ -145,13 +157,13 @@ Workflow:
 #+RESULTS:
 : t
 
-***** delegate
+***** module
 
 #+header: :noweb-ref el-eval-and-compile
 #+begin_src emacs-lisp
   (let ((dir-name (file-name-directory
   		 (or (file-truename load-file-name) buffer-file-name))))
-    (dolist (pair meta-delegate-list)
+    (dolist (pair meta-module-list)
       (let ((source-file (plist-get pair :file))
   	  (source-lang (plist-get pair :lang)))
         (with-current-buffer (find-file-noselect (expand-file-name source-file dir-name))
@@ -235,7 +247,7 @@ Workflow:
 Over this block, do:
 - ~M-x ctrl-c-ctrl-c~
 #+header: :noweb yes
-#+begin_src emacs-lisp :tangle "../el/meta.el"
+#+begin_src emacs-lisp
   <<el-meta>>
   (let (result)
     (dolist (key '("init-vc-el" "init-startup" "link-sh"))
@@ -250,7 +262,7 @@ Over this block, do:
 Check:
 - ~M-x ctrl-c-ctrl-c~
 #+begin_src emacs-lisp
-(erw/init-parameter-value "delegate-org")
+  (erw/init-parameter-value "delegate-org")
 #+end_src
 
 #+RESULTS:
@@ -281,7 +293,7 @@ Execute:
 #+end_src
 
 #+header: :noweb yes
-#+header: :var meta-delegate-list=(erw/init-parameter-value "delegate-org")
+#+header: :var meta-module-list=(erw/init-parameter-value "delegate-org")
 #+begin_src emacs-lisp 
   <<el-eval-and-compile>>
 #+end_src

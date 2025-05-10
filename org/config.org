@@ -48,6 +48,12 @@ This Emacs Org file contains meta-code for an Emacs configuration.
   (defconst erw/config-owner (concat (getenv "OWNER") "@" (system-name)))
 #+end_src
 
+**** trash-directory
+
+#+begin_src emacs-lisp
+  (defconst erw/trash-directory "/home/erwann/.local/share/Trash" "Trash directory")
+#+end_src
+
 **** capture
 
 #+begin_src emacs-lisp
@@ -149,8 +155,7 @@ Reference:
 #+end_src
 **** dash
 
-
-
+#+header: :tangle no
 #+begin_src emacs-lisp
   (use-package dash
     :straight t)
@@ -260,17 +265,16 @@ TODO:
 
 **** files
 
-
-
 #+begin_src emacs-lisp
-;;  (use-package files
-;;    :straight t
+  ;;  (use-package files
+  ;;    :straight t
   (use-package emacs
     :straight t
     :config
     (setq confirm-kill-processes nil
           create-lockfiles nil ; don't create .# files (crashes 'npm start')
-          make-backup-files nil))
+          make-backup-files nil
+  	trash-directory erw/trash-directory))
 #+end_src
 
 **** flymake

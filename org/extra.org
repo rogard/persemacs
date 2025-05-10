@@ -59,7 +59,7 @@ Emacs-org:
 
 *** package
 
-#+header: :noweb-ref el-shared
+#+header: :noweb-ref el-leaveout
 #+begin_src emacs-lisp
   (use-package dash
   :ensure t)
@@ -80,6 +80,13 @@ Emacs-org:
 : erw/fs-unique-directory
 
 **** unique-file
+***** load
+
+#+header: :noweb-ref el-fs
+#+begin_src emacs-lisp
+  (load-file "../el/list.el")
+#+end_src
+
 ***** make
 
 #+header: :noweb-ref el-fs
@@ -87,7 +94,7 @@ Emacs-org:
   (cl-defun erw/fs-unique-make
       (&key ((:ext ext-string))
             ((:directory directory-string) erw/fs-unique-directory)
-            ((:only-name only-name-bool)) )
+            ((:only-name only-name-bool)))
     "Create a uniquely named file in the given directory"
     (let* ((prefix (file-name-as-directory directory-string))
            (suffix (when ext-string (concat "." ext-string)))
@@ -96,29 +103,29 @@ Emacs-org:
 #+end_src
 
 #+RESULTS:
-: erw/fs-unique
+: erw/fs-unique-make
 
 #+header: :noweb-ref el-example
 #+begin_src emacs-lisp
   (let* ((directory-string nil)
     (args (append (list :ext "org" :only-name t)
                   (when directory-string (list :directory directory-string)))))
-    (apply #'erw/fs-unique args))
+    (apply #'erw/fs-unique-make args))
 #+end_src
 
 #+RESULTS:
-: /home/erwann/unique/A3PZfg.org
+: /home/erwann/unique/ZlyJWc.org
 
 #+header: :noweb-ref el-example
 #+begin_src emacs-lisp
   (let* ((directory-string "~/unique")
     (args (append (list :ext "org" :only-name t)
                   (when directory-string (list :directory directory-string)))))
-    (apply #'erw/fs-unique args))
+    (apply #'erw/fs-unique-make args))
 #+end_src
 
 #+RESULTS:
-: /home/erwann/unique/rQa7aE.org
+: /home/erwann/unique/GPmUqe.org
 
 ***** clone
 
@@ -130,12 +137,11 @@ Emacs-org:
        ((:directory directory-string))
        ((:do-trash trash-bool) t))
     "Clone SOURCE-FILE to a uniquely named file in DIRECTORY-STRING.
-     If DO-TRASH is non-nil, move the source file to trash.
-     Returns the target-file."
-    (let* ((ext (file-name-extension source-file))
-           (args (append (list :ext ext :only-name nil)
-                         (when directory-string (list :directory directory-string))))
-           (target-file (apply #'erw/fs-unique-make args)))
+         If DO-TRASH is non-nil, move the source file to trash.
+         Returns the target-file."
+    (let ((target-file
+  	 (let ((args (erw/plist-if :ext (file-name-extension source-file) :only-name nil :directory directory-string)))
+    	   (apply #'erw/fs-unique-make args))))
       (with-temp-buffer
         (insert-file-contents source-file)
         (write-region (point-min) (point-max) target-file))
@@ -147,31 +153,33 @@ Emacs-org:
       target-file))
 #+end_src
 
+#+RESULTS:
+: erw/fs-unique-clone
+
 ***** interactive
 
 #+header: :noweb-ref el-fs
 #+begin_src emacs-lisp
-    (cl-defun erw/fs-unique-clone-interactive
-        (source-file &key
-           		 ((:directory directory-string))
-           		 ((:do-trash trash-bool)))
-      "Interactively clone SOURCE-FILE to a uniquely named one."
-      (interactive "fEnter source file")
-      ;; (let (target-file)
-      ;;   (let ((args (list :source source-file)))
-      ;;     (dolist (string '("directory-string" "trash-bool"))
-      ;;   (let ((arg (symbol-value (intern string))))
-      ;;      	  (when arg
-      ;;       (let ((tail (list (intern (concat ":" string)) arg)))
-      ;; 	      (nconc args tail))))))
-      ;;   (setq (target-file (apply #'erw/fs-unique-file-clone args))))
-      ;; (kill-new target-file)  ;; Copy target file to clipboard
-      ;; (message "Cloned %s to: %s (path copied to clipboard)" source-file target-file)
-      )
+  (cl-defun erw/fs-unique-clone-interactive
+      (source-file &key
+                   ((:directory directory-string))
+                   ((:do-trash trash-bool)))
+    "Interactively clone SOURCE-FILE to a uniquely named one."
+    (interactive "fEnter source file")
+    ;; Warn if the source file is open in any buffer
+    (dolist (buf (buffer-list))
+      (when (and (buffer-file-name buf)
+                 (file-equal-p source-file (buffer-file-name buf)))
+        (warn "About to clone the file opened in buffer: %s" (buffer-name buf))))
+    ;; Prepare arguments and call the cloning function
+    (let ((plist (erw/plist-if :source source-file :directory directory-string :do-trash trash-bool)))
+      (let ((target-file (apply #'erw/fs-unique-clone plist)))
+      (kill-new target-file)
+      (message "Cloned %s to: %s (path copied to clipboard)" source-file target-file))))
 #+end_src
 
 #+RESULTS:
-: erw/fs-unique-interactive
+: erw/fs-unique-clone-interactive
 
 *** org
 **** subtree
@@ -250,6 +258,31 @@ Emacs-org:
 
 #+RESULTS:
 : foo, qux
+
+*** list
+
+#+header: :noweb-ref el-list
+#+begin_src emacs-lisp
+  (cl-defun erw/plist-if (&rest pair-list)
+    (let ((result nil))
+      (while pair-list
+        (let ((key (pop pair-list))
+              (value (pop pair-list)))
+          (when value
+            (setq result (append result (list key value))))))
+      result))
+#+end_src
+
+#+RESULTS:
+: erw/plist-if
+
+#+header: :results raw verbatim
+#+begin_src emacs-lisp
+  (plist-get (erw/plist-if :foo "foo" :bar nil :qux "qux") :qux)
+#+end_src
+
+#+RESULTS:
+"qux"
 
 *** table
 **** field-address
@@ -706,6 +739,17 @@ Emacs-org:
   <<el-fs>>
 #+end_src
 
+** list
+:PROPERTIES:
+:header-args: :tangle ../el/list.el
+:END:
+
+#+header: :noweb yes
+#+begin_src emacs-lisp
+  <<el-license>>
+  <<el-list>>
+#+end_src
+
 * scratch
 
 #+begin_src emacs-lisp
@@ -720,3 +764,11 @@ Emacs-org:
 
 #+RESULTS:
 : my-func
+
+
+#+begin_src emacs-lisp
+  (erw/fs-unique-clone :source "/home/erwann/src/org/AiSv8K.org")
+#+end_src
+
+#+RESULTS:
+: /home/erwann/unique/xxYG8M.org
