@@ -202,6 +202,7 @@ Emacs-org:
 #+end_src
 
 **** subtree
+***** paste
 
 #+header: :noweb-ref el-org
 #+begin_src emacs-lisp
@@ -231,19 +232,131 @@ Emacs-org:
 #+RESULTS:
 : erw/org-subtree-paste
 
-**** semantic-map
+**** refactor
 
+#+header: :noweb-ref el-trash
 #+begin_src emacs-lisp
-(defconst erw/org-semantic-map
-  '((org-heading-components
-     :level 0
-     :reduced-level 1
-     :todo-keyword 2
-     :priority 3
-     :headline 4
-     :tags 5))
-  "An alist mapping parser functions to their semantic key-index maps.")
+  (when (boundp 'erw/org-refactor-map)
+    (setq erw/org-refactor-map nil))
 #+end_src
+
+#+header: :noweb-ref el-trash
+#+begin_src emacs-lisp
+  (defvar erw/org-refactor-map '()
+    "List mapping source functions to their target refactored versions.")
+#+end_src
+
+
+#+header: :noweb-ref el-trash
+#+begin_src emacs-lisp
+  (cl-defun erw/org-refactor-helper-call (fn &rest keyval)
+    "Call FN using `erw/org-keyval-conversion-map`."
+    (let* ((entry (assoc fn erw/org-refactor-map))
+           (input-fn (plist-get (cdr entry) :input))
+           (output-fn (plist-get (cdr entry) :output))
+           (fn-args (if (null input-fn)
+                        nil
+                      (funcall input-fn keyval)))
+           (raw-output (apply fn fn-args)))
+      (if (functionp output-fn)
+          (funcall output-fn raw-output)
+        (progn
+          (warn "No valid output function found for %s in `erw/org-refactor-map`; returning raw output instead" fn)
+          raw-output))))
+#+end_src
+
+#+header: :noweb-ref el-trash
+#+begin_src emacs-lisp
+  (cl-defmacro erw/org-refactor-helper-define (&key
+  					     ((:source source-fn))
+  					     ((:input input-lambda))
+  					     ((:output output-lambda))
+  					     ((:target target-fn)))
+    "Define TARGET-FN as a wrapper around `erw/org-refactor-helper-call`, forwarding to SOURCE-FN. INPUT-LAMBDA and OUTPUT-LAMBDA describe how to transform input/output keyvals."
+    `(progn
+       (add-to-list 'erw/org-refactor-map
+                    (list :source ',source-fn
+  			:target ',target-fn
+  			:input ,input-lambda
+  			:output ,output-lambda))
+       (cl-defun ,target-fn (&rest keyval)
+         ,(format "Wrapper around `%s` using `erw/org-refactor-helper-call`." source-fn)
+       (apply #'erw/org-refactor-helper-call (function ,source-fn) keyval))))
+#+end_src
+
+#+header: :noweb-ref el-org
+#+begin_src emacs-lisp
+  (cl-defmacro erw/org-refactor-helper-define (&key
+      					     ((:source source-fn))
+      					     ((:args args-lambda))
+      					     ((:result result-lambda))
+      					     ((:target target-fn)))
+    `(cl-defun ,target-fn (&rest keyval)
+       ,(format "Wrapper around `%s` with optional input/output transformation." source-fn)
+       (let* ((result-raw (if ,args-lambda
+                              (let ((args-list (apply ,args-lambda keyval)))
+                                (apply ,source-fn args-list))
+                            (,source-fn)))
+              (result (if ,result-lambda
+  			(funcall ,result-lambda result-raw)
+                        (progn
+  			(warn "No output function found for %s; returning raw output instead" ',target-fn)
+  			result-raw))))
+         (message "debug: result-raw= %s" result-raw)
+         (message "debug: result= %s" result)
+         result)))
+#+end_src
+
+#+RESULTS:
+: erw/org-refactor-helper-define
+
+#+header: :noweb-ref el-org
+#+begin_src emacs-lisp
+  (erw/org-refactor-helper-define
+   :source org-heading-components
+   :target erw/org-heading-components
+   :args nil
+   :result (lambda (list)
+  	   (let ((keyval-list '(:level 0 :reduced-level 1 :todo-keyword 2 :priority 3 :headline 4 :tags 5))
+  		 (result '()))
+  	     (while keyval-list
+  	       (let ((key (pop keyval-list))
+  		     (pos (pop keyval-list)))
+  		 (push (nth pos list) result)
+  		 (push key result)))
+  	     (nreverse result))))
+#+end_src
+
+#+RESULTS:
+: erw/org-heading-components
+
+#+header: :noweb-ref el-example
+#+begin_src emacs-lisp
+    (defun my-source-fn (x y) (+ x y))
+#+end_src
+
+#+RESULTS:
+: my-source-fn
+
+#+header: :noweb-ref el-example
+#+begin_src emacs-lisp  
+  (erw/org-refactor-helper-define
+   :source 'my-source-fn
+   :args (lambda (&rest kv) (list (plist-get kv :x) (plist-get kv :y))) ;; ignore input
+   :result (lambda (result) (* result 10))
+   :target my-wrapped-fn)
+#+end_src
+
+#+RESULTS:
+: my-wrapped-fn
+
+#+header: :noweb-ref el-example
+#+begin_src emacs-lisp  
+  (my-wrapped-fn :x 2 :y 3) ;; => 30
+#+end_src
+
+#+RESULTS:
+: 50
 
 **** global
 
@@ -310,11 +423,11 @@ Emacs-org:
 
 #+header: :noweb-ref el-list
 #+begin_src emacs-lisp
-  (cl-defun erw/plist-if (&rest pair-list)
+  (cl-defun erw/plist-if (&rest keyval-list)
     (let ((result nil))
-      (while pair-list
-        (let ((key (pop pair-list))
-              (value (pop pair-list)))
+      (while keyval-list
+        (let ((key (pop keyval-list))
+              (value (pop keyval-list)))
           (when value
             (setq result (append result (list key value))))))
       result))
@@ -779,6 +892,72 @@ Emacs-org:
 #+end_src
 
 * scratch
+
+** id-link
+*** const
+
+#+property: p
+
+
+#+begin_src emacs-lisp
+    (defconst erw/org-property-rdf
+  '(:primary-key "rdf-like"
+    :secondary-key '(
+  		   :predicate
+  		   :object
+  		   )
+      
+      "db-like" "Main key")
+#+end_src
+
+#+begin_src emacs-lisp
+  (defconst erw/org-property-db-optional-keys '(collection predicate type) "Optional secondary keys")
+#+end_src
+
+#+RESULTS:
+: erw/org-property-db-optional-keys
+
+*** set-helper
+
+#+begin_src emacs-lisp
+  (defun erw/org-property-plist-helper (primary-key secondary-key-list &rest plist)
+    ""
+      (let ((parts '()))
+        ;; Collect optional key-value pairs
+        (dolist (k secondary-key-list)
+          (let ((val (plist-get plist k)))
+            (when val
+              (push (format ":%s %s" (substring (symbol-name k) 1) val) parts))))
+        (let ((property-value (string-join (nreverse parts) " "))
+              (property-name (if (org-entry-get (point) primary-key)
+                                 (concat primary-key "+")
+                               primary-key)))
+          (org-set-property property-name property-value)))))
+#+end_src
+
+#+RESULTS:
+: set-erw-graph-property
+
+*** set
+
+#+begin_src emacs-lisp
+(eval-and-compile
+  (let* ((optional-args (mapcar (lambda (k) (list k)) erw/org-property-db-optional-keys))
+         (arglist `(&key ,@optional-args id secondary-key))
+         (forward-body
+          `(apply #'erw/org-property-db-set-helper
+                  "erw-link"
+                  ',erw/org-property-db-optional-keys
+                  (list
+                   ,@(apply #'append
+                            (mapcar (lambda (k) `(',k ,k))
+                                    (append erw/org-property-db-optional-keys '(:id :secondary-key))))))))
+    (eval `(cl-defun erw/org-property-db-set ,arglist
+             ,(format "Auto-generated wrapper forwarding to `erw/org-property-db-set-helper`.\nOptional keys: %s"
+                      erw/org-property-db-optional-keys)
+             ,forward-body))))
+#+end_src
+
 
 #+begin_src emacs-lisp
   (cl-defun my-func (source-file
