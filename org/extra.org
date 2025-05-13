@@ -246,44 +246,6 @@ Emacs-org:
     "List mapping source functions to their target refactored versions.")
 #+end_src
 
-
-#+header: :noweb-ref el-trash
-#+begin_src emacs-lisp
-  (cl-defun erw/org-refactor-helper-call (fn &rest keyval)
-    "Call FN using `erw/org-keyval-conversion-map`."
-    (let* ((entry (assoc fn erw/org-refactor-map))
-           (input-fn (plist-get (cdr entry) :input))
-           (output-fn (plist-get (cdr entry) :output))
-           (fn-args (if (null input-fn)
-                        nil
-                      (funcall input-fn keyval)))
-           (raw-output (apply fn fn-args)))
-      (if (functionp output-fn)
-          (funcall output-fn raw-output)
-        (progn
-          (warn "No valid output function found for %s in `erw/org-refactor-map`; returning raw output instead" fn)
-          raw-output))))
-#+end_src
-
-#+header: :noweb-ref el-trash
-#+begin_src emacs-lisp
-  (cl-defmacro erw/org-refactor-helper-define (&key
-  					     ((:source source-fn))
-  					     ((:input input-lambda))
-  					     ((:output output-lambda))
-  					     ((:target target-fn)))
-    "Define TARGET-FN as a wrapper around `erw/org-refactor-helper-call`, forwarding to SOURCE-FN. INPUT-LAMBDA and OUTPUT-LAMBDA describe how to transform input/output keyvals."
-    `(progn
-       (add-to-list 'erw/org-refactor-map
-                    (list :source ',source-fn
-  			:target ',target-fn
-  			:input ,input-lambda
-  			:output ,output-lambda))
-       (cl-defun ,target-fn (&rest keyval)
-         ,(format "Wrapper around `%s` using `erw/org-refactor-helper-call`." source-fn)
-       (apply #'erw/org-refactor-helper-call (function ,source-fn) keyval))))
-#+end_src
-
 #+header: :noweb-ref el-org
 #+begin_src emacs-lisp
   (cl-defmacro erw/org-refactor-helper-define (&key
@@ -302,33 +264,11 @@ Emacs-org:
                         (progn
   			(warn "No output function found for %s; returning raw output instead" ',target-fn)
   			result-raw))))
-         (message "debug: result-raw= %s" result-raw)
-         (message "debug: result= %s" result)
          result)))
 #+end_src
 
 #+RESULTS:
 : erw/org-refactor-helper-define
-
-#+header: :noweb-ref el-org
-#+begin_src emacs-lisp
-  (erw/org-refactor-helper-define
-   :source org-heading-components
-   :target erw/org-heading-components
-   :args nil
-   :result (lambda (list)
-  	   (let ((keyval-list '(:level 0 :reduced-level 1 :todo-keyword 2 :priority 3 :headline 4 :tags 5))
-  		 (result '()))
-  	     (while keyval-list
-  	       (let ((key (pop keyval-list))
-  		     (pos (pop keyval-list)))
-  		 (push (nth pos list) result)
-  		 (push key result)))
-  	     (nreverse result))))
-#+end_src
-
-#+RESULTS:
-: erw/org-heading-components
 
 #+header: :noweb-ref el-example
 #+begin_src emacs-lisp
@@ -357,6 +297,26 @@ Emacs-org:
 
 #+RESULTS:
 : 50
+
+#+header: :noweb-ref el-org
+#+begin_src emacs-lisp
+  (erw/org-refactor-helper-define
+   :source org-heading-components
+   :target erw/org-heading-components
+   :args nil
+   :result (lambda (list)
+             (let ((keyval-list '(:level 0 :reduced-level 1 :todo-keyword 2 :priority 3 :headline 4 :tags 5))
+                   (result '()))
+               (while keyval-list
+                 (let ((key (pop keyval-list))
+                       (pos (pop keyval-list)))
+                   (push key result)
+                   (push (nth pos list) result)))
+               (nreverse result))))
+#+end_src
+
+#+RESULTS:
+: erw/org-heading-components
 
 **** global
 
