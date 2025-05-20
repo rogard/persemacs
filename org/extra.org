@@ -67,20 +67,20 @@ Emacs-org:
 
 #+header: :noweb-ref el-fs
 #+begin_src emacs-lisp
-  (defconst erw/fs-unique-directory (file-name-as-directory "~/unique") "Directory for storing unique files")
+  (defconst erw/filesys-unique-directory (file-name-as-directory "~/unique") "Directory for storing unique files")
 #+end_src
 
 #+RESULTS:
-: erw/fs-unique-directory
+: erw/filesys-unique-directory
 
 ***** make
 ****** code
 
 #+header: :noweb-ref el-fs
 #+begin_src emacs-lisp
-  (cl-defun erw/fs-unique-make
+  (cl-defun erw/filesys-unique-make
       (&key ((:ext ext-string))
-            ((:directory directory-string) erw/fs-unique-directory)
+            ((:directory directory-string) erw/filesys-unique-directory)
             ((:only-name only-name-bool)))
     "Create a uniquely named file in the given directory"
     (let* ((prefix (file-name-as-directory directory-string))
@@ -90,7 +90,7 @@ Emacs-org:
 #+end_src
 
 #+RESULTS:
-: erw/fs-unique-make
+: erw/filesys-unique-make
 
 ****** example
 
@@ -99,7 +99,7 @@ Emacs-org:
   (let* ((directory-string nil)
     (args (append (list :ext "org" :only-name t)
                   (when directory-string (list :directory directory-string)))))
-    (apply #'erw/fs-unique-make args))
+    (apply #'erw/filesys-unique-make args))
 #+end_src
 
 #+RESULTS:
@@ -110,7 +110,7 @@ Emacs-org:
   (let* ((directory-string "~/unique")
     (args (append (list :ext "org" :only-name t)
                   (when directory-string (list :directory directory-string)))))
-    (apply #'erw/fs-unique-make args))
+    (apply #'erw/filesys-unique-make args))
 #+end_src
 
 #+RESULTS:
@@ -121,7 +121,7 @@ Emacs-org:
 
 #+header: :noweb-ref el-fs
 #+begin_src emacs-lisp
-  (cl-defun erw/fs-unique-clone
+  (cl-defun erw/filesys-unique-clone
       (&key
        ((:source source-file))
        ((:directory directory-string))
@@ -131,7 +131,7 @@ Emacs-org:
          Returns the target-file."
     (let ((target-file
   	 (let ((args (erw/plist-if :ext (file-name-extension source-file) :only-name nil :directory directory-string)))
-    	   (apply #'erw/fs-unique-make args))))
+    	   (apply #'erw/filesys-unique-make args))))
       (with-temp-buffer
         (insert-file-contents source-file)
         (write-region (point-min) (point-max) target-file))
@@ -144,14 +144,14 @@ Emacs-org:
 #+end_src
 
 #+RESULTS:
-: erw/fs-unique-clone
+: erw/filesys-unique-clone
 
 ***** interactive
 ****** code
 
 #+header: :noweb-ref el-fs
 #+begin_src emacs-lisp
-  (cl-defun erw/fs-unique-clone-interactive
+  (cl-defun erw/filesys-unique-clone-interactive
       (source-file &key
                    ((:directory directory-string))
                    ((:do-trash trash-bool)))
@@ -164,13 +164,13 @@ Emacs-org:
         (warn "About to clone the file opened in buffer: %s" (buffer-name buf))))
     ;; Prepare arguments and call the cloning function
     (let ((plist (erw/plist-if :source source-file :directory directory-string :do-trash trash-bool)))
-      (let ((target-file (apply #'erw/fs-unique-clone plist)))
+      (let ((target-file (apply #'erw/filesys-unique-clone plist)))
       (kill-new target-file)
       (message "Cloned %s to: %s (path copied to clipboard)" source-file target-file))))
 #+end_src
 
 #+RESULTS:
-: erw/fs-unique-clone-interactive
+: erw/filesys-unique-clone-interactive
 
 *** function
 **** code
@@ -1061,7 +1061,7 @@ then promote the rest of the subtree."
 
 
 #+begin_src emacs-lisp
-  (erw/fs-unique-clone :source "/home/erwann/src/org/AiSv8K.org")
+  (erw/filesys-unique-clone :source "/home/erwann/src/org/AiSv8K.org")
 #+end_src
 
 #+RESULTS:
