@@ -387,9 +387,9 @@ whose values are non-nil."
 
 #+header: :noweb-ref el-noweb
 #+begin_src emacs-lisp
-  (cl-defun erw/noweb-expand-ref-collect (&key head tail references)
-    "Builds a regex from REFERENCES with optional HEAD and TAIL anchors, then forwards to `erw/noweb-expand-ref`."
-    (let* ((regex-body (mapconcat #'identity references "\\|"))
+  (cl-defun erw/noweb-expand-ref-collect (&key head ref-list tail)
+    "Builds a regex from REF-LIST with optional HEAD and TAIL anchors, then forwards to `erw/noweb-expand-ref`."
+    (let* ((regex-body (mapconcat #'identity ref-list "\\|"))
            (regex (concat
                    head "\\(" regex-body "\\)" tail)))
       (erw/noweb-expand-ref regex)))
@@ -422,7 +422,7 @@ whose values are non-nil."
 : echo 'Hello, world!'echo 'Hello, universe!'
 
 #+begin_src emacs-lisp
-  (erw/noweb-expand-ref-collect :head "sh-" :references '("foo" "bar"))
+  (erw/noweb-expand-ref-collect :head "sh-" :ref-list '("foo" "bar"))
 #+end_src
 
 #+RESULTS:
