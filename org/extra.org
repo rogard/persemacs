@@ -50,7 +50,6 @@ Emacs-org:
 *** fs
 **** unique-file
 ***** load
-
 ****** code
 
 #+header: :noweb-ref el-fs
@@ -364,8 +363,8 @@ whose values are non-nil."
 
 #+header: :noweb-ref el-noweb
 #+begin_src emacs-lisp
-(cl-defun erw/noweb-expand-ref (regex)
-  "Expands all source blocks whose :noweb-ref matches REGEX and returns their expanded contents concatenated as a string."
+(cl-defun erw/noweb-expand-ref (&key regex (sep "\n"))
+  "Expands all source blocks whose :noweb-ref matches REGEX and returns their expanded contents, joined by SEP."
   (let ((results '()))
     (org-element-map (org-element-parse-buffer) 'src-block
       (lambda (src)
@@ -379,7 +378,7 @@ whose values are non-nil."
           (when (and ref (string-match-p regex ref))
             (let ((expanded (org-babel-expand-noweb-references info)))
               (push expanded results))))))
-    (apply #'concat (nreverse results))))
+    (string-join (nreverse results) sep)))
 #+end_src
 
 #+RESULTS:
@@ -387,12 +386,14 @@ whose values are non-nil."
 
 #+header: :noweb-ref el-noweb
 #+begin_src emacs-lisp
-  (cl-defun erw/noweb-expand-ref-collect (&key head ref-list tail)
+  (cl-defun erw/noweb-expand-ref-collect (&key head ref-list tail sep)
     "Builds a regex from REF-LIST with optional HEAD and TAIL anchors, then forwards to `erw/noweb-expand-ref`."
     (let* ((regex-body (mapconcat #'identity ref-list "\\|"))
-           (regex (concat
-                   head "\\(" regex-body "\\)" tail)))
-      (erw/noweb-expand-ref regex)))
+           (regex (concat (or head "") "\\(" regex-body "\\)" (or tail "")))
+           (args `(:regex ,regex)))
+      (when sep
+        (setq args (append args `(:sep ,sep))))
+      (apply #'erw/noweb-expand-ref args)))
 #+end_src
 
 #+RESULTS:
@@ -1058,7 +1059,6 @@ then promote the rest of the subtree."
 
 #+RESULTS:
 : my-func
-
 
 #+begin_src emacs-lisp
   (erw/filesys-unique-clone :source "/home/erwann/src/org/AiSv8K.org")
