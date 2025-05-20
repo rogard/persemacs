@@ -47,29 +47,23 @@ Emacs-org:
 #+end_src
 
 ** el
-*** license
-
-#+name: el-license
-#+begin_src emacs-lisp
-  ;;  persemacs-extra — extra elisp functionality
-  ;;  Copyright (C) 2024—2025 — Erwann Rogard
-  ;;  Released under GPL 3.0
-  ;;  See https://www.gnu.org/licenses/gpl-3.0.en.html
-#+end_src
-
-*** package
-
-#+header: :noweb-ref el-leaveout
-#+begin_src emacs-lisp
-  (use-package dash
-    :ensure t)
-#+end_src
-
 *** fs
-**** const
+**** unique-file
+***** load
+
+****** code
+
+#+header: :noweb-ref el-fs
+#+begin_src emacs-lisp
+  (load-file "../el/list.el")
+#+end_src
+
+***** directory
 :properties:
 :customize_bool: true
 :end:
+
+****** code
 
 #+header: :noweb-ref el-fs
 #+begin_src emacs-lisp
@@ -79,15 +73,8 @@ Emacs-org:
 #+RESULTS:
 : erw/fs-unique-directory
 
-**** unique-file
-***** load
-
-#+header: :noweb-ref el-fs
-#+begin_src emacs-lisp
-  (load-file "../el/list.el")
-#+end_src
-
 ***** make
+****** code
 
 #+header: :noweb-ref el-fs
 #+begin_src emacs-lisp
@@ -104,6 +91,8 @@ Emacs-org:
 
 #+RESULTS:
 : erw/fs-unique-make
+
+****** example
 
 #+header: :noweb-ref el-example
 #+begin_src emacs-lisp
@@ -128,6 +117,7 @@ Emacs-org:
 : /home/erwann/unique/GPmUqe.org
 
 ***** clone
+****** code
 
 #+header: :noweb-ref el-fs
 #+begin_src emacs-lisp
@@ -157,6 +147,7 @@ Emacs-org:
 : erw/fs-unique-clone
 
 ***** interactive
+****** code
 
 #+header: :noweb-ref el-fs
 #+begin_src emacs-lisp
@@ -181,16 +172,272 @@ Emacs-org:
 #+RESULTS:
 : erw/fs-unique-clone-interactive
 
+*** function
+**** code
+
+#+header: :noweb-ref el-function
+#+begin_src emacs-lisp
+  (defun erw/compose (arg &rest functions)
+    "Apply a sequence of FUNCTIONS to ARG in composition order."
+    (cl-reduce (lambda (acc fn) (funcall fn acc))
+               (reverse functions)
+               :initial-value arg))
+#+end_src
+
+#+RESULTS:
+: erw/compose
+
+**** example
+
+#+header: :noweb-ref el-example
+#+begin_src emacs-lisp
+  (erw/compose 4 #'sqrt (lambda (x) (+ 1 x)))
+#+end_src
+
+#+RESULTS:
+: 3.0
+
+*** json
+**** load
+****** code
+
+#+header: :noweb-ref el-json
+#+begin_src emacs-lisp
+  (let ((prefix "./") (ext ".el"))
+    (dolist (string '("shared" "string"))
+      (load-file (concat prefix string ext))))
+#+end_src
+
+#+RESULTS:
+
+**** safe
+****** code
+
+#+header: :noweb-ref el-json
+#+begin_src emacs-lisp
+  (defconst erw/json-safe-alist
+    '(("\t" . "\\\\t"))
+    "An association list of (REGEXP . REPLACEMENT) pairs to make strings JSON-safe.")
+#+end_src
+
+#+RESULTS:
+: erw/json-safe-alist
+
+#+header: :noweb-ref el-json
+#+begin_src emacs-lisp
+  (defun erw/json--safe (string &rest re-rep)
+    "Make a STRING JSON-safe by replacing REGEXP-REPLACEMENT pairs in RE-REP"
+    (if (null re-rep)
+        string
+      (let* ((pair (car re-rep))
+             (re (car pair))
+             (rep (cdr pair))
+             (result (replace-regexp-in-string re rep string)))
+        (apply 'erw/json--safe result (cdr re-rep)))))
+#+end_src
+
+#+RESULTS:
+: erw/json--safe
+
+****** example
+
+#+header: :noweb-ref el-example
+#+header: :results verbatim
+#+begin_src emacs-lisp
+  (erw/json--safe "{ \"key\": \"foo	bar\" }" '("\t" . "\\\\t"))
+#+end_src
+
+#+RESULTS:
+: "{ \"key\": \"foo\\tbar\" }"
+
+#+header: :noweb-ref el-json
+#+begin_src emacs-lisp
+  (defun erw/json-safe (string)
+    "Recursively apply REGEXP-REPLACEMENT pairs in RE-REP to STRING."
+    (apply 'erw/json--safe string erw/json-safe-alist))
+#+end_src
+
+#+RESULTS:
+: erw/json-safe
+
+#+header: :noweb-ref el-example
+#+header: :results verbatim
+#+begin_src emacs-lisp
+  (erw/json-safe "{ \"key\": \"foo	bar\" }")
+#+end_src
+
+#+RESULTS:
+: "{ \"key\": \"foo\\tbar\" }"
+
+**** jq
+***** file
+****** code
+
+#+header: :noweb-ref el-json
+#+begin_src emacs-lisp
+  (defun erw/jq-file (filter file &optional options)
+    "Apply a jq FILTER to a JSON file and return the result."
+    (let ((command (format (erw/string-join " " "jq" options "'%s'" "%s") filter file)))
+      (erw/sh-check command)))
+#+end_src
+
+#+RESULTS:
+: erw/jq-file
+
+***** string
+****** code
+
+#+header: :noweb-ref el-json
+#+begin_src emacs-lisp
+  (defun erw/jq-string (filter string &optional options)
+    "Apply a jq filter to a JSON string and return the result."
+    (let* ((temp-file (make-temp-file nil nil ".json"))
+           (result (progn
+                     (with-temp-file temp-file
+                       (insert string))
+                     (erw/jq-file filter temp-file options))))
+      (delete-file temp-file)
+      (format "%s" result)))
+#+end_src
+
+#+RESULTS:
+: erw/jq-string
+
+****** example
+
+#+header: :noweb-ref el-example
+#+header: :results raw
+#+header: :var json-object=(org-babel-ref-resolve "json-foo-bar")
+#+header: :wrap src json
+#+begin_src emacs-lisp  
+  (erw/jq-string "." json-object "-c")
+#+end_src
+
+#+RESULTS:
+#+begin_src json
+{"key":"X"}
+#+end_src
+
+*** license
+
+#+name: el-license
+#+begin_src emacs-lisp
+  ;;  persemacs-extra — extra elisp functionality
+  ;;  Copyright (C) 2024—2025 — Erwann Rogard
+  ;;  Released under GPL 3.0
+  ;;  See https://www.gnu.org/licenses/gpl-3.0.en.html
+#+end_src
+
+*** list
+**** code
+
+#+header: :noweb-ref el-list
+#+begin_src emacs-lisp
+  (cl-defun erw/plist-if (&rest keyval-list)
+    "Return a plist containing only the key-value pairs from KEYVAL-LIST
+whose values are non-nil."
+    (let ((result nil))
+      (while keyval-list
+        (let ((key (pop keyval-list))
+              (value (pop keyval-list)))
+          (when value
+            (setq result (append result (list key value))))))
+      result))
+#+end_src
+
+#+RESULTS:
+: erw/plist-if
+
+**** example
+
+
+#+header: :results raw verbatim
+#+begin_src emacs-lisp
+  (plist-get (erw/plist-if :foo "foo" :bar nil :qux "qux") :qux)
+#+end_src
+
+#+RESULTS:
+"qux"
+
+*** noweb
+**** code
+
+#+header: :noweb-ref el-noweb
+#+begin_src emacs-lisp
+(cl-defun erw/noweb-expand-ref (regex)
+  "Expands all source blocks whose :noweb-ref matches REGEX and returns their expanded contents concatenated as a string."
+  (let ((results '()))
+    (org-element-map (org-element-parse-buffer) 'src-block
+      (lambda (src)
+        (let* ((begin (org-element-property :begin src))
+               (info (save-excursion
+                       (goto-char begin)
+                       (org-babel-get-src-block-info t)))
+               (params (nth 2 info))  ; header arguments parsed by org-babel
+               (ref (cdr (assoc :noweb-ref params))))
+          (message "debug parsed params: %S" params)
+          (when (and ref (string-match-p regex ref))
+            (let ((expanded (org-babel-expand-noweb-references info)))
+              (push expanded results))))))
+    (apply #'concat (nreverse results))))
+#+end_src
+
+#+RESULTS:
+: erw/noweb-expand-ref
+
+#+header: :noweb-ref el-noweb
+#+begin_src emacs-lisp
+  (cl-defun erw/noweb-expand-ref-collect (&key head tail references)
+    "Builds a regex from REFERENCES with optional HEAD and TAIL anchors, then forwards to `erw/noweb-expand-ref`."
+    (let* ((regex-body (mapconcat #'identity references "\\|"))
+           (regex (concat
+                   head "\\(" regex-body "\\)" tail)))
+      (erw/noweb-expand-ref regex)))
+#+end_src
+
+#+RESULTS:
+: erw/noweb-expand-ref-collect
+
+#+RESULTS:
+: foobar
+
+**** example
+
+#+header: :noweb-ref sh-foo
+#+begin_src sh
+  echo 'Hello, world!'
+#+end_src
+
+#+header: :noweb-ref sh-bar
+#+begin_src sh
+  echo 'Hello, universe!'
+#+end_src
+
+#+header: :noweb yes
+#+begin_src emacs-lisp
+(erw/noweb-expand-ref "sh-foo\\|bar")
+#+end_src
+
+#+RESULTS:
+: echo 'Hello, world!'echo 'Hello, universe!'
+
+#+begin_src emacs-lisp
+  (erw/noweb-expand-ref-collect :head "sh-" :references '("foo" "bar"))
+#+end_src
+
+#+RESULTS:
+: echo 'Hello, world!'echo 'Hello, universe!'
+
 *** org
 **** element
+***** code
 
 #+header: :noweb-ref el-beta
 #+begin_src emacs-lisp
-(defun erw/filter-block-names (regex &optional file)
-  "Filter the source block names using REGEX in FILE."
-  (let ((block-names (reverse (org-babel-src-block-names file))))
-    (cl-remove-if-not (lambda (block) (string-match-p regex block)) block-names)))
-;; (-filter (lambda (block) (string-match-p regex block)) block-names)))
+  (defun erw/filter-block-names (regex &optional file)
+    "Filter the source block names using REGEX in FILE."
+    (let ((block-names (reverse (org-babel-src-block-names file))))
+      (cl-remove-if-not (lambda (block) (string-match-p regex block)) block-names)))
 #+end_src
 
 #+RESULTS:
@@ -203,6 +450,7 @@ Emacs-org:
 
 **** subtree
 ***** paste
+****** code
 
 #+header: :noweb-ref el-org
 #+begin_src emacs-lisp
@@ -232,23 +480,55 @@ Emacs-org:
 #+RESULTS:
 : erw/org-subtree-paste
 
+***** promote
+****** code
+
+#+begin_src emacs-lisp
+(defun erw/org-subtree-promote ()
+  "Promote the current Org subtree.
+
+If the top heading is level 1, replace it with a `#+TITLE:` line,
+then promote the rest of the subtree."
+  (interactive)
+  (save-excursion
+    (org-back-to-heading t)
+    (let ((level (org-current-level))
+          (title (org-get-heading t t t t))
+          (heading-start (point))
+          region-start region-end)
+      (if (= level 1)
+          (progn
+            ;; Save where heading starts
+            (setq region-start (progn
+                                 (forward-line 1)
+                                 (point)))
+            (org-end-of-subtree t t)
+            (setq region-end (point))
+
+            ;; Replace heading line with #+TITLE:
+            (goto-char heading-start)
+            (delete-region (line-beginning-position) (1+ (line-end-position)))
+            (insert (format "#+TITLE: %s\n" title))
+
+            ;; Promote nested subtree (if any)
+            (when (< region-start region-end)
+              (org-map-region
+               (lambda () (org-promote-subtree))
+               region-start region-end)))
+        ;; Otherwise just promote normally
+        (org-promote-subtree)))))
+#+end_src
+
+#+RESULTS:
+: erw/org-subtree-promote
+
 **** refactor
-
-#+header: :noweb-ref el-trash
-#+begin_src emacs-lisp
-  (when (boundp 'erw/org-refactor-map)
-    (setq erw/org-refactor-map nil))
-#+end_src
-
-#+header: :noweb-ref el-trash
-#+begin_src emacs-lisp
-  (defvar erw/org-refactor-map '()
-    "List mapping source functions to their target refactored versions.")
-#+end_src
+***** define
+****** code
 
 #+header: :noweb-ref el-org
 #+begin_src emacs-lisp
-  (cl-defmacro erw/org-refactor-helper-define (&key
+  (cl-defmacro erw/org-refactor-define (&key
       					     ((:source source-fn))
       					     ((:args args-lambda))
       					     ((:result result-lambda))
@@ -268,7 +548,9 @@ Emacs-org:
 #+end_src
 
 #+RESULTS:
-: erw/org-refactor-helper-define
+: erw/org-refactor-define
+
+****** example
 
 #+header: :noweb-ref el-example
 #+begin_src emacs-lisp
@@ -280,7 +562,7 @@ Emacs-org:
 
 #+header: :noweb-ref el-example
 #+begin_src emacs-lisp  
-  (erw/org-refactor-helper-define
+  (erw/org-refactor-define
    :source 'my-source-fn
    :args (lambda (&rest kv) (list (plist-get kv :x) (plist-get kv :y))) ;; ignore input
    :result (lambda (result) (* result 10))
@@ -298,9 +580,12 @@ Emacs-org:
 #+RESULTS:
 : 50
 
+***** apply
+****** code
+
 #+header: :noweb-ref el-org
 #+begin_src emacs-lisp
-  (erw/org-refactor-helper-define
+  (erw/org-refactor-define
    :source org-heading-components
    :target erw/org-heading-components
    :args nil
@@ -319,6 +604,7 @@ Emacs-org:
 : erw/org-heading-components
 
 **** global
+****** code
 
 #+header: :noweb-ref el-org
 #+begin_src emacs-lisp
@@ -332,9 +618,122 @@ Emacs-org:
         (point))))
 #+end_src
 
+**** property
+***** define
+****** code
+
+#+header: :noweb-ref el-org
+#+begin_src emacs-lisp
+  (cl-defmacro erw/org-property-define (&key
+                                        ((:name name-symb))
+                                        ((:key key-string))
+                                        ((:value value-lambda)))
+    "Create a function NAME-SYMB to set Org property KEY-STRING using VALUE-LAMBDA."
+    (let ((name-symb (or name-symb
+                         (intern (concat "erw/org-property-" key-string)))))
+      `(cl-defun ,name-symb (&rest keyval)
+         ,(format "Set the Org property %s using a computed value." key-string)
+         (let ((value (save-excursion (apply ,value-lambda keyval))))
+           (org-set-property ,key-string value)))))
+#+end_src
+
+#+RESULTS:
+: erw/org-property-define
+
+***** apply
+****** code
+
+#+header: :noweb-ref el-org
+#+begin_src emacs-lisp
+  (erw/org-property-define
+   :key "parent-id"
+   :value (lambda ()
+            (when (org-up-heading-safe)
+              (org-id-get-create))))
+#+end_src
+
+#+RESULTS:
+: erw/org-property-parent-id
+
+*** shell
+**** code
+
+#+header: :noweb-ref el-shell
+#+begin_src emacs-lisp
+  (defun erw/sh-check (command &optional re)
+    "Issues a warning if the shell does not match RE; then executes shell COMMAND."
+    (let ((re (or re "bash$")))
+      (unless (string-match-p re (format "%s" shell-file-name))
+        (warn "Warning: expecting shell to match %s; got %s" re shell-file-name))
+      (shell-command-to-string command)))
+#+end_src
+
+#+RESULTS:
+: erw/sh-check
+
+**** example
+
+#+header: :noweb-ref el-example
+#+header: :results code
+#+begin_src emacs-lisp
+  (erw/sh-check "echo \"foo\"" "fish$")
+#+end_src
+
+#+RESULTS:
+#+begin_src emacs-lisp
+"foo\n"
+#+end_src
+
+*** src-block
+**** code
+
+#+header: :noweb-ref el-beta
+#+begin_src emacs-lisp
+  (defun erw/src-block-info (name &optional no-eval)
+    "Gets info of block NAME"
+    (let ((block (org-babel-find-named-block name)))
+  	 (when block
+  		 (save-excursion
+                     (goto-char block)
+                     (org-babel-get-src-block-info no-eval)))))
+#+end_src
+
+#+RESULTS:
+: erw/src-block-info
+
+**** example
+
+#+header :noweb-ref el-example
+#+begin_src emacs-lisp
+(erw/src-block-info "json-foo-bar")
+#+end_src
+
+#+RESULTS:
+| json | { "key" : "X" } | ((:colname-names) (:rowname-names) (:result-params replace) (:result-type . value) (:results . replace) (:exports . code) (:tangle . no) (:hlines . no) (:noweb . no) (:cache . no) (:session . none)) |   | json-foo-bar | 1239 | (ref:%s) |
+
+#+header: :noweb-ref el-example
+#+header: :results verbatim raw
+#+begin_src emacs-lisp
+  (erw/src-block-properties "bar-qux" :header)
+#+end_src
+
+#+RESULTS:
+((":var value=\"qux\""))
+
+#+header :noweb-ref el-example
+#+begin_src emacs-lisp
+  (org-babel-parse-header-arguments
+   (mapconcat (lambda (pair) (concat (car pair) " " (cadr pair)))
+              (erw/src-block-properties "bar-qux" :header)
+              " "))
+#+end_src
+
+#+RESULTS:
+: ((:var . value="qux"))
+
 *** string
 **** wrap-single-quotes
-
+***** code
 #+header: :noweb-ref el-beta
 #+begin_src emacs-lisp
   (defun erw/function-string-wrap-single-quotes (string)
@@ -348,7 +747,8 @@ Emacs-org:
 #+RESULTS:
 : erw/wrap-single-quotes
 
-#+header: :noweb-ref elisp-example
+***** example
+#+header: :noweb-ref el-example
 #+begin_src emacs-lisp
   (let ((string (buffer-file-name (current-buffer))))
     (format "before: %s\nafter: %s" string 
@@ -360,6 +760,7 @@ Emacs-org:
 : after: '/home/erwann/.emacs.d/routinel.org'
 
 **** join
+***** code
 
 #+header: :noweb-ref el-string
 #+begin_src emacs-lisp
@@ -371,7 +772,9 @@ Emacs-org:
 #+RESULTS:
 : erw/string-join
 
-#+header: :noweb-ref elisp-example
+***** example
+
+#+header: :noweb-ref el-example
 #+begin_src emacs-lisp
   (erw/string-join ", " "foo" nil "qux")
 #+end_src
@@ -379,35 +782,10 @@ Emacs-org:
 #+RESULTS:
 : foo, qux
 
-*** list
-
-#+header: :noweb-ref el-list
-#+begin_src emacs-lisp
-  (cl-defun erw/plist-if (&rest keyval-list)
-    (let ((result nil))
-      (while keyval-list
-        (let ((key (pop keyval-list))
-              (value (pop keyval-list)))
-          (when value
-            (setq result (append result (list key value))))))
-      result))
-#+end_src
-
-#+RESULTS:
-: erw/plist-if
-
-#+header: :results raw verbatim
-#+begin_src emacs-lisp
-  (plist-get (erw/plist-if :foo "foo" :bar nil :qux "qux") :qux)
-#+end_src
-
-#+RESULTS:
-"qux"
-
 *** table
 **** field-address
-
-#+header: :noweb-ref el-beta
+***** code
+#+header: :noweb-ref el-table
 #+begin_src emacs-lisp
   (defun erw/function-table-field-address (index)
     "Table address for field INDEX"
@@ -418,7 +796,8 @@ Emacs-org:
 #+RESULTS:
 : erw/field-address
 
-#+header: :noweb-ref elisp-example
+***** example
+#+header: :noweb-ref el-example
 #+begin_src emacs-lisp
   (erw/field-address 2)
 #+end_src
@@ -427,8 +806,8 @@ Emacs-org:
 : @1$2..@>$2
 
 **** get-range
-
-#+header: :noweb-ref el-beta
+***** code
+#+header: :noweb-ref el-table
 #+begin_src emacs-lisp
   (defun erw/function-table-get-range-at-file (tbl-id range-address &optional file-name)
     "Get list of values in RANGE-ADDRESS from TBL-ID at FILE-NAME.
@@ -446,7 +825,9 @@ Emacs-org:
 #+RESULTS:
 : erw/table-range
 
-#+header: :noweb-ref elisp-example
+***** example
+
+#+header: :noweb-ref el-example
 #+header: :results value verbatim
 #+begin_src emacs-lisp
 (erw/table-range "tbl-foo-bar-string" (format "@1$%d..@>$%d" 2 2))
@@ -456,8 +837,8 @@ Emacs-org:
 : ("x" "y")
 
 **** lookup
-
-#+header: :noweb-ref el-beta
+***** code
+#+header: :noweb-ref el-table
 #+begin_src emacs-lisp
     (defun erw/function-table-lookup (tbl-id key &optional file-name key-index value-index match-predicate)
       "Lookup field KEY-INDEX and return corresponding entry in field VALUE-INDEX from table TBL-ID."
@@ -475,7 +856,9 @@ Emacs-org:
 #+RESULTS:
 : erw/table-lookup
 
-#+header: :noweb-ref elisp-example
+***** example
+
+#+header: :noweb-ref el-example
 #+begin_src emacs-lisp
 (erw/table-lookup "tbl-foo-bar-string" "foo")
 #+end_src
@@ -483,7 +866,7 @@ Emacs-org:
 #+RESULTS:
 : x
 
-#+header: :noweb-ref elisp-example
+#+header: :noweb-ref el-example
 #+begin_src emacs-lisp
 (erw/table-lookup "tbl-foo-bar-string" "bar")
 #+end_src
@@ -491,307 +874,17 @@ Emacs-org:
 #+RESULTS:
 : y
 
-*** function
-
-#+header: :noweb-ref el-beta
-#+begin_src emacs-lisp
-;;  (defun erw/compose (arg &rest functions)
-;;    (-reduce-r (lambda (fn acc) (funcall fn acc)) (append (reverse functions) (list arg))))
-  (defun erw/compose (arg &rest functions)
-  (cl-reduce (lambda (acc fn) (funcall fn acc))
-             (reverse functions)
-             :initial-value arg))
-#+end_src
-
-#+RESULTS:
-: erw/compose
-
-#+header: :noweb-ref elisp-example
-#+begin_src emacs-lisp
-  (erw/compose 4 #'sqrt (lambda (x) (+ 1 x)))
-#+end_src
-
-#+RESULTS:
-: 3.0
-
-*** noweb
-
-#+header: :noweb-ref el-beta
-#+begin_src emacs-lisp
-  (defun erw/noweb-expand (name)
-    "Expands block NAME"
-    (let* ((block (org-babel-find-named-block name))
-  	 (info (when block
-  		 (save-excursion
-                     (goto-char block)
-                     (org-babel-get-src-block-info t)))))
-      (when info
-        (org-babel-expand-noweb-references info))))
-#+end_src
-
-#+RESULTS:
-: erw/noweb-expand
-
-#+header: :noweb-ref el-beta
-#+begin_src emacs-lisp
-  (defun __erw/noweb-concat-rest (separator &optional fn &rest names)
-    "Implementation for REST"
-    (let ((fn (or fn #'identity)))
-      (mapconcat (lambda (name) (funcall fn (erw/noweb-expand name))) names separator)))
-  (defun __erw/noweb-concat-list (separator &optional fn names)
-    "Implementation for LIST"
-    (apply #'__erw/noweb-concat-rest separator fn names))
-  (defun erw/noweb-concat (separator &optional fn &rest names)
-    "Expand, pass to a function, and concatenate blocks using SEPARATOR, FN, and NAMES.
-  Dispatches based on whether NAMES is a list or individual arguments."
-    (when names
-      (if (and (listp (car names)) (null (cdr names))) ;; Single list argument case
-          (__erw/noweb-concat-list separator fn (car names))
-        (apply #'__erw/noweb-concat-rest separator fn names))))
-#+end_src
-
-#+RESULTS:
-: erw/noweb-concat
-
-#+header: :noweb-ref elisp-example
-#+begin_src emacs-lisp
-  (erw/noweb-concat ", " (lambda (ex) (format "<%s>" ex)) "json-foo-bar" "json-foo-qux")
-#+end_src
-
-#+RESULTS:
-: <{ "key" : "X" }>, <{ "key" : "Y" }>
-
-#+header: :noweb-ref elisp-example
-#+begin_src emacs-lisp
-  (erw/noweb-concat ", " (lambda (ex) (format "<%s>" ex)) '("json-foo-bar" "json-foo-qux"))
-#+end_src
-
-#+RESULTS:
-: <{ "key" : "value" }>, <{ "key" : "Y" }>
-
-*** shell
-
-#+header: :noweb-ref el-shell
-#+begin_src emacs-lisp
-  (defun erw/sh-check (command &optional re)
-    "Issues a warning if the shell does not match RE; then executes shell COMMAND."
-    (let ((re (or re "bash$")))
-      (unless (string-match-p re (format "%s" shell-file-name))
-        (warn "Warning: expecting shell to match %s; got %s" re shell-file-name))
-      (shell-command-to-string command)))
-#+end_src
-
-#+RESULTS:
-: erw/sh-check
-
-#+header: :noweb-ref elisp-example
-#+header: :results code
-#+begin_src emacs-lisp
-  (erw/sh-check "echo \"foo\"" "fish$")
-#+end_src
-
-#+RESULTS:
-#+begin_src emacs-lisp
-"foo\n"
-#+end_src
-
-*** json
-**** load
-
-#+header: :noweb-ref el-json
-#+begin_src emacs-lisp
-  (let ((prefix "./") (ext ".el"))
-    (dolist (string '("shared" "string"))
-      (load-file (concat prefix string ext))))
-#+end_src
-
-#+RESULTS:
-
-**** safe
-
-#+header: :noweb-ref el-json
-#+begin_src emacs-lisp
-  (defconst erw/json-safe-alist
-    '(("\t" . "\\\\t"))
-    "An association list of (REGEXP . REPLACEMENT) pairs to make strings JSON-safe.")
-#+end_src
-
-#+RESULTS:
-: erw/json-safe-alist
-
-#+header: :noweb-ref el-json
-#+begin_src emacs-lisp
-  (defun erw/json--safe (string &rest re-rep)
-    "Make a STRING JSON-safe by replacing REGEXP-REPLACEMENT pairs in RE-REP"
-    (if (null re-rep)
-        string
-      (let* ((pair (car re-rep))
-             (re (car pair))
-             (rep (cdr pair))
-             (result (replace-regexp-in-string re rep string)))
-        (apply 'erw/json--safe result (cdr re-rep)))))
-#+end_src
-
-#+RESULTS:
-: erw/json--safe
-
-#+header: :noweb-ref elisp-example
-#+header: :results verbatim
-#+begin_src emacs-lisp
-  (erw/json--safe "{ \"key\": \"foo	bar\" }" '("\t" . "\\\\t"))
-#+end_src
-
-#+RESULTS:
-: "{ \"key\": \"foo\\tbar\" }"
-
-#+header: :noweb-ref el-json
-#+begin_src emacs-lisp
-  (defun erw/json-safe (string)
-    "Recursively apply REGEXP-REPLACEMENT pairs in RE-REP to STRING."
-    (apply 'erw/json--safe string erw/json-safe-alist))
-#+end_src
-
-#+RESULTS:
-: erw/json-safe
-
-#+header: :noweb-ref elisp-example
-#+header: :results verbatim
-#+begin_src emacs-lisp
-  (erw/json-safe "{ \"key\": \"foo	bar\" }")
-#+end_src
-
-#+RESULTS:
-: "{ \"key\": \"foo\\tbar\" }"
-
-**** jq
-***** file
-
-#+header: :noweb-ref el-json
-#+begin_src emacs-lisp
-  (defun erw/jq-file (filter file &optional options)
-    "Apply a jq FILTER to a JSON file and return the result."
-    (let ((command (format (erw/string-join " " "jq" options "'%s'" "%s") filter file)))
-      (erw/sh-check command)))
-#+end_src
-
-#+RESULTS:
-: erw/jq-file
-
-***** string
-
-#+header: :noweb-ref el-json
-#+begin_src emacs-lisp
-  (defun erw/jq-string (filter string &optional options)
-    "Apply a jq filter to a JSON string and return the result."
-    (let* ((temp-file (make-temp-file nil nil ".json"))
-           (result (progn
-                     (with-temp-file temp-file
-                       (insert string))
-                     (erw/jq-file filter temp-file options))))
-      (delete-file temp-file)
-      (format "%s" result)))
-#+end_src
-
-#+RESULTS:
-: erw/jq-string
-
-#+header: :noweb-ref elisp-example
-#+header: :results raw
-#+header: :var json-object=(org-babel-ref-resolve "json-foo-bar")
-#+header: :wrap src json
-#+begin_src emacs-lisp  
-  (erw/jq-string "." json-object "-c")
-#+end_src
-
-#+RESULTS:
-#+begin_src json
-{"key":"X"}
-#+end_src
-
-*** src-block
-
-#+header: :noweb-ref el-beta
-#+begin_src emacs-lisp
-  (defun erw/src-block-info (name &optional no-eval)
-    "Gets info of block NAME"
-    (let ((block (org-babel-find-named-block name)))
-  	 (when block
-  		 (save-excursion
-                     (goto-char block)
-                     (org-babel-get-src-block-info no-eval)))))
-#+end_src
-
-#+RESULTS:
-: erw/src-block-info
-
-#+header :noweb-ref elisp-example
-#+begin_src emacs-lisp
-(erw/src-block-info "json-foo-bar")
-#+end_src
-
-#+RESULTS:
-| json | { "key" : "X" } | ((:colname-names) (:rowname-names) (:result-params replace) (:result-type . value) (:results . replace) (:exports . code) (:tangle . no) (:hlines . no) (:noweb . no) (:cache . no) (:session . none)) |   | json-foo-bar | 1239 | (ref:%s) |
-
-#+header: :noweb-ref el-beta
-#+begin_src emacs-lisp
-  (defun erw/src-block-element (name) "Return the whole block element"
-         (save-excursion
-  	 (goto-char (org-babel-find-named-block name))
-  	 (org-element-at-point)))
-#+end_src
-
-#+header :noweb-ref elisp-example
-#+begin_src emacs-lisp
-  (erw/src-block-element "bar-qux")
-#+end_src
-
-#+header: :noweb-ref el-beta
-#+begin_src emacs-lisp
-  (defun erw/src-block-properties (name &rest properties)
-    "Return block properties from the named block element. Defaults to :value if no properties are given."
-    (let* ((element (erw/src-block-element name))  ;; Use erw/src-block-element to get the block
-           (props (if properties
-                      properties
-                    '(:value))))  ;; Default to :value if no properties are provided
-      (mapcar (lambda (prop)
-                (org-element-property prop element))  ;; Get each property using org-element-property
-              props)))
-#+end_src
-
-#+header: :noweb-ref elisp-example
-#+header: :results verbatim raw
-#+begin_src emacs-lisp
-  (erw/src-block-properties "bar-qux" :header)
-#+end_src
-
-#+RESULTS:
-((":var value=\"qux\""))
-
-#+header :noweb-ref elisp-example
-#+begin_src emacs-lisp
-  (org-babel-parse-header-arguments
-   (mapconcat (lambda (pair) (concat (car pair) " " (cadr pair)))
-              (erw/src-block-properties "bar-qux" :header)
-              " "))
-#+end_src
-
-#+RESULTS:
-: ((:var . value="qux"))
-
 * tangle
-** shared
+** noweb
 :PROPERTIES:
-:header-args: :tangle ./shared.el
+:header-args: :tangle "../el/noweb.el"
 :END:
 
 #+header: :noweb yes
 #+begin_src emacs-lisp
   <<el-license>>
-  <<el-shared>>
+  <<el-noweb>>
 #+end_src
-
-#+RESULTS:
-: erw/noweb-concat
 
 ** org
 :PROPERTIES:
@@ -852,6 +945,40 @@ Emacs-org:
 #+end_src
 
 * scratch
+
+#+header: :noweb-ref el-beta
+#+begin_src emacs-lisp
+  (defun erw/src-block-element (name) "Return the whole block element"
+         (save-excursion
+  	 (goto-char (org-babel-find-named-block name))
+  	 (org-element-at-point)))
+#+end_src
+
+#+header :noweb-ref el-example
+#+begin_src emacs-lisp
+  (erw/src-block-element "bar-qux")
+#+end_src
+
+#+header: :noweb-ref el-beta
+#+begin_src emacs-lisp
+  (defun erw/src-block-properties (name &rest properties)
+    "Return block properties from the named block element. Defaults to :value if no properties are given."
+    (let* ((element (erw/src-block-element name))  ;; Use erw/src-block-element to get the block
+           (props (if properties
+                      properties
+                    '(:value))))  ;; Default to :value if no properties are provided
+      (mapcar (lambda (prop)
+                (org-element-property prop element))  ;; Get each property using org-element-property
+              props)))
+#+end_src
+
+** package
+
+#+header: :noweb-ref el-leaveout
+#+begin_src emacs-lisp
+  (use-package dash
+    :ensure t)
+#+end_src
 
 ** id-link
 *** const
@@ -939,3 +1066,61 @@ Emacs-org:
 
 #+RESULTS:
 : /home/erwann/unique/xxYG8M.org
+
+* trash
+*** noweb
+
+
+#+begin_src emacs-lisp
+  (defun erw/noweb-expand (name)
+    "Expands block NAME"
+    (let* ((block (org-babel-find-named-block name))
+  	 (info (when block
+  		 (save-excursion
+                     (goto-char block)
+                     (org-babel-get-src-block-info t)))))
+      (when info
+        (org-babel-expand-noweb-references info))))
+#+end_src
+
+#+RESULTS:
+: erw/noweb-expand
+
+
+#+begin_src emacs-lisp
+  (defun __erw/noweb-concat-rest (separator &optional fn &rest names)
+    "Implementation for REST"
+    (let ((fn (or fn #'identity)))
+      (mapconcat (lambda (name) (funcall fn (erw/noweb-expand name))) names separator)))
+  (defun __erw/noweb-concat-list (separator &optional fn names)
+    "Implementation for LIST"
+    (apply #'__erw/noweb-concat-rest separator fn names))
+  (defun erw/noweb-concat (separator &optional fn &rest names)
+    "Expand, pass to a function, and concatenate blocks using SEPARATOR, FN, and NAMES.
+  Dispatches based on whether NAMES is a list or individual arguments."
+    (when names
+      (if (and (listp (car names)) (null (cdr names))) ;; Single list argument case
+          (__erw/noweb-concat-list separator fn (car names))
+        (apply #'__erw/noweb-concat-rest separator fn names))))
+#+end_src
+
+#+RESULTS:
+: erw/noweb-concat
+
+#+header: :noweb-ref el-example
+#+begin_src emacs-lisp
+  (erw/noweb-concat ", " (lambda (ex) (format "<%s>" ex)) "json-foo-bar" "json-foo-qux")
+#+end_src
+
+#+RESULTS:
+: <{ "key" : "X" }>, <{ "key" : "Y" }>
+
+#+header: :noweb-ref el-example
+#+begin_src emacs-lisp
+  (erw/noweb-concat ", " (lambda (ex) (format "<%s>" ex)) '("json-foo-bar" "json-foo-qux"))
+#+end_src
+
+#+RESULTS:
+: <{ "key" : "value" }>, <{ "key" : "Y" }>
+
+
