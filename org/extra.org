@@ -274,10 +274,11 @@ Emacs-org:
 
 #+header: :noweb-ref el-json
 #+begin_src emacs-lisp
-  (defun erw/jq-file (filter file &optional options)
-    "Apply a jq FILTER to a JSON file and return the result."
-    (let ((command (format (erw/string-join " " "jq" options "'%s'" "%s") filter file)))
-      (erw/sh-check command)))
+(cl-defun erw/jq-file (&key filter file options)
+  "Apply a jq FILTER to a JSON FILE and return the result."
+  (let* ((parts (delq nil (list "jq" options (format "'%s'" filter) file)))
+         (command (string-join parts " ")))
+    (erw/sh-check command)))
 #+end_src
 
 #+RESULTS:
@@ -415,19 +416,23 @@ whose values are non-nil."
 #+header: :noweb yes
 #+header: :results verbatim
 #+begin_src emacs-lisp
-(erw/noweb-expand-ref :regex "sh-foo\\|bar")
+  (string-join
+   (erw/noweb-expand-ref :regex "sh-foo\\|bar") "\n")
 #+end_src
 
 #+RESULTS:
-: ("echo 'Hello, world!'" "echo 'Hello, universe!'")
+: "echo 'Hello, world!'
+: echo 'Hello, universe!'"
 
 #+header: :results verbatim
 #+begin_src emacs-lisp
-  (erw/noweb-expand-ref-collect :head "sh-" :ref-list '("foo" "bar"))
+    (string-join
+     (erw/noweb-expand-ref-collect :head "sh-" :ref-list '("foo" "bar")) "\n")
 #+end_src
 
 #+RESULTS:
-: ("echo 'Hello, world!'" "echo 'Hello, universe!'")
+: "echo 'Hello, world!'
+: echo 'Hello, universe!'"
 
 *** org
 **** element
@@ -732,57 +737,6 @@ then promote the rest of the subtree."
 #+RESULTS:
 : ((:var . value="qux"))
 
-*** string
-**** wrap-single-quotes
-***** code
-#+header: :noweb-ref el-beta
-#+begin_src emacs-lisp
-  (defun erw/function-string-wrap-single-quotes (string)
-    "Wraps STRING with single quotes if absent."
-    (if (string-match-p "^'.*'$" string)
-       string
-      (concat "'" string "'")))
-  (defalias 'erw/wrap-single-quotes 'erw/function-string-wrap-single-quotes)
-#+end_src
-
-#+RESULTS:
-: erw/wrap-single-quotes
-
-***** example
-#+header: :noweb-ref el-example
-#+begin_src emacs-lisp
-  (let ((string (buffer-file-name (current-buffer))))
-    (format "before: %s\nafter: %s" string 
-             (funcall 'erw/wrap-single-quotes string)))
-#+end_src
-
-#+RESULTS:
-: before: /home/erwann/.emacs.d/routinel.org
-: after: '/home/erwann/.emacs.d/routinel.org'
-
-**** join
-***** code
-
-#+header: :noweb-ref el-string
-#+begin_src emacs-lisp
-  (defun erw/string-join (&optional separator &rest strings)
-    "Join STRINGS with an optional SEPARATOR, defaulting to space. Skip nil values."
-    (mapconcat #'identity (delq nil strings) (or separator " ")))
-#+end_src
-
-#+RESULTS:
-: erw/string-join
-
-***** example
-
-#+header: :noweb-ref el-example
-#+begin_src emacs-lisp
-  (erw/string-join ", " "foo" nil "qux")
-#+end_src
-
-#+RESULTS:
-: foo, qux
-
 *** table
 **** field-address
 ***** code
@@ -1068,7 +1022,62 @@ then promote the rest of the subtree."
 : /home/erwann/unique/xxYG8M.org
 
 * trash
-*** noweb
+** string
+*** wrap-single-quotes
+**** code
+#+begin_src emacs-lisp
+  (defun erw/function-string-wrap-single-quotes (string)
+    "Wraps STRING with single quotes if absent."
+    (if (string-match-p "^'.*'$" string)
+       string
+      (concat "'" string "'")))
+  (defalias 'erw/wrap-single-quotes 'erw/function-string-wrap-single-quotes)
+#+end_src
+
+#+RESULTS:
+: erw/wrap-single-quotes
+
+**** example
+#+header: :noweb-ref el-example
+#+begin_src emacs-lisp
+  (let ((string (buffer-file-name (current-buffer))))
+    (format "before: %s\nafter: %s" string 
+             (funcall 'erw/wrap-single-quotes string)))
+#+end_src
+
+#+RESULTS:
+: before: /home/erwann/.emacs.d/routinel.org
+: after: '/home/erwann/.emacs.d/routinel.org'
+
+*** join
+**** code
+
+#+begin_src emacs-lisp
+  (defun erw/string-join (&optional separator &rest strings)
+    "Join STRINGS with an optional SEPARATOR, defaulting to space. Skip nil values."
+    (mapconcat #'identity (delq nil strings) (or separator " ")))
+#+end_src
+
+#+RESULTS:
+: erw/string-join
+
+**** example
+
+#+begin_src emacs-lisp
+  (erw/string-join ", " "foo" nil "qux")
+#+end_src
+
+#+RESULTS:
+: foo, qux
+
+#+begin_src emacs-lisp
+(string-join (delq nil '("foo" nil "qux")) ", ")
+#+end_src
+
+#+RESULTS:
+: foo, , qux
+
+** noweb
 
 
 #+begin_src emacs-lisp
