@@ -42,16 +42,28 @@ Emacs-org:
 #+end_src
 
 ** el
+*** license
+
+#+name: el-license
+#+begin_src emacs-lisp
+  ;;  persemacs-extra — extra elisp functionality
+  ;;  Copyright (C) 2024—2025 — Erwann Rogard
+  ;;  Released under GPL 3.0
+  ;;  See https://www.gnu.org/licenses/gpl-3.0.en.html
+#+end_src
+
+*** module
 *** filesys
-**** unique-file
-***** load
+**** preamble
 
 #+header: :noweb-ref el-filesys
 #+begin_src emacs-lisp
   (load-file "../el/list.el")
 #+end_src
 
-***** directory
+**** module
+***** unique-file
+****** directory
 :properties:
 :customize_bool: true
 :end:
@@ -64,7 +76,7 @@ Emacs-org:
 #+RESULTS:
 : erw/filesys-unique-directory
 
-***** make
+****** make
 
 #+header: :noweb-ref el-filesys
 #+begin_src emacs-lisp
@@ -104,7 +116,7 @@ Emacs-org:
 #+RESULTS:
 : /home/erwann/unique/GPmUqe.org
 
-***** clone
+****** clone
 
 #+header: :noweb-ref el-filesys
 #+begin_src emacs-lisp
@@ -133,8 +145,8 @@ Emacs-org:
 #+RESULTS:
 : erw/filesys-unique-clone
 
-***** interactive
-****** code
+****** interactive
+******* code
 
 #+header: :noweb-ref el-filesys
 #+begin_src emacs-lisp
@@ -160,7 +172,8 @@ Emacs-org:
 : erw/filesys-unique-clone-interactive
 
 *** function
-**** compose
+**** module
+***** compose
 #+header: :noweb-ref el-function
 #+begin_src emacs-lisp
   (defun erw/compose (arg &rest functions)
@@ -182,8 +195,91 @@ Emacs-org:
 : 3.0
 
 *** json
-**** safe
-***** code
+**** notes
+:PROPERTIES:
+:created_on: <2025-05-23 Fri 11:50>
+:uname:    @elitebook
+:END:
+:LOGBOOK:
+- Note taken on [2025-05-23 Fri 11:51] \\
+  erw/json-safe to be trashed? Seems like json-* functions could do that.
+:END:
+
+#+begin_src markdown
+```elisp
+(erw/json--safe "{ \"key\": \"foo\tbar\" }" '("\t" . "\\\\t"))
+````
+
+You’re asking: **Isn't this kind of escaping already handled by `json-encode` or similar built-in functions in Emacs?**
+
+---
+
+### ✅ Short Answer
+
+Yes — **`json-encode` already escapes special characters** like `\t`, `\n`, `\"`, etc.
+So if you're building your JSON with **Lisp structures** and then using `json-encode`, **you don't need to escape strings manually**.
+
+---
+
+### 🔍 But Here's the Important Distinction
+
+Your function is processing a **raw JSON string**, not a Lisp structure.
+
+So:
+
+```elisp
+(erw/json-safe "{ \"key\": \"foo\tbar\" }")
+```
+
+…takes in a JSON **string**, not a Lisp object like:
+
+```elisp
+(json-encode '(("key" . "foo	bar")))
+```
+
+In the latter case, `json-encode` will automatically output:
+
+```json
+{"key":"foo\\tbar"}
+```
+
+No need for `erw/json--safe`.
+
+---
+
+### 🧠 So Why Might You Still Need Your Own Preprocessing?
+
+Use your `erw/json-safe` / `erw/json--safe` when:
+
+,* You get JSON **as a string from elsewhere** (not Lisp).
+,* You want to **clean, fix, or normalize** it before parsing or writing.
+,* You're doing things like applying `jq` to **hand-written or external JSON**, not generated from `json-encode`.
+
+---
+
+### ✅ TL;DR
+
+| Use Case                                                | Built-in Handles It? | Use Your Preprocessor? |
+| ------------------------------------------------------- | -------------------- | ---------------------- |
+| You build JSON from Lisp and use `json-encode`          | ✅ Yes                | ❌ No                   |
+| You receive a raw JSON string (from API, buffer, noweb) | ❌ No                 | ✅ Yes                  |
+| You need to patch bad or exotic characters in JSON text | ❌ No                 | ✅ Yes                  |
+
+---
+
+Let me know if you want to expand your safe-replacements to cover more JSON troublemakers (e.g. smart quotes, non-ASCII whitespace, etc.).
+\#+end\_src
+#+end_src
+
+**** preamble
+
+#+header: :noweb-ref el-filesys
+#+begin_src emacs-lisp
+  (load-file "../el/list.el")
+#+end_src
+
+**** module
+***** safe
 
 #+header: :noweb-ref el-json
 #+begin_src emacs-lisp
@@ -211,7 +307,6 @@ Emacs-org:
 #+RESULTS:
 : erw/json--safe
 
-***** example
 
 #+header: :noweb-ref el-example
 #+header: :results verbatim
@@ -241,10 +336,11 @@ Emacs-org:
 #+RESULTS:
 : "{ \"key\": \"foo\\tbar\" }"
 
-**** jq
-***** file
+*** shell
+**** module
+***** jq
 
-#+header: :noweb-ref el-json
+#+header: :noweb-ref el-shell
 #+begin_src emacs-lisp
   (cl-defun erw/jq-file (&key filter file options)
     "Apply a jq FILTER to a JSON FILE and return the result."
@@ -288,18 +384,9 @@ Emacs-org:
 {"key":"X"}
 #+end_src
 
-*** license
-
-#+name: el-license
-#+begin_src emacs-lisp
-  ;;  persemacs-extra — extra elisp functionality
-  ;;  Copyright (C) 2024—2025 — Erwann Rogard
-  ;;  Released under GPL 3.0
-  ;;  See https://www.gnu.org/licenses/gpl-3.0.en.html
-#+end_src
-
 *** list
-**** plist-if
+**** module
+***** plist-if
 #+header: :noweb-ref el-list
 #+begin_src emacs-lisp
   (cl-defun erw/plist-if (&rest keyval-list)
@@ -325,8 +412,16 @@ whose values are non-nil."
 #+RESULTS:
 "qux"
 
-*** noweb
-**** expand
+*** noweb-ref
+**** preamble
+
+#+header: :noweb-ref el-filesys
+#+begin_src emacs-lisp
+  (load-file "../el/shell.el")
+#+end_src
+
+**** module
+***** expand
 
 #+header: :noweb-ref el-noweb
 #+begin_src emacs-lisp
@@ -351,7 +446,7 @@ whose values are non-nil."
 #+RESULTS:
 : erw/noweb-ref-expand
 
-**** collect
+***** collect
 
 #+header: :noweb-ref el-noweb
 #+begin_src emacs-lisp
@@ -369,22 +464,25 @@ whose values are non-nil."
 #+RESULTS:
 : foobar
 
-**** encode
+***** encode
 
 #+header: :noweb-ref el-noweb
 #+begin_src emacs-lisp
   (cl-defun erw/noweb-ref-encode
       (&key key-list head ref-list tail parse-fn encode-fn)
     "Expand noweb REF-LIST, each surrounded by HEAD and TAIL.
-                 PARSE-FN parses the raw strings; 
-   ENCODE-FN turns parsed data into final output.
+  PARSE-FN parses the raw strings; 
+  ENCODE-FN turns parsed data into final output.
   When provided, KEY-LIST is passed to ENCODE-FN."
     (let* ((raw-blocks (erw/noweb-ref-collect :head head :ref-list ref-list :tail tail))
-           (parsed-values (mapcar parse-fn raw-blocks)))
+           (parsed-list (mapcar parse-fn raw-blocks)))
+      (when (and key-list
+                 (/= (length key-list) (length parsed-list)))
+        (error "key-list and parsed-list must be of equal length"))
       (funcall encode-fn
                (if key-list
-                   (cl-pairlis key-list parsed-values)
-                 parsed-values))))
+                   (cl-pairlis key-list parsed-list)
+                 parsed-list))))
 #+end_src
 
 #+RESULTS:
@@ -403,32 +501,58 @@ whose values are non-nil."
 : "echo 'Hello, world!'
 : echo 'Hello, universe!'"
 
-#+header: :results verbatim
+#+header: :var head="^json-"
+#+header: :var ref-list='("foo" "bar")
+#+header: :var tail="$"
 #+begin_src emacs-lisp
-    (let* ((head "^json-")(list
-  (erw/noweb-ref-collect :head head :ref-list '("foo" "bar"))))
-    (json-encode-array list))
-#+end_src
-
-#+RESULTS:
-: "[\"{ \\\"key\\\" : \\\"X\\\" }\",\"{ \\\"key\\\" : \\\"Y\\\" }\"]"
-
-#+begin_src emacs-lisp
-    (let* ((head "^json-"))
-      (erw/noweb-ref-encode :head head :ref-list '("foo" "bar") :parse-fn 'json-read-from-string :encode-fn 'json-encode-array))
+   (erw/noweb-ref-encode
+    :head head
+    :ref-list ref-list
+    :tail tail
+    :parse-fn 'json-read-from-string
+  :encode-fn 'json-encode-array)
 #+end_src
 
 #+RESULTS:
 : [{"key":"X"},{"key":"Y"}]
 
+#+header: :var head="^json-"
+#+header: :var ref-list='("foo" "bar")
+#+header: :var tail="$"
+#+header: :var key-list='("foo" "bar")
 #+begin_src emacs-lisp
-    (let* ((head "^json-"))
-      (erw/noweb-ref-encode :head head :ref-list '("foo" "bar") :key-list '("foo" "bar") :parse-fn 'json-read-from-string :encode-fn 'json-encode))
+  (erw/noweb-ref-encode
+   :head head
+   :ref-list ref-list
+   :tail tail
+   :key-list key-list
+   :parse-fn 'json-read-from-string
+   :encode-fn 'json-encode)
 #+end_src
 
+#+RESULTS:
+: {"foo":{"key":"X"},"bar":{"key":"Y"}}
+
+#+header: :var head="^json-"
+#+header: :var ref-list='("foo" "bar" "qux")
+#+header: :var tail="$"
+#+header: :var key-list='("foo" "bar" "qux")
+#+begin_src emacs-lisp
+  (erw/noweb-ref-encode
+   :head head
+   :ref-list ref-list
+   :key-list key-list
+   :parse-fn 'json-read-from-string
+   :encode-fn 'json-encode)
+#+end_src
+
+#+RESULTS:
+: {"foo":{"key":"X"},"bar":{"key":"Y"},"qux":[{"key":"W"},{"key":"Z"}]}
+
 *** org
-**** element
-***** code
+**** module
+***** element
+****** code
 
 #+header: :noweb-ref el-beta
 #+begin_src emacs-lisp
@@ -446,9 +570,9 @@ whose values are non-nil."
          (flatten-list  (mapcar (lambda (string) (org-babel-parse-header-arguments string)) (org-element-property element))))
 #+end_src
 
-**** subtree
-***** paste
-****** code
+***** subtree
+****** paste
+******* code
 
 #+header: :noweb-ref el-org
 #+begin_src emacs-lisp
@@ -478,8 +602,8 @@ whose values are non-nil."
 #+RESULTS:
 : erw/org-subtree-paste
 
-***** promote
-****** code
+****** promote
+******* code
 
 #+begin_src emacs-lisp
 (defun erw/org-subtree-promote ()
@@ -520,9 +644,9 @@ then promote the rest of the subtree."
 #+RESULTS:
 : erw/org-subtree-promote
 
-**** refactor
-***** define
-****** code
+***** refactor
+****** define
+******* code
 
 #+header: :noweb-ref el-org
 #+begin_src emacs-lisp
@@ -601,8 +725,8 @@ then promote the rest of the subtree."
 #+RESULTS:
 : erw/org-heading-components
 
-**** global
-****** code
+***** global
+******* code
 
 #+header: :noweb-ref el-org
 #+begin_src emacs-lisp
@@ -654,7 +778,8 @@ then promote the rest of the subtree."
 : erw/org-property-parent-id
 
 *** src-block
-
+**** module
+***** info
 #+header: :noweb-ref el-beta
 #+begin_src emacs-lisp
   (defun erw/src-block-info (name &optional no-eval)
@@ -698,8 +823,9 @@ then promote the rest of the subtree."
 : ((:var . value="qux"))
 
 *** table
-**** field-address
-***** code
+**** module
+***** field-address
+****** code
 #+header: :noweb-ref el-table
 #+begin_src emacs-lisp
   (defun erw/function-table-field-address (index)
@@ -711,7 +837,7 @@ then promote the rest of the subtree."
 #+RESULTS:
 : erw/field-address
 
-***** example
+****** example
 #+header: :noweb-ref el-example
 #+begin_src emacs-lisp
   (erw/field-address 2)
@@ -720,8 +846,8 @@ then promote the rest of the subtree."
 #+RESULTS:
 : @1$2..@>$2
 
-**** get-range
-***** code
+***** get-range
+****** code
 #+header: :noweb-ref el-table
 #+begin_src emacs-lisp
   (defun erw/function-table-get-range-at-file (tbl-id range-address &optional file-name)
@@ -740,7 +866,7 @@ then promote the rest of the subtree."
 #+RESULTS:
 : erw/table-range
 
-***** example
+****** example
 
 #+header: :noweb-ref el-example
 #+header: :results value verbatim
@@ -751,8 +877,8 @@ then promote the rest of the subtree."
 #+RESULTS:
 : ("x" "y")
 
-**** lookup
-***** code
+***** lookup
+****** code
 #+header: :noweb-ref el-table
 #+begin_src emacs-lisp
     (defun erw/function-table-lookup (tbl-id key &optional file-name key-index value-index match-predicate)
@@ -771,7 +897,7 @@ then promote the rest of the subtree."
 #+RESULTS:
 : erw/table-lookup
 
-***** example
+****** example
 
 #+header: :noweb-ref el-example
 #+begin_src emacs-lisp
@@ -821,6 +947,11 @@ then promote the rest of the subtree."
   { "key" : "Y" }
 #+end_src
 
+#+header: :noweb-ref json-qux
+#+begin_src json
+ [{"key":"W"},{"key":"Z"}]
+#+end_src
+
 * tangle
 ** filesys
 :PROPERTIES:
@@ -831,6 +962,17 @@ then promote the rest of the subtree."
 #+begin_src emacs-lisp
   <<el-license>>
   <<el-filesys>>
+#+end_src
+
+** shell
+:PROPERTIES:
+:header-args: :tangle ../el/shell.el
+:END:
+
+#+header: :noweb yes
+#+begin_src emacs-lisp
+  <<el-license>>
+  <<el-shell>
 #+end_src
 
 ** json
