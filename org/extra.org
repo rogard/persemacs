@@ -326,10 +326,11 @@ whose values are non-nil."
 "qux"
 
 *** noweb
+**** expand
 
 #+header: :noweb-ref el-noweb
 #+begin_src emacs-lisp
-  (cl-defun erw/noweb-expand-ref (&key regex)
+  (cl-defun erw/noweb-ref-expand (&key regex)
     "Expands all source blocks whose :noweb-ref matches REGEX and returns their expanded contents, joined by SEP."
     (let ((results '()))
       (org-element-map (org-element-parse-buffer) 'src-block
@@ -340,7 +341,7 @@ whose values are non-nil."
                          (org-babel-get-src-block-info t)))
                  (params (nth 2 info))  ; header arguments parsed by org-babel
                  (ref (cdr (assoc :noweb-ref params))))
-            (message "debug parsed params: %S" params)
+            ;; (message "DEBUG parsed params: %S" params)
             (when (and ref (string-match-p regex ref))
               (let ((expanded (org-babel-expand-noweb-references info)))
                 (push expanded results))))))
@@ -348,23 +349,46 @@ whose values are non-nil."
 #+end_src
 
 #+RESULTS:
-: erw/noweb-expand-ref
+: erw/noweb-ref-expand
+
+**** collect
 
 #+header: :noweb-ref el-noweb
 #+begin_src emacs-lisp
-  (cl-defun erw/noweb-expand-ref-collect (&key head ref-list tail)
-    "Builds a regex from REF-LIST with optional HEAD and TAIL anchors, then forwards to `erw/noweb-expand-ref`."
+  (cl-defun erw/noweb-ref-collect (&key head ref-list tail)
+    "Builds a regex from REF-LIST with optional HEAD and TAIL anchors, then forwards to `erw/noweb-ref-expand`."
     (let* ((regex-body (mapconcat #'identity ref-list "\\|"))
            (regex (concat (or head "") "\\(" regex-body "\\)" (or tail "")))
            (args `(:regex ,regex)))
-      (apply #'erw/noweb-expand-ref args)))
+      (apply #'erw/noweb-ref-expand args)))
 #+end_src
 
 #+RESULTS:
-: erw/noweb-expand-ref-collect
+: erw/noweb-ref-collect
 
 #+RESULTS:
 : foobar
+
+**** encode
+
+#+header: :noweb-ref el-noweb
+#+begin_src emacs-lisp
+  (cl-defun erw/noweb-ref-encode
+      (&key key-list head ref-list tail parse-fn encode-fn)
+    "Expand noweb REF-LIST, each surrounded by HEAD and TAIL.
+                 PARSE-FN parses the raw strings; 
+   ENCODE-FN turns parsed data into final output.
+  When provided, KEY-LIST is passed to ENCODE-FN."
+    (let* ((raw-blocks (erw/noweb-ref-collect :head head :ref-list ref-list :tail tail))
+           (parsed-values (mapcar parse-fn raw-blocks)))
+      (funcall encode-fn
+               (if key-list
+                   (cl-pairlis key-list parsed-values)
+                 parsed-values))))
+#+end_src
+
+#+RESULTS:
+: erw/noweb-ref-encode
 
 **** example
 
@@ -372,7 +396,7 @@ whose values are non-nil."
 #+header: :results verbatim
 #+begin_src emacs-lisp
   (string-join
-   (erw/noweb-expand-ref :regex "sh-\\(foo\\|bar\\)") "\n")
+   (erw/noweb-ref-expand :regex "sh-\\(foo\\|bar\\)") "\n")
 #+end_src
 
 #+RESULTS:
@@ -382,12 +406,25 @@ whose values are non-nil."
 #+header: :results verbatim
 #+begin_src emacs-lisp
     (let* ((head "^json-")(list
-  (erw/noweb-expand-ref-collect :head head :ref-list '("foo" "bar"))))
+  (erw/noweb-ref-collect :head head :ref-list '("foo" "bar"))))
     (json-encode-array list))
 #+end_src
 
 #+RESULTS:
 : "[\"{ \\\"key\\\" : \\\"X\\\" }\",\"{ \\\"key\\\" : \\\"Y\\\" }\"]"
+
+#+begin_src emacs-lisp
+    (let* ((head "^json-"))
+      (erw/noweb-ref-encode :head head :ref-list '("foo" "bar") :parse-fn 'json-read-from-string :encode-fn 'json-encode-array))
+#+end_src
+
+#+RESULTS:
+: [{"key":"X"},{"key":"Y"}]
+
+#+begin_src emacs-lisp
+    (let* ((head "^json-"))
+      (erw/noweb-ref-encode :head head :ref-list '("foo" "bar") :key-list '("foo" "bar") :parse-fn 'json-read-from-string :encode-fn 'json-encode))
+#+end_src
 
 *** org
 **** element
@@ -946,13 +983,14 @@ then promote the rest of the subtree."
 
 
 #+begin_src emacs-lisp
-  (cl-defun my-func (source-file
-  		   &key
-         		   ((:directory directory-string))
-         		   ((:do-trash trash-bool)))    
-    "Interactively clone SOURCE-FILE to a uniquely named one."
-    (interactive "fEnter source file")
-    (message "debug: %s" source-file) )
+    (cl-defun my-func (source-file
+    		   &key
+           		   ((:directory directory-string))
+           		   ((:do-trash trash-bool)))    
+      "Interactively clone SOURCE-FILE to a uniquely named one."
+      (interactive "fEnter source file")
+      ;; (message "DEBUG: %s" source-file)
+      )
 #+end_src
 
 #+RESULTS:
