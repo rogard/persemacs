@@ -16,7 +16,8 @@ Emacs-org:
 
 * source
 ** org
-*** table
+*** test-cases
+**** tbl
 
 #+name: tbl-foo-bar-string
 | "foo" | "x" |
@@ -25,34 +26,27 @@ Emacs-org:
 #+name: tbl-foo-bar-dir
 | "foo" | "./foo" |
 | "bar" | "./bar" |
+*** TODO
+**** tangle
+:PROPERTIES:
+:created_on: <2025-05-22 Thu 20:10>
+:uname:    @elitebook
+:END:
+:LOGBOOK:
+- Note taken on [2025-05-22 Thu 20:11] \\
+  TARGET-FILE not seem reliable
+:END:
 
-*** src
-
-#+name: json-foo-bar
-#+begin_src json
-  { "key" : "X" }
-#+end_src
-
-#+RESULTS: json-foo-bar
-
-#+name: json-foo-qux
-#+begin_src json
-  { "key" : "Y" }
-#+end_src
-
-#+name: bar-qux
-#+header: :var value="qux"
-#+begin_src sh
-  echo "${value}"
+#+begin_src emacs-lisp
+  (org-babel-tangle &optional ARG TARGET-FILE LANG-RE)
 #+end_src
 
 ** el
-*** fs
+*** filesys
 **** unique-file
 ***** load
-****** code
 
-#+header: :noweb-ref el-fs
+#+header: :noweb-ref el-filesys
 #+begin_src emacs-lisp
   (load-file "../el/list.el")
 #+end_src
@@ -62,9 +56,7 @@ Emacs-org:
 :customize_bool: true
 :end:
 
-****** code
-
-#+header: :noweb-ref el-fs
+#+header: :noweb-ref el-filesys
 #+begin_src emacs-lisp
   (defconst erw/filesys-unique-directory (file-name-as-directory "~/unique") "Directory for storing unique files")
 #+end_src
@@ -73,9 +65,8 @@ Emacs-org:
 : erw/filesys-unique-directory
 
 ***** make
-****** code
 
-#+header: :noweb-ref el-fs
+#+header: :noweb-ref el-filesys
 #+begin_src emacs-lisp
   (cl-defun erw/filesys-unique-make
       (&key ((:ext ext-string))
@@ -90,8 +81,6 @@ Emacs-org:
 
 #+RESULTS:
 : erw/filesys-unique-make
-
-****** example
 
 #+header: :noweb-ref el-example
 #+begin_src emacs-lisp
@@ -116,9 +105,8 @@ Emacs-org:
 : /home/erwann/unique/GPmUqe.org
 
 ***** clone
-****** code
 
-#+header: :noweb-ref el-fs
+#+header: :noweb-ref el-filesys
 #+begin_src emacs-lisp
   (cl-defun erw/filesys-unique-clone
       (&key
@@ -148,7 +136,7 @@ Emacs-org:
 ***** interactive
 ****** code
 
-#+header: :noweb-ref el-fs
+#+header: :noweb-ref el-filesys
 #+begin_src emacs-lisp
   (cl-defun erw/filesys-unique-clone-interactive
       (source-file &key
@@ -172,8 +160,7 @@ Emacs-org:
 : erw/filesys-unique-clone-interactive
 
 *** function
-**** code
-
+**** compose
 #+header: :noweb-ref el-function
 #+begin_src emacs-lisp
   (defun erw/compose (arg &rest functions)
@@ -186,8 +173,6 @@ Emacs-org:
 #+RESULTS:
 : erw/compose
 
-**** example
-
 #+header: :noweb-ref el-example
 #+begin_src emacs-lisp
   (erw/compose 4 #'sqrt (lambda (x) (+ 1 x)))
@@ -197,20 +182,8 @@ Emacs-org:
 : 3.0
 
 *** json
-**** load
-****** code
-
-#+header: :noweb-ref el-json
-#+begin_src emacs-lisp
-  (let ((prefix "./") (ext ".el"))
-    (dolist (string '("shared" "string"))
-      (load-file (concat prefix string ext))))
-#+end_src
-
-#+RESULTS:
-
 **** safe
-****** code
+***** code
 
 #+header: :noweb-ref el-json
 #+begin_src emacs-lisp
@@ -238,7 +211,7 @@ Emacs-org:
 #+RESULTS:
 : erw/json--safe
 
-****** example
+***** example
 
 #+header: :noweb-ref el-example
 #+header: :results verbatim
@@ -270,7 +243,6 @@ Emacs-org:
 
 **** jq
 ***** file
-****** code
 
 #+header: :noweb-ref el-json
 #+begin_src emacs-lisp
@@ -278,14 +250,13 @@ Emacs-org:
   "Apply a jq FILTER to a JSON FILE and return the result."
   (let* ((parts (delq nil (list "jq" options (format "'%s'" filter) file)))
          (command (string-join parts " ")))
-    (erw/sh-check command)))
+    (shell-command-to-string command)))
 #+end_src
 
 #+RESULTS:
 : erw/jq-file
 
 ***** string
-****** code
 
 #+header: :noweb-ref el-json
 #+begin_src emacs-lisp
@@ -303,7 +274,6 @@ Emacs-org:
 #+RESULTS:
 : erw/jq-string
 
-****** example
 
 #+header: :noweb-ref el-example
 #+header: :results raw
@@ -329,8 +299,7 @@ Emacs-org:
 #+end_src
 
 *** list
-**** code
-
+**** plist-if
 #+header: :noweb-ref el-list
 #+begin_src emacs-lisp
   (cl-defun erw/plist-if (&rest keyval-list)
@@ -348,9 +317,6 @@ whose values are non-nil."
 #+RESULTS:
 : erw/plist-if
 
-**** example
-
-
 #+header: :results raw verbatim
 #+begin_src emacs-lisp
   (plist-get (erw/plist-if :foo "foo" :bar nil :qux "qux") :qux)
@@ -360,7 +326,6 @@ whose values are non-nil."
 "qux"
 
 *** noweb
-**** code
 
 #+header: :noweb-ref el-noweb
 #+begin_src emacs-lisp
@@ -402,16 +367,6 @@ whose values are non-nil."
 : foobar
 
 **** example
-
-#+header: :noweb-ref sh-foo
-#+begin_src sh
-  echo 'Hello, world!'
-#+end_src
-
-#+header: :noweb-ref sh-bar
-#+begin_src sh
-  echo 'Hello, universe!'
-#+end_src
 
 #+header: :noweb yes
 #+header: :results verbatim
@@ -661,37 +616,7 @@ then promote the rest of the subtree."
 #+RESULTS:
 : erw/org-property-parent-id
 
-*** shell
-**** code
-
-#+header: :noweb-ref el-shell
-#+begin_src emacs-lisp
-  (defun erw/sh-check (command &optional re)
-    "Issues a warning if the shell does not match RE; then executes shell COMMAND."
-    (let ((re (or re "bash$")))
-      (unless (string-match-p re (format "%s" shell-file-name))
-        (warn "Warning: expecting shell to match %s; got %s" re shell-file-name))
-      (shell-command-to-string command)))
-#+end_src
-
-#+RESULTS:
-: erw/sh-check
-
-**** example
-
-#+header: :noweb-ref el-example
-#+header: :results code
-#+begin_src emacs-lisp
-  (erw/sh-check "echo \"foo\"" "fish$")
-#+end_src
-
-#+RESULTS:
-#+begin_src emacs-lisp
-"foo\n"
-#+end_src
-
 *** src-block
-**** code
 
 #+header: :noweb-ref el-beta
 #+begin_src emacs-lisp
@@ -706,8 +631,6 @@ then promote the rest of the subtree."
 
 #+RESULTS:
 : erw/src-block-info
-
-**** example
 
 #+header :noweb-ref el-example
 #+begin_src emacs-lisp
@@ -829,7 +752,74 @@ then promote the rest of the subtree."
 #+RESULTS:
 : y
 
+** sh
+*** test-cases
+
+#+header: :noweb-ref sh-foo
+#+begin_src sh
+  echo 'Hello, world!'
+#+end_src
+
+#+header: :noweb-ref sh-bar
+#+begin_src sh
+  echo 'Hello, universe!'
+#+end_src
+
+#+name: bar-qux
+#+header: :var value="qux"
+#+begin_src sh
+  echo "${value}"
+#+end_src
+
+** json
+*** test-cases
+
+#+name: json-foo-bar
+#+begin_src json
+  { "key" : "X" }
+#+end_src
+
+#+RESULTS: json-foo-bar
+
+#+name: json-foo-qux
+#+begin_src json
+  { "key" : "Y" }
+#+end_src
+
 * tangle
+** filesys
+:PROPERTIES:
+:header-args: :tangle ../el/filesys.el
+:END:
+
+#+header: :noweb yes
+#+begin_src emacs-lisp
+  <<el-license>>
+  <<el-filesys>>
+#+end_src
+
+** json
+:PROPERTIES:
+:header-args: :tangle "../el/json.el"
+:END:
+
+#+header: :noweb yes
+#+begin_src emacs-lisp
+  <<el-license>>
+  <<el-json>>
+#+end_src
+
+** list
+:PROPERTIES:
+:header-args: :tangle ../el/list.el
+:END:
+
+#+header: :noweb yes
+#+begin_src emacs-lisp
+  <<el-license>>
+  <<el-list>>
+#+end_src
+
 ** noweb
 :PROPERTIES:
 :header-args: :tangle "../el/noweb.el"
@@ -854,50 +844,6 @@ then promote the rest of the subtree."
 
 #+RESULTS:
 : erw/noweb-concat
-
-** string
-:PROPERTIES:
-:header-args: :tangle ./string.el
-:END:
-
-#+header: :noweb yes
-#+begin_src emacs-lisp
-  <<el-license>>
-  <<el-string>>
-#+end_src
-
-** shell
-:PROPERTIES:
-:header-args: :tangle ./shell.el
-:END:
-
-#+header: :noweb yes
-#+begin_src emacs-lisp
-  <<el-license>>
-  <<el-shell>>
-#+end_src
-
-** fs
-:PROPERTIES:
-:header-args: :tangle ../el/fs.el
-:END:
-
-#+header: :noweb yes
-#+begin_src emacs-lisp
-  <<el-license>>
-  <<el-fs>>
-#+end_src
-
-** list
-:PROPERTIES:
-:header-args: :tangle ../el/list.el
-:END:
-
-#+header: :noweb yes
-#+begin_src emacs-lisp
-  <<el-license>>
-  <<el-list>>
-#+end_src
 
 * scratch
 
@@ -1022,6 +968,35 @@ then promote the rest of the subtree."
 : /home/erwann/unique/xxYG8M.org
 
 * trash
+** shell
+*** code
+
+#+header: :noweb-ref el-shell
+#+begin_src emacs-lisp
+  (defun erw/sh-check (command &optional re)
+    "Issues a warning if the shell does not match RE; then executes shell COMMAND."
+    (let ((re (or re "bash$")))
+      (unless (string-match-p re (format "%s" shell-file-name))
+        (warn "Warning: expecting shell to match %s; got %s" re shell-file-name))
+      (shell-command-to-string command)))
+#+end_src
+
+#+RESULTS:
+: erw/sh-check
+
+*** example
+
+#+header: :noweb-ref el-example
+#+header: :results code
+#+begin_src emacs-lisp
+  (erw/sh-check "echo \"foo\"" "fish$")
+#+end_src
+
+#+RESULTS:
+#+begin_src emacs-lisp
+"foo\n"
+#+end_src
+
 ** string
 *** wrap-single-quotes
 **** code
@@ -1077,7 +1052,7 @@ then promote the rest of the subtree."
 #+RESULTS:
 : foo, , qux
 
-** noweb
+** old-noweb
 
 
 #+begin_src emacs-lisp
