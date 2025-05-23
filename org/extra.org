@@ -1,4 +1,4 @@
-+title persemacs-extra
+#+title persemacs-extra
 #+author: Erwann Rogard
 #+property: header-args :tangle no
 
@@ -249,8 +249,8 @@ Emacs-org:
   (cl-defun erw/jq-file (&key filter file options)
     "Apply a jq FILTER to a JSON FILE and return the result."
     (let* ((parts (delq nil (append (list "jq") options (list (format "'%s'" filter) file)))) (command (string-join parts " ")))
-    (message "DEBUG: parts: %s" parts)
-    (message "DEBUG: command: %s" command)
+;;    (message "DEBUG: parts: %s" parts)
+;;    (message "DEBUG: command: %s" command)
     (shell-command-to-string command)))
 #+end_src
 
@@ -277,7 +277,7 @@ Emacs-org:
 
 #+header: :noweb-ref el-example
 #+header: :results raw
-#+header: :var json-object=(org-babel-ref-resolve "json-foo-bar")
+#+header: :var json-object=(org-babel-ref-resolve "json-foo")
 #+header: :wrap src json
 #+begin_src emacs-lisp  
   (erw/jq-string :filter "." :string json-object :options '("-c"))
@@ -287,7 +287,6 @@ Emacs-org:
 #+begin_src json
 {"key":"X"}
 #+end_src
-
 
 *** license
 
@@ -373,7 +372,7 @@ whose values are non-nil."
 #+header: :results verbatim
 #+begin_src emacs-lisp
   (string-join
-   (erw/noweb-expand-ref :regex "sh-foo\\|bar") "\n")
+   (erw/noweb-expand-ref :regex "sh-\\(foo\\|bar\\)") "\n")
 #+end_src
 
 #+RESULTS:
@@ -382,13 +381,13 @@ whose values are non-nil."
 
 #+header: :results verbatim
 #+begin_src emacs-lisp
-    (string-join
-     (erw/noweb-expand-ref-collect :head "sh-" :ref-list '("foo" "bar")) "\n")
+    (let* ((head "^json-")(list
+  (erw/noweb-expand-ref-collect :head head :ref-list '("foo" "bar"))))
+    (json-encode-array list))
 #+end_src
 
 #+RESULTS:
-: "echo 'Hello, world!'
-: echo 'Hello, universe!'"
+: "[\"{ \\\"key\\\" : \\\"X\\\" }\",\"{ \\\"key\\\" : \\\"Y\\\" }\"]"
 
 *** org
 **** element
@@ -775,14 +774,12 @@ then promote the rest of the subtree."
 ** json
 *** test-cases
 
-#+name: json-foo-bar
+#+header: :noweb-ref json-foo
 #+begin_src json
   { "key" : "X" }
 #+end_src
 
-#+RESULTS: json-foo-bar
-
-#+name: json-foo-qux
+#+header: :noweb-ref json-bar
 #+begin_src json
   { "key" : "Y" }
 #+end_src
@@ -1024,88 +1021,4 @@ then promote the rest of the subtree."
 #+RESULTS:
 : before: /home/erwann/.emacs.d/routinel.org
 : after: '/home/erwann/.emacs.d/routinel.org'
-
-*** join
-**** code
-
-#+begin_src emacs-lisp
-  (defun erw/string-join (&optional separator &rest strings)
-    "Join STRINGS with an optional SEPARATOR, defaulting to space. Skip nil values."
-    (mapconcat #'identity (delq nil strings) (or separator " ")))
-#+end_src
-
-#+RESULTS:
-: erw/string-join
-
-**** example
-
-#+begin_src emacs-lisp
-  (erw/string-join ", " "foo" nil "qux")
-#+end_src
-
-#+RESULTS:
-: foo, qux
-
-#+begin_src emacs-lisp
-(string-join (delq nil '("foo" nil "qux")) ", ")
-#+end_src
-
-#+RESULTS:
-: foo, , qux
-
-** old-noweb
-
-
-#+begin_src emacs-lisp
-  (defun erw/noweb-expand (name)
-    "Expands block NAME"
-    (let* ((block (org-babel-find-named-block name))
-  	 (info (when block
-  		 (save-excursion
-                     (goto-char block)
-                     (org-babel-get-src-block-info t)))))
-      (when info
-        (org-babel-expand-noweb-references info))))
-#+end_src
-
-#+RESULTS:
-: erw/noweb-expand
-
-
-#+begin_src emacs-lisp
-  (defun __erw/noweb-concat-rest (separator &optional fn &rest names)
-    "Implementation for REST"
-    (let ((fn (or fn #'identity)))
-      (mapconcat (lambda (name) (funcall fn (erw/noweb-expand name))) names separator)))
-  (defun __erw/noweb-concat-list (separator &optional fn names)
-    "Implementation for LIST"
-    (apply #'__erw/noweb-concat-rest separator fn names))
-  (defun erw/noweb-concat (separator &optional fn &rest names)
-    "Expand, pass to a function, and concatenate blocks using SEPARATOR, FN, and NAMES.
-  Dispatches based on whether NAMES is a list or individual arguments."
-    (when names
-      (if (and (listp (car names)) (null (cdr names))) ;; Single list argument case
-          (__erw/noweb-concat-list separator fn (car names))
-        (apply #'__erw/noweb-concat-rest separator fn names))))
-#+end_src
-
-#+RESULTS:
-: erw/noweb-concat
-
-#+header: :noweb-ref el-example
-#+begin_src emacs-lisp
-  (erw/noweb-concat ", " (lambda (ex) (format "<%s>" ex)) "json-foo-bar" "json-foo-qux")
-#+end_src
-
-#+RESULTS:
-: <{ "key" : "X" }>, <{ "key" : "Y" }>
-
-#+header: :noweb-ref el-example
-#+begin_src emacs-lisp
-  (erw/noweb-concat ", " (lambda (ex) (format "<%s>" ex)) '("json-foo-bar" "json-foo-qux"))
-#+end_src
-
-#+RESULTS:
-: <{ "key" : "value" }>, <{ "key" : "Y" }>
-
 
