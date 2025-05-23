@@ -246,10 +246,11 @@ Emacs-org:
 
 #+header: :noweb-ref el-json
 #+begin_src emacs-lisp
-(cl-defun erw/jq-file (&key filter file options)
-  "Apply a jq FILTER to a JSON FILE and return the result."
-  (let* ((parts (delq nil (list "jq" options (format "'%s'" filter) file)))
-         (command (string-join parts " ")))
+  (cl-defun erw/jq-file (&key filter file options)
+    "Apply a jq FILTER to a JSON FILE and return the result."
+    (let* ((parts (delq nil (append (list "jq") options (list (format "'%s'" filter) file)))) (command (string-join parts " ")))
+    (message "DEBUG: parts: %s" parts)
+    (message "DEBUG: command: %s" command)
     (shell-command-to-string command)))
 #+end_src
 
@@ -260,13 +261,13 @@ Emacs-org:
 
 #+header: :noweb-ref el-json
 #+begin_src emacs-lisp
-  (defun erw/jq-string (filter string &optional options)
+  (cl-defun erw/jq-string (&key filter string options)
     "Apply a jq filter to a JSON string and return the result."
     (let* ((temp-file (make-temp-file nil nil ".json"))
            (result (progn
                      (with-temp-file temp-file
                        (insert string))
-                     (erw/jq-file filter temp-file options))))
+                     (erw/jq-file :filter filter :file temp-file :options options))))
       (delete-file temp-file)
       (format "%s" result)))
 #+end_src
@@ -274,19 +275,19 @@ Emacs-org:
 #+RESULTS:
 : erw/jq-string
 
-
 #+header: :noweb-ref el-example
 #+header: :results raw
 #+header: :var json-object=(org-babel-ref-resolve "json-foo-bar")
 #+header: :wrap src json
 #+begin_src emacs-lisp  
-  (erw/jq-string "." json-object "-c")
+  (erw/jq-string :filter "." :string json-object :options '("-c"))
 #+end_src
 
 #+RESULTS:
 #+begin_src json
 {"key":"X"}
 #+end_src
+
 
 *** license
 
