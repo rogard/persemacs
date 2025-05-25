@@ -572,14 +572,19 @@ whose values are non-nil."
 
 ***** subtree
 ****** paste
-******* code
 
 #+header: :noweb-ref el-org
 #+begin_src emacs-lisp
-  (defun erw/org-subtree-paste (target-file target-pos &optional level-fn)
-    "Pastes the subtree in the clipboard into TARGET."
-    (let ((level-fn (or level-fn (lambda (level) (+ level 1))))
-          level)
+  (cl-defun erw/org-subtree-paste
+      (&key (target-file (buffer-file-name))
+            (target-pos (point))
+            (level-fn (lambda (level) (+ level 1))))
+    "Paste into TARGET, the subtree in the clipboard.
+  The level is set by LEVEL-FN; by default = point level +1"
+    (interactive)
+    (unless (org-kill-is-subtree-p)
+      (user-error "Clipboard does not contain a valid Org subtree"))
+    (let (level)
       (with-current-buffer (find-file-noselect target-file)
         (goto-char target-pos)
         (setq level (funcall level-fn (org-current-level)))
@@ -590,17 +595,6 @@ whose values are non-nil."
 
 #+RESULTS:
 : erw/org-subtree--paste
-
-#+header: :noweb-ref el-org
-#+begin_src emacs-lisp
-  (defun erw/org-subtree-paste-interactive ()
-    "Paste the subtree from the clipboard into the current buffer at point."
-    (interactive)
-    (erw/org-subtree-paste (buffer-file-name) (point)))
-#+end_src
-
-#+RESULTS:
-: erw/org-subtree-paste
 
 ****** promote
 ******* code
@@ -1146,6 +1140,18 @@ then promote the rest of the subtree."
 : /home/erwann/unique/xxYG8M.org
 
 * trash
+** org
+
+#+begin_src emacs-lisp
+  (defun erw/org-subtree-paste-interactive ()
+    "Forwards to `erw/org-subtree-paste` at point"
+    (interactive)
+    (erw/org-subtree-paste (buffer-file-name) (point)))
+#+end_src
+
+#+RESULTS:
+: erw/org-subtree-paste
+
 ** shell
 *** code
 
