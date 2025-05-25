@@ -21,7 +21,7 @@ This Emacs Org file contains meta-code for an Emacs configuration.
 ,* %^{heading}
 :PROPERTIES:
 :created_on: %^T
-:uname:    %(eval erw/config-owner)
+:uname:    %(eval rogard/config-owner)
 :END:
 #+end_src
 ** el
@@ -45,30 +45,30 @@ This Emacs Org file contains meta-code for an Emacs configuration.
 **** owner
 
 #+begin_src emacs-lisp
-  (defconst erw/config-owner (concat (getenv "OWNER") "@" (system-name)))
+  (defconst rogard/config-owner (concat (getenv "OWNER") "@" (system-name)))
 #+end_src
 
 **** trash-directory
 
 #+begin_src emacs-lisp
-  (defconst erw/trash-directory "/home/erwann/.local/share/Trash" "Trash directory")
+  (defconst rogard/trash-directory "/home/erwann/.local/share/Trash" "Trash directory")
 #+end_src
 
 **** capture
 
 #+begin_src emacs-lisp
-  (defconst erw/config-capture-target "/home/erwann/src/org/capture.org" "capture target location")
+  (defconst rogard/config-capture-target "/home/erwann/src/org/capture.org" "capture target location")
 #+end_src
 
 #+begin_src emacs-lisp
-  (defconst erw/config-capture-template "/home/erwann/src/txt/capture_core_tpl" "capture template location")
+  (defconst rogard/config-capture-template "/home/erwann/src/txt/capture_core_tpl" "capture template location")
 #+end_src
 
 **** agenda-files
 
 #+begin_src emacs-lisp
-  (defconst erw/config-agenda-files 
-    (list erw/config-capture-target) 
+  (defconst rogard/config-agenda-files 
+    (list rogard/config-capture-target) 
     "agenda files")
 #+end_src
 
@@ -274,7 +274,7 @@ TODO:
     (setq confirm-kill-processes nil
           create-lockfiles nil ; don't create .# files (crashes 'npm start')
           make-backup-files nil
-  	trash-directory erw/trash-directory))
+  	trash-directory rogard/trash-directory))
 #+end_src
 
 **** flymake
@@ -400,9 +400,9 @@ Resource:
     (org-log-into-drawer t)
     (org-capture-templates
      `(("c" "Core" entry
-        (file+headline ,erw/config-capture-target "Capture")
-        (file ,erw/config-capture-template))))
-    (org-agenda-files (symbol-value 'erw/config-agenda-files))
+        (file+headline ,rogard/config-capture-target "Capture")
+        (file ,rogard/config-capture-template))))
+    (org-agenda-files (symbol-value 'rogard/config-agenda-files))
     (org-fold-core-style 'overlays) ;; https://lists.nongnu.org/archive/html/emacs-orgmode/2024-04/msg00497.html
     (tex-fontify-script nil)
     )

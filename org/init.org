@@ -39,23 +39,23 @@ This is meta-code for generating Emacs initialization file and ensuring it is lo
 
 #+header: :noweb-ref el-meta
 #+begin_src emacs-lisp
-  (defvar erw/init-parameter-list nil "Initialization customization (KEY . (VALUE .DESCRIPTION))")
+  (defvar rogard/init-parameter-list nil "Initialization customization (KEY . (VALUE .DESCRIPTION))")
 #+end_src
 
 **** macro
 
 #+header: :noweb-ref el-meta
 #+begin_src emacs-lisp
-  (defmacro erw/init-parameter-add (key value string)
-    "Add a key-value-string to the `erw/init-parameter-list`."
-    `(push (cons ,key (cons ,value ,string)) erw/init-parameter-list))
+  (defmacro rogard/init-parameter-add (key value string)
+    "Add a key-value-string to the `rogard/init-parameter-list`."
+    `(push (cons ,key (cons ,value ,string)) rogard/init-parameter-list))
 #+end_src
 
 #+header: :noweb-ref el-meta
 #+begin_src emacs-lisp
-  (defun erw/init-parameter-value (key)
-    "Retrieve the value associated with KEY from `erw/init-parameter-list`."
-    (car (cdr (assoc key erw/init-parameter-list))))
+  (defun rogard/init-parameter-value (key)
+    "Retrieve the value associated with KEY from `rogard/init-parameter-list`."
+    (car (cdr (assoc key rogard/init-parameter-list))))
 #+end_src
 
 **** add
@@ -66,12 +66,12 @@ This is meta-code for generating Emacs initialization file and ensuring it is lo
 
 #+header: :noweb-ref el-meta
 #+begin_src emacs-lisp
-  (erw/init-parameter-add  "init-vc-el" "../el/init.el" "Emacs initialization file (under version control)")
+  (rogard/init-parameter-add  "init-vc-el" "../el/init.el" "Emacs initialization file (under version control)")
 #+end_src
 
 #+header: :noweb-ref el-meta
 #+begin_src emacs-lisp
-  (erw/init-parameter-add  "init-startup"
+  (rogard/init-parameter-add  "init-startup"
   			 ;; guard necessary when testing =el-meta=)
   			 (or user-init-file "~/.emacs")
   			 "Emacs initialization file (loaded at startup)")
@@ -79,12 +79,12 @@ This is meta-code for generating Emacs initialization file and ensuring it is lo
 
 #+header: :noweb-ref el-meta
 #+begin_src emacs-lisp
-  (erw/init-parameter-add  "link-sh" "../sh/link.sh" "Ensures Emacs loads the initialization file")
+  (rogard/init-parameter-add  "link-sh" "../sh/link.sh" "Ensures Emacs loads the initialization file")
 #+end_src
 
 #+header: :noweb-ref el-meta
 #+begin_src emacs-lisp
-  (erw/init-parameter-add
+  (rogard/init-parameter-add
    "delegate-org"
    '((:file "../org/config.org" :lang "emacs-lisp"))
    "List of Org files to delegate to: each is a plist with `:file` (path relative to `init.el`) and `:lang` (the source block language).")
@@ -251,7 +251,7 @@ Over this block, do:
   <<el-meta>>
   (let (result)
     (dolist (key '("init-vc-el" "init-startup" "link-sh"))
-      (push (expand-file-name (erw/init-parameter-value key))
+      (push (expand-file-name (rogard/init-parameter-value key))
             result))
     result)
 #+end_src
@@ -262,7 +262,7 @@ Over this block, do:
 Check:
 - ~M-x ctrl-c-ctrl-c~
 #+begin_src emacs-lisp
-  (erw/init-parameter-value "delegate-org")
+  (rogard/init-parameter-value "delegate-org")
 #+end_src
 
 #+RESULTS:
@@ -270,7 +270,7 @@ Check:
 
 *** tangle
 :PROPERTIES:
-:header-args: :tangle (expand-file-name (erw/init-parameter-value "init-vc-el"))
+:header-args: :tangle (expand-file-name (rogard/init-parameter-value "init-vc-el"))
 :END:
 
 Execute:
@@ -293,7 +293,7 @@ Execute:
 #+end_src
 
 #+header: :noweb yes
-#+header: :var meta-module-list=(erw/init-parameter-value "delegate-org")
+#+header: :var meta-module-list=(rogard/init-parameter-value "delegate-org")
 #+begin_src emacs-lisp 
   <<el-eval-and-compile>>
 #+end_src
@@ -335,9 +335,9 @@ Execute:
 #+end_src
 
 #+header: :noweb yes
-#+header: :tangle (expand-file-name (erw/init-parameter-value "link-sh"))
-#+header: :var meta_vc_el=(expand-file-name (erw/init-parameter-value "init-vc-el"))
-#+header: :var meta_startup=(expand-file-name (erw/init-parameter-value "init-startup"))
+#+header: :tangle (expand-file-name (rogard/init-parameter-value "link-sh"))
+#+header: :var meta_vc_el=(expand-file-name (rogard/init-parameter-value "init-vc-el"))
+#+header: :var meta_startup=(expand-file-name (rogard/init-parameter-value "init-startup"))
 #+begin_src sh
   <<sh-startup>>
 #+end_src
@@ -347,7 +347,7 @@ Execute:
 Execute:
 - This [[#exec-el-meta][headline]]'s steps
 - ~M-x ctrl-c-ctrl-c~
-#+header: :var link_sh=(expand-file-name (erw/init-parameter-value "link-sh"))
+#+header: :var link_sh=(expand-file-name (rogard/init-parameter-value "link-sh"))
 #+begin_src sh
   chmod +x "${link_sh}"
   source "${link_sh}"
