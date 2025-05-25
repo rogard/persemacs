@@ -70,19 +70,19 @@ Emacs-org:
 
 #+header: :noweb-ref el-filesys
 #+begin_src emacs-lisp
-  (defconst rogard/filesys-unique-directory (file-name-as-directory "~/unique") "Directory for storing unique files")
+  (defconst er317/filesys-unique-directory (file-name-as-directory "~/unique") "Directory for storing unique files")
 #+end_src
 
 #+RESULTS:
-: rogard/filesys-unique-directory
+: er317/filesys-unique-directory
 
 ****** make
 
 #+header: :noweb-ref el-filesys
 #+begin_src emacs-lisp
-  (cl-defun rogard/filesys-unique-make
+  (cl-defun er317/filesys-unique-make
       (&key ((:ext ext-string))
-            ((:directory directory-string) rogard/filesys-unique-directory)
+            ((:directory directory-string) er317/filesys-unique-directory)
             ((:only-name only-name-bool)))
     "Create a uniquely named file in the given directory"
     (let* ((prefix (file-name-as-directory directory-string))
@@ -92,14 +92,14 @@ Emacs-org:
 #+end_src
 
 #+RESULTS:
-: rogard/filesys-unique-make
+: er317/filesys-unique-make
 
 #+header: :noweb-ref el-example
 #+begin_src emacs-lisp
   (let* ((directory-string nil)
     (args (append (list :ext "org" :only-name t)
                   (when directory-string (list :directory directory-string)))))
-    (apply #'rogard/filesys-unique-make args))
+    (apply #'er317/filesys-unique-make args))
 #+end_src
 
 #+RESULTS:
@@ -110,7 +110,7 @@ Emacs-org:
   (let* ((directory-string "~/unique")
     (args (append (list :ext "org" :only-name t)
                   (when directory-string (list :directory directory-string)))))
-    (apply #'rogard/filesys-unique-make args))
+    (apply #'er317/filesys-unique-make args))
 #+end_src
 
 #+RESULTS:
@@ -120,7 +120,7 @@ Emacs-org:
 
 #+header: :noweb-ref el-filesys
 #+begin_src emacs-lisp
-  (cl-defun rogard/filesys-unique-clone
+  (cl-defun er317/filesys-unique-clone
       (&key
        ((:source source-file))
        ((:directory directory-string))
@@ -129,8 +129,8 @@ Emacs-org:
          If DO-TRASH is non-nil, move the source file to trash.
          Returns the target-file."
     (let ((target-file
-  	 (let ((args (rogard/plist-if :ext (file-name-extension source-file) :only-name nil :directory directory-string)))
-    	   (apply #'rogard/filesys-unique-make args))))
+  	 (let ((args (er317/plist-if :ext (file-name-extension source-file) :only-name nil :directory directory-string)))
+    	   (apply #'er317/filesys-unique-make args))))
       (with-temp-buffer
         (insert-file-contents source-file)
         (write-region (point-min) (point-max) target-file))
@@ -143,14 +143,14 @@ Emacs-org:
 #+end_src
 
 #+RESULTS:
-: rogard/filesys-unique-clone
+: er317/filesys-unique-clone
 
 ****** interactive
 ******* code
 
 #+header: :noweb-ref el-filesys
 #+begin_src emacs-lisp
-  (cl-defun rogard/filesys-unique-clone-interactive
+  (cl-defun er317/filesys-unique-clone-interactive
       (source-file &key
                    ((:directory directory-string))
                    ((:do-trash trash-bool)))
@@ -162,21 +162,21 @@ Emacs-org:
                  (file-equal-p source-file (buffer-file-name buf)))
         (warn "About to clone the file opened in buffer: %s" (buffer-name buf))))
     ;; Prepare arguments and call the cloning function
-    (let ((plist (rogard/plist-if :source source-file :directory directory-string :do-trash trash-bool)))
-      (let ((target-file (apply #'rogard/filesys-unique-clone plist)))
+    (let ((plist (er317/plist-if :source source-file :directory directory-string :do-trash trash-bool)))
+      (let ((target-file (apply #'er317/filesys-unique-clone plist)))
       (kill-new target-file)
       (message "Cloned %s to: %s (path copied to clipboard)" source-file target-file))))
 #+end_src
 
 #+RESULTS:
-: rogard/filesys-unique-clone-interactive
+: er317/filesys-unique-clone-interactive
 
 *** function
 **** module
 ***** compose
 #+header: :noweb-ref el-function
 #+begin_src emacs-lisp
-  (defun rogard/compose (arg &rest functions)
+  (defun er317/compose (arg &rest functions)
     "Apply a sequence of FUNCTIONS to ARG in composition order."
     (cl-reduce (lambda (acc fn) (funcall fn acc))
                (reverse functions)
@@ -184,11 +184,11 @@ Emacs-org:
 #+end_src
 
 #+RESULTS:
-: rogard/compose
+: er317/compose
 
 #+header: :noweb-ref el-example
 #+begin_src emacs-lisp
-  (rogard/compose 4 #'sqrt (lambda (x) (+ 1 x)))
+  (er317/compose 4 #'sqrt (lambda (x) (+ 1 x)))
 #+end_src
 
 #+RESULTS:
@@ -202,12 +202,12 @@ Emacs-org:
 :END:
 :LOGBOOK:
 - Note taken on [2025-05-23 Fri 11:51] \\
-  rogard/json-safe to be trashed? Seems like json-* functions could do that.
+  er317/json-safe to be trashed? Seems like json-* functions could do that.
 :END:
 
 #+begin_src markdown
 ```elisp
-(rogard/json--safe "{ \"key\": \"foo\tbar\" }" '("\t" . "\\\\t"))
+(er317/json--safe "{ \"key\": \"foo\tbar\" }" '("\t" . "\\\\t"))
 ````
 
 You’re asking: **Isn't this kind of escaping already handled by `json-encode` or similar built-in functions in Emacs?**
@@ -228,7 +228,7 @@ Your function is processing a **raw JSON string**, not a Lisp structure.
 So:
 
 ```elisp
-(rogard/json-safe "{ \"key\": \"foo\tbar\" }")
+(er317/json-safe "{ \"key\": \"foo\tbar\" }")
 ```
 
 …takes in a JSON **string**, not a Lisp object like:
@@ -243,13 +243,13 @@ In the latter case, `json-encode` will automatically output:
 {"key":"foo\\tbar"}
 ```
 
-No need for `rogard/json--safe`.
+No need for `er317/json--safe`.
 
 ---
 
 ### 🧠 So Why Might You Still Need Your Own Preprocessing?
 
-Use your `rogard/json-safe` / `rogard/json--safe` when:
+Use your `er317/json-safe` / `er317/json--safe` when:
 
 ,* You get JSON **as a string from elsewhere** (not Lisp).
 ,* You want to **clean, fix, or normalize** it before parsing or writing.
@@ -283,17 +283,17 @@ Let me know if you want to expand your safe-replacements to cover more JSON trou
 
 #+header: :noweb-ref el-json
 #+begin_src emacs-lisp
-  (defconst rogard/json-safe-alist
+  (defconst er317/json-safe-alist
     '(("\t" . "\\\\t"))
     "An association list of (REGEXP . REPLACEMENT) pairs to make strings JSON-safe.")
 #+end_src
 
 #+RESULTS:
-: rogard/json-safe-alist
+: er317/json-safe-alist
 
 #+header: :noweb-ref el-json
 #+begin_src emacs-lisp
-  (defun rogard/json--safe (string &rest re-rep)
+  (defun er317/json--safe (string &rest re-rep)
     "Make a STRING JSON-safe by replacing REGEXP-REPLACEMENT pairs in RE-REP"
     (if (null re-rep)
         string
@@ -301,17 +301,17 @@ Let me know if you want to expand your safe-replacements to cover more JSON trou
              (re (car pair))
              (rep (cdr pair))
              (result (replace-regexp-in-string re rep string)))
-        (apply 'rogard/json--safe result (cdr re-rep)))))
+        (apply 'er317/json--safe result (cdr re-rep)))))
 #+end_src
 
 #+RESULTS:
-: rogard/json--safe
+: er317/json--safe
 
 
 #+header: :noweb-ref el-example
 #+header: :results verbatim
 #+begin_src emacs-lisp
-  (rogard/json--safe "{ \"key\": \"foo	bar\" }" '("\t" . "\\\\t"))
+  (er317/json--safe "{ \"key\": \"foo	bar\" }" '("\t" . "\\\\t"))
 #+end_src
 
 #+RESULTS:
@@ -319,18 +319,18 @@ Let me know if you want to expand your safe-replacements to cover more JSON trou
 
 #+header: :noweb-ref el-json
 #+begin_src emacs-lisp
-  (defun rogard/json-safe (string)
+  (defun er317/json-safe (string)
     "Recursively apply REGEXP-REPLACEMENT pairs in RE-REP to STRING."
-    (apply 'rogard/json--safe string rogard/json-safe-alist))
+    (apply 'er317/json--safe string er317/json-safe-alist))
 #+end_src
 
 #+RESULTS:
-: rogard/json-safe
+: er317/json-safe
 
 #+header: :noweb-ref el-example
 #+header: :results verbatim
 #+begin_src emacs-lisp
-  (rogard/json-safe "{ \"key\": \"foo	bar\" }")
+  (er317/json-safe "{ \"key\": \"foo	bar\" }")
 #+end_src
 
 #+RESULTS:
@@ -342,7 +342,7 @@ Let me know if you want to expand your safe-replacements to cover more JSON trou
 
 #+header: :noweb-ref el-shell
 #+begin_src emacs-lisp
-  (cl-defun rogard/jq-file (&key filter file options)
+  (cl-defun er317/jq-file (&key filter file options)
     "Apply a jq FILTER to a JSON FILE and return the result."
     (let* ((parts (delq nil (append (list "jq") options (list (format "'%s'" filter) file)))) (command (string-join parts " ")))
 ;;    (message "DEBUG: parts: %s" parts)
@@ -351,32 +351,32 @@ Let me know if you want to expand your safe-replacements to cover more JSON trou
 #+end_src
 
 #+RESULTS:
-: rogard/jq-file
+: er317/jq-file
 
 ***** string
 
 #+header: :noweb-ref el-json
 #+begin_src emacs-lisp
-  (cl-defun rogard/jq-string (&key filter string options)
+  (cl-defun er317/jq-string (&key filter string options)
     "Apply a jq filter to a JSON string and return the result."
     (let* ((temp-file (make-temp-file nil nil ".json"))
            (result (progn
                      (with-temp-file temp-file
                        (insert string))
-                     (rogard/jq-file :filter filter :file temp-file :options options))))
+                     (er317/jq-file :filter filter :file temp-file :options options))))
       (delete-file temp-file)
       (format "%s" result)))
 #+end_src
 
 #+RESULTS:
-: rogard/jq-string
+: er317/jq-string
 
 #+header: :noweb-ref el-example
 #+header: :results raw
 #+header: :var json-object=(org-babel-ref-resolve "json-foo")
 #+header: :wrap src json
 #+begin_src emacs-lisp  
-  (rogard/jq-string :filter "." :string json-object :options '("-c"))
+  (er317/jq-string :filter "." :string json-object :options '("-c"))
 #+end_src
 
 #+RESULTS:
@@ -389,7 +389,7 @@ Let me know if you want to expand your safe-replacements to cover more JSON trou
 ***** plist-if
 #+header: :noweb-ref el-list
 #+begin_src emacs-lisp
-  (cl-defun rogard/plist-if (&rest keyval-list)
+  (cl-defun er317/plist-if (&rest keyval-list)
     "Return a plist containing only the key-value pairs from KEYVAL-LIST
 whose values are non-nil."
     (let ((result nil))
@@ -402,11 +402,11 @@ whose values are non-nil."
 #+end_src
 
 #+RESULTS:
-: rogard/plist-if
+: er317/plist-if
 
 #+header: :results raw verbatim
 #+begin_src emacs-lisp
-  (plist-get (rogard/plist-if :foo "foo" :bar nil :qux "qux") :qux)
+  (plist-get (er317/plist-if :foo "foo" :bar nil :qux "qux") :qux)
 #+end_src
 
 #+RESULTS:
@@ -428,7 +428,7 @@ whose values are non-nil."
 
 #+header: :noweb-ref el-noweb
 #+begin_src emacs-lisp
-  (cl-defun rogard/noweb-ref-expand (&key regex)
+  (cl-defun er317/noweb-ref-expand (&key regex)
     "Expands all source blocks whose :noweb-ref matches REGEX and returns their expanded contents, joined by SEP."
     (let ((results '()))
       (org-element-map (org-element-parse-buffer) 'src-block
@@ -447,22 +447,22 @@ whose values are non-nil."
 #+end_src
 
 #+RESULTS:
-: rogard/noweb-ref-expand
+: er317/noweb-ref-expand
 
 ***** collect
 
 #+header: :noweb-ref el-noweb
 #+begin_src emacs-lisp
-  (cl-defun rogard/noweb-ref-collect (&key head ref-list tail)
-    "Builds a regex from REF-LIST with optional HEAD and TAIL anchors, then forwards to `rogard/noweb-ref-expand`."
+  (cl-defun er317/noweb-ref-collect (&key head ref-list tail)
+    "Builds a regex from REF-LIST with optional HEAD and TAIL anchors, then forwards to `er317/noweb-ref-expand`."
     (let* ((regex-body (mapconcat #'identity ref-list "\\|"))
            (regex (concat (or head "") "\\(" regex-body "\\)" (or tail "")))
            (args `(:regex ,regex)))
-      (apply #'rogard/noweb-ref-expand args)))
+      (apply #'er317/noweb-ref-expand args)))
 #+end_src
 
 #+RESULTS:
-: rogard/noweb-ref-collect
+: er317/noweb-ref-collect
 
 #+RESULTS:
 : foobar
@@ -471,13 +471,13 @@ whose values are non-nil."
 
 #+header: :noweb-ref el-noweb
 #+begin_src emacs-lisp
-  (cl-defun rogard/noweb-ref-encode
+  (cl-defun er317/noweb-ref-encode
       (&key key-list head ref-list tail parse-fn encode-fn)
     "Expand noweb REF-LIST, each surrounded by HEAD and TAIL.
   PARSE-FN parses the raw strings; 
   ENCODE-FN turns parsed data into final output.
   When provided, KEY-LIST is passed to ENCODE-FN."
-    (let* ((raw-blocks (rogard/noweb-ref-collect :head head :ref-list ref-list :tail tail))
+    (let* ((raw-blocks (er317/noweb-ref-collect :head head :ref-list ref-list :tail tail))
            (parsed-list (mapcar parse-fn raw-blocks)))
       (when (and key-list
                  (/= (length key-list) (length parsed-list)))
@@ -489,7 +489,7 @@ whose values are non-nil."
 #+end_src
 
 #+RESULTS:
-: rogard/noweb-ref-encode
+: er317/noweb-ref-encode
 
 **** example
 
@@ -497,7 +497,7 @@ whose values are non-nil."
 #+header: :results verbatim
 #+begin_src emacs-lisp
   (string-join
-   (rogard/noweb-ref-expand :regex "sh-\\(foo\\|bar\\)") "\n")
+   (er317/noweb-ref-expand :regex "sh-\\(foo\\|bar\\)") "\n")
 #+end_src
 
 #+RESULTS:
@@ -508,7 +508,7 @@ whose values are non-nil."
 #+header: :var ref-list='("foo" "bar")
 #+header: :var tail="$"
 #+begin_src emacs-lisp
-   (rogard/noweb-ref-encode
+   (er317/noweb-ref-encode
     :head head
     :ref-list ref-list
     :tail tail
@@ -521,7 +521,7 @@ whose values are non-nil."
 #+header: :var tail="$"
 #+header: :var key-list='("foo" "bar")
 #+begin_src emacs-lisp
-  (rogard/noweb-ref-encode
+  (er317/noweb-ref-encode
    :head head
    :ref-list ref-list
    :tail tail
@@ -539,9 +539,10 @@ whose values are non-nil."
 #+header: :var tail="$"
 #+header: :var key-list='()
 #+begin_src emacs-lisp
-  (rogard/noweb-ref-encode
+  (er317/noweb-ref-encode
    :head head
    :ref-list ref-list
+   :tail tail
    :key-list key-list
    :parse-fn 'json-read-from-string
    :encode-fn 'json-encode)
@@ -561,17 +562,17 @@ whose values are non-nil."
 
 #+header: :noweb-ref el-beta
 #+begin_src emacs-lisp
-  (defun rogard/filter-block-names (regex &optional file)
+  (defun er317/filter-block-names (regex &optional file)
     "Filter the source block names using REGEX in FILE."
     (let ((block-names (reverse (org-babel-src-block-names file))))
       (cl-remove-if-not (lambda (block) (string-match-p regex block)) block-names)))
 #+end_src
 
 #+RESULTS:
-: rogard/filter-block-names
+: er317/filter-block-names
 
 #+begin_src emacs-lisp
-  (defun rogard/element-headers-as-properties (element) "Element properties retrievable using plist-get"
+  (defun er317/element-headers-as-properties (element) "Element properties retrievable using plist-get"
          (flatten-list  (mapcar (lambda (string) (org-babel-parse-header-arguments string)) (org-element-property element))))
 #+end_src
 
@@ -580,7 +581,7 @@ whose values are non-nil."
 
 #+header: :noweb-ref el-org
 #+begin_src emacs-lisp
-    (cl-defun rogard/org-subtree-paste
+    (cl-defun er317/org-subtree-paste
         (&key (target-file (buffer-file-name))
               (target-pos (point))
               (level-fn (lambda (level) (+ level 1))))
@@ -600,13 +601,13 @@ whose values are non-nil."
 #+end_src
 
 #+RESULTS:
-: rogard/org-subtree--paste
+: er317/org-subtree--paste
 
 ****** promote
 ******* code
 
 #+begin_src emacs-lisp
-(defun rogard/org-subtree-promote ()
+(defun er317/org-subtree-promote ()
   "Promote the current Org subtree.
 
 If the top heading is level 1, replace it with a `#+TITLE:` line,
@@ -642,7 +643,7 @@ then promote the rest of the subtree."
 #+end_src
 
 #+RESULTS:
-: rogard/org-subtree-promote
+: er317/org-subtree-promote
 
 ***** refactor
 ****** define
@@ -650,7 +651,7 @@ then promote the rest of the subtree."
 
 #+header: :noweb-ref el-org
 #+begin_src emacs-lisp
-  (cl-defmacro rogard/org-refactor-define (&key
+  (cl-defmacro er317/org-refactor-define (&key
       					     ((:source source-fn))
       					     ((:args args-lambda))
       					     ((:result result-lambda))
@@ -670,7 +671,7 @@ then promote the rest of the subtree."
 #+end_src
 
 #+RESULTS:
-: rogard/org-refactor-define
+: er317/org-refactor-define
 
 ****** example
 
@@ -684,7 +685,7 @@ then promote the rest of the subtree."
 
 #+header: :noweb-ref el-example
 #+begin_src emacs-lisp  
-  (rogard/org-refactor-define
+  (er317/org-refactor-define
    :source 'my-source-fn
    :args (lambda (&rest kv) (list (plist-get kv :x) (plist-get kv :y))) ;; ignore input
    :result (lambda (result) (* result 10))
@@ -707,9 +708,9 @@ then promote the rest of the subtree."
 
 #+header: :noweb-ref el-org
 #+begin_src emacs-lisp
-  (rogard/org-refactor-define
+  (er317/org-refactor-define
    :source org-heading-components
-   :target rogard/org-heading-components
+   :target er317/org-heading-components
    :args nil
    :result (lambda (list)
              (let ((keyval-list '(:level 0 :reduced-level 1 :todo-keyword 2 :priority 3 :headline 4 :tags 5))
@@ -723,14 +724,14 @@ then promote the rest of the subtree."
 #+end_src
 
 #+RESULTS:
-: rogard/org-heading-components
+: er317/org-heading-components
 
 ***** global
 ******* code
 
 #+header: :noweb-ref el-org
 #+begin_src emacs-lisp
-  (cl-defun rogard/org-global-header-position-next (&optional buffer)
+  (cl-defun er317/org-global-header-position-next (&optional buffer)
     "Return the BUFFER position where the next global header line (e.g. `#+property:`) should be inserted."
     (with-current-buffer (or buffer (current-buffer))
       (save-excursion
@@ -746,13 +747,13 @@ then promote the rest of the subtree."
 
 #+header: :noweb-ref el-org
 #+begin_src emacs-lisp
-  (cl-defmacro rogard/org-property-define (&key
+  (cl-defmacro er317/org-property-define (&key
                                         ((:name name-symb))
                                         ((:key key-string))
                                         ((:value value-lambda)))
     "Create a function NAME-SYMB to set Org property KEY-STRING using VALUE-LAMBDA."
     (let ((name-symb (or name-symb
-                         (intern (concat "rogard/org-property-" key-string)))))
+                         (intern (concat "er317/org-property-" key-string)))))
       `(cl-defun ,name-symb (&rest keyval)
          ,(format "Set the Org property %s using a computed value." key-string)
          (let ((value (save-excursion (apply ,value-lambda keyval))))
@@ -760,14 +761,14 @@ then promote the rest of the subtree."
 #+end_src
 
 #+RESULTS:
-: rogard/org-property-define
+: er317/org-property-define
 
 ***** apply
 ****** code
 
 #+header: :noweb-ref el-org
 #+begin_src emacs-lisp
-  (rogard/org-property-define
+  (er317/org-property-define
    :key "parent-id"
    :value (lambda ()
             (when (org-up-heading-safe)
@@ -775,14 +776,14 @@ then promote the rest of the subtree."
 #+end_src
 
 #+RESULTS:
-: rogard/org-property-parent-id
+: er317/org-property-parent-id
 
 *** src-block
 **** module
 ***** info
 #+header: :noweb-ref el-beta
 #+begin_src emacs-lisp
-  (defun rogard/src-block-info (name &optional no-eval)
+  (defun er317/src-block-info (name &optional no-eval)
     "Gets info of block NAME"
     (let ((block (org-babel-find-named-block name)))
   	 (when block
@@ -792,11 +793,11 @@ then promote the rest of the subtree."
 #+end_src
 
 #+RESULTS:
-: rogard/src-block-info
+: er317/src-block-info
 
 #+header :noweb-ref el-example
 #+begin_src emacs-lisp
-(rogard/src-block-info "json-foo")
+(er317/src-block-info "json-foo")
 #+end_src
 
 #+RESULTS:
@@ -805,7 +806,7 @@ then promote the rest of the subtree."
 #+header: :noweb-ref el-example
 #+header: :results verbatim raw
 #+begin_src emacs-lisp
-  (rogard/src-block-properties "bar-qux" :header)
+  (er317/src-block-properties "bar-qux" :header)
 #+end_src
 
 #+RESULTS:
@@ -815,7 +816,7 @@ then promote the rest of the subtree."
 #+begin_src emacs-lisp
   (org-babel-parse-header-arguments
    (mapconcat (lambda (pair) (concat (car pair) " " (cadr pair)))
-              (rogard/src-block-properties "bar-qux" :header)
+              (er317/src-block-properties "bar-qux" :header)
               " "))
 #+end_src
 
@@ -828,19 +829,19 @@ then promote the rest of the subtree."
 ****** code
 #+header: :noweb-ref el-table
 #+begin_src emacs-lisp
-  (defun rogard/function-table-field-address (index)
+  (defun er317/function-table-field-address (index)
     "Table address for field INDEX"
     (format "@1$%d..@>$%d" index index))
-  (defalias 'rogard/field-address 'rogard/function-table-field-address)
+  (defalias 'er317/field-address 'er317/function-table-field-address)
 #+end_src
 
 #+RESULTS:
-: rogard/field-address
+: er317/field-address
 
 ****** example
 #+header: :noweb-ref el-example
 #+begin_src emacs-lisp
-  (rogard/field-address 2)
+  (er317/field-address 2)
 #+end_src
 
 #+RESULTS:
@@ -850,7 +851,7 @@ then promote the rest of the subtree."
 ****** code
 #+header: :noweb-ref el-table
 #+begin_src emacs-lisp
-  (defun rogard/function-table-get-range-at-file (tbl-id range-address &optional file-name)
+  (defun er317/function-table-get-range-at-file (tbl-id range-address &optional file-name)
     "Get list of values in RANGE-ADDRESS from TBL-ID at FILE-NAME.
        Credits: https://redd.it/r2nig7"
     (let ((file-name (or file-name (buffer-file-name (current-buffer)))))
@@ -860,18 +861,18 @@ then promote the rest of the subtree."
           (mapcar (lambda (s)
                     (substring-no-properties (substring s 1 -1)))
                   result-with-properties)))))
-  (defalias 'rogard/table-range 'rogard/function-table-get-range-at-file)
+  (defalias 'er317/table-range 'er317/function-table-get-range-at-file)
 #+end_src
 
 #+RESULTS:
-: rogard/table-range
+: er317/table-range
 
 ****** example
 
 #+header: :noweb-ref el-example
 #+header: :results value verbatim
 #+begin_src emacs-lisp
-(rogard/table-range "tbl-foo-bar-string" (format "@1$%d..@>$%d" 2 2))
+(er317/table-range "tbl-foo-bar-string" (format "@1$%d..@>$%d" 2 2))
 #+end_src
 
 #+RESULTS:
@@ -881,27 +882,27 @@ then promote the rest of the subtree."
 ****** code
 #+header: :noweb-ref el-table
 #+begin_src emacs-lisp
-    (defun rogard/function-table-lookup (tbl-id key &optional file-name key-index value-index match-predicate)
+    (defun er317/function-table-lookup (tbl-id key &optional file-name key-index value-index match-predicate)
       "Lookup field KEY-INDEX and return corresponding entry in field VALUE-INDEX from table TBL-ID."
       (interactive)
-      (let ((key-address (rogard/field-address (or key-index 1)))
-            (value-address (rogard/field-address (or value-index 2)))
+      (let ((key-address (er317/field-address (or key-index 1)))
+            (value-address (er317/field-address (or value-index 2)))
             (file-name (or file-name (buffer-file-name (current-buffer))))
             (match-predicate (or match-predicate 'string-match-p)))
-        (let ((key-range (rogard/table-range tbl-id key-address file-name))
-              (value-range (rogard/table-range tbl-id value-address file-name)))
+        (let ((key-range (er317/table-range tbl-id key-address file-name))
+              (value-range (er317/table-range tbl-id value-address file-name)))
           (org-lookup-first key key-range value-range 'string-match-p))))
-  (defalias 'rogard/table-lookup 'rogard/function-table-lookup)
+  (defalias 'er317/table-lookup 'er317/function-table-lookup)
 #+end_src
 
 #+RESULTS:
-: rogard/table-lookup
+: er317/table-lookup
 
 ****** example
 
 #+header: :noweb-ref el-example
 #+begin_src emacs-lisp
-(rogard/table-lookup "tbl-foo-bar-string" "foo")
+(er317/table-lookup "tbl-foo-bar-string" "foo")
 #+end_src
 
 #+RESULTS:
@@ -909,7 +910,7 @@ then promote the rest of the subtree."
 
 #+header: :noweb-ref el-example
 #+begin_src emacs-lisp
-(rogard/table-lookup "tbl-foo-bar-string" "bar")
+(er317/table-lookup "tbl-foo-bar-string" "bar")
 #+end_src
 
 #+RESULTS:
@@ -1020,13 +1021,13 @@ then promote the rest of the subtree."
 #+end_src
 
 #+RESULTS:
-: rogard/noweb-concat
+: er317/noweb-concat
 
 * scratch
 
 #+header: :noweb-ref el-beta
 #+begin_src emacs-lisp
-  (defun rogard/src-block-element (name) "Return the whole block element"
+  (defun er317/src-block-element (name) "Return the whole block element"
          (save-excursion
   	 (goto-char (org-babel-find-named-block name))
   	 (org-element-at-point)))
@@ -1034,14 +1035,14 @@ then promote the rest of the subtree."
 
 #+header :noweb-ref el-example
 #+begin_src emacs-lisp
-  (rogard/src-block-element "bar-qux")
+  (er317/src-block-element "bar-qux")
 #+end_src
 
 #+header: :noweb-ref el-beta
 #+begin_src emacs-lisp
-  (defun rogard/src-block-properties (name &rest properties)
+  (defun er317/src-block-properties (name &rest properties)
     "Return block properties from the named block element. Defaults to :value if no properties are given."
-    (let* ((element (rogard/src-block-element name))  ;; Use rogard/src-block-element to get the block
+    (let* ((element (er317/src-block-element name))  ;; Use er317/src-block-element to get the block
            (props (if properties
                       properties
                     '(:value))))  ;; Default to :value if no properties are provided
@@ -1065,7 +1066,7 @@ then promote the rest of the subtree."
 
 
 #+begin_src emacs-lisp
-    (defconst rogard/org-property-rdf
+    (defconst er317/org-property-rdf
   '(:primary-key "rdf-like"
     :secondary-key '(
   		   :predicate
@@ -1076,16 +1077,16 @@ then promote the rest of the subtree."
 #+end_src
 
 #+begin_src emacs-lisp
-  (defconst rogard/org-property-db-optional-keys '(collection predicate type) "Optional secondary keys")
+  (defconst er317/org-property-db-optional-keys '(collection predicate type) "Optional secondary keys")
 #+end_src
 
 #+RESULTS:
-: rogard/org-property-db-optional-keys
+: er317/org-property-db-optional-keys
 
 *** set-helper
 
 #+begin_src emacs-lisp
-  (defun rogard/org-property-plist-helper (primary-key secondary-key-list &rest plist)
+  (defun er317/org-property-plist-helper (primary-key secondary-key-list &rest plist)
     ""
       (let ((parts '()))
         ;; Collect optional key-value pairs
@@ -1107,19 +1108,19 @@ then promote the rest of the subtree."
 
 #+begin_src emacs-lisp
 (eval-and-compile
-  (let* ((optional-args (mapcar (lambda (k) (list k)) rogard/org-property-db-optional-keys))
+  (let* ((optional-args (mapcar (lambda (k) (list k)) er317/org-property-db-optional-keys))
          (arglist `(&key ,@optional-args id secondary-key))
          (forward-body
-          `(apply #'rogard/org-property-db-set-helper
+          `(apply #'er317/org-property-db-set-helper
                   "erw-link"
-                  ',rogard/org-property-db-optional-keys
+                  ',er317/org-property-db-optional-keys
                   (list
                    ,@(apply #'append
                             (mapcar (lambda (k) `(',k ,k))
-                                    (append rogard/org-property-db-optional-keys '(:id :secondary-key))))))))
-    (eval `(cl-defun rogard/org-property-db-set ,arglist
-             ,(format "Auto-generated wrapper forwarding to `rogard/org-property-db-set-helper`.\nOptional keys: %s"
-                      rogard/org-property-db-optional-keys)
+                                    (append er317/org-property-db-optional-keys '(:id :secondary-key))))))))
+    (eval `(cl-defun er317/org-property-db-set ,arglist
+             ,(format "Auto-generated wrapper forwarding to `er317/org-property-db-set-helper`.\nOptional keys: %s"
+                      er317/org-property-db-optional-keys)
              ,forward-body))))
 #+end_src
 
@@ -1139,7 +1140,7 @@ then promote the rest of the subtree."
 : my-func
 
 #+begin_src emacs-lisp
-  (rogard/filesys-unique-clone :source "/home/erwann/src/org/AiSv8K.org")
+  (er317/filesys-unique-clone :source "/home/erwann/src/org/AiSv8K.org")
 #+end_src
 
 #+RESULTS:
@@ -1149,21 +1150,21 @@ then promote the rest of the subtree."
 ** org
 
 #+begin_src emacs-lisp
-  (defun rogard/org-subtree-paste-interactive ()
-    "Forwards to `rogard/org-subtree-paste` at point"
+  (defun er317/org-subtree-paste-interactive ()
+    "Forwards to `er317/org-subtree-paste` at point"
     (interactive)
-    (rogard/org-subtree-paste (buffer-file-name) (point)))
+    (er317/org-subtree-paste (buffer-file-name) (point)))
 #+end_src
 
 #+RESULTS:
-: rogard/org-subtree-paste
+: er317/org-subtree-paste
 
 ** shell
 *** code
 
 #+header: :noweb-ref el-shell
 #+begin_src emacs-lisp
-  (defun rogard/sh-check (command &optional re)
+  (defun er317/sh-check (command &optional re)
     "Issues a warning if the shell does not match RE; then executes shell COMMAND."
     (let ((re (or re "bash$")))
       (unless (string-match-p re (format "%s" shell-file-name))
@@ -1172,14 +1173,14 @@ then promote the rest of the subtree."
 #+end_src
 
 #+RESULTS:
-: rogard/sh-check
+: er317/sh-check
 
 *** example
 
 #+header: :noweb-ref el-example
 #+header: :results code
 #+begin_src emacs-lisp
-  (rogard/sh-check "echo \"foo\"" "fish$")
+  (er317/sh-check "echo \"foo\"" "fish$")
 #+end_src
 
 #+RESULTS:
@@ -1191,23 +1192,23 @@ then promote the rest of the subtree."
 *** wrap-single-quotes
 **** code
 #+begin_src emacs-lisp
-  (defun rogard/function-string-wrap-single-quotes (string)
+  (defun er317/function-string-wrap-single-quotes (string)
     "Wraps STRING with single quotes if absent."
     (if (string-match-p "^'.*'$" string)
        string
       (concat "'" string "'")))
-  (defalias 'rogard/wrap-single-quotes 'rogard/function-string-wrap-single-quotes)
+  (defalias 'er317/wrap-single-quotes 'er317/function-string-wrap-single-quotes)
 #+end_src
 
 #+RESULTS:
-: rogard/wrap-single-quotes
+: er317/wrap-single-quotes
 
 **** example
 #+header: :noweb-ref el-example
 #+begin_src emacs-lisp
   (let ((string (buffer-file-name (current-buffer))))
     (format "before: %s\nafter: %s" string 
-             (funcall 'rogard/wrap-single-quotes string)))
+             (funcall 'er317/wrap-single-quotes string)))
 #+end_src
 
 #+RESULTS:
