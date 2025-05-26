@@ -7,7 +7,7 @@ This repository contains Emacs development by Erwann Rogard.
 - Directory [`./org/`](./org/) contains Org mode meta-code.
 - All other directories are intended to contain code generated from the Org files.
 - Emacs configuration starts with [`./org/init.org`](./org/init.org)
-- Extensions are in [`./org/extension`](./org/extension)
+- Extensions are in [`./org/extension`](./org/extension.org)
 
 ## Highlights
 
@@ -20,21 +20,21 @@ The test cases are manually defined JSON blocks of various types, each assigned 
 <details>
   <summary>Test cases</summary>
 
-![Test cases](./aux/Screenshot_2025-05-25_18-15-15.png)
+![Test cases](aux/Screenshot_2025-05-25_18-15-45.png)
 
 </details>
 
 <details>
   <summary>Assembler</summary>
 
-![Assembler](./aux/Screenshot_2025-05-25_20-04-56.png)
+![Assembler](aux/Screenshot_2025-05-25_20-04-56.png)
 
 </details>
 
 <details>
   <summary>Evaluate</summary>
 
-![Evaluate](./aux/Screenshot_2025-05-25_20-05-15.png)
+![Evaluate](aux/Screenshot_2025-05-25_20-05-15.png)
 
 </details>
 
