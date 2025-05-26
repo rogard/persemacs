@@ -471,7 +471,7 @@ whose values are non-nil."
 
 #+header: :noweb-ref el-noweb
 #+begin_src emacs-lisp
-  (cl-defun er317/noweb-ref-encode
+  (cl-defun er317/noweb-ref-assemble
       (&key key-list head ref-list tail parse-fn encode-fn)
     "Expand noweb REF-LIST, each surrounded by HEAD and TAIL.
   PARSE-FN parses the raw strings; 
@@ -489,7 +489,7 @@ whose values are non-nil."
 #+end_src
 
 #+RESULTS:
-: er317/noweb-ref-encode
+: er317/noweb-ref-assemble
 
 **** example
 
@@ -504,53 +504,65 @@ whose values are non-nil."
 : "echo 'Hello, world!'
 : echo 'Hello, universe!'"
 
-#+header: :var head="^json-"
-#+header: :var ref-list='("foo" "bar")
-#+header: :var tail="$"
-#+begin_src emacs-lisp
-   (er317/noweb-ref-encode
-    :head head
-    :ref-list ref-list
-    :tail tail
-    :parse-fn 'json-read-from-string
-  :encode-fn 'json-encode-array)
-#+end_src
-
-#+header: :var head="^json-"
-#+header: :var ref-list='("foo" "bar")
-#+header: :var tail="$"
-#+header: :var key-list='("foo" "bar")
-#+begin_src emacs-lisp
-  (er317/noweb-ref-encode
-   :head head
-   :ref-list ref-list
-   :tail tail
-   :key-list key-list
-   :parse-fn 'json-read-from-string
-   :encode-fn 'json-encode)
-#+end_src
-
-#+RESULTS:
-: {"foo":{"key":"X"},"bar":{"key":"Y"}}
-
 #+name: el-json-object
 #+header: :var head="^json-"
 #+header: :var ref-list='()
 #+header: :var tail="$"
 #+header: :var key-list='()
 #+begin_src emacs-lisp
-  (er317/noweb-ref-encode
+  (er317/noweb-ref-assemble
    :head head
    :ref-list ref-list
    :tail tail
    :key-list key-list
    :parse-fn 'json-read-from-string
-   :encode-fn 'json-encode)
+   :encode-fn 'json-encode
+)
 #+end_src
 
-#+call: el-json-object[:wrap src json](ref-list='("foo" "bar" "qux"), key-list='("foo" "bar" "qux"))[:results raw]
+#+name: json-object
+#+call: el-json-object[:results raw](ref-list='("foo" "bar" "qux"), key-list='("foo" "bar" "qux"))
+
+#+name: el-json-pp
+#+header: :var json=""
+#+header: :var wrap=(lambda (body) body)
+#+begin_src emacs-lisp
+  (with-temp-buffer (insert json) (json-pretty-print (point-min) (point-max)) (buffer-string))
+#+end_src
+
+#+name: json-pp
+#+call: el-json-pp[:results raw](json=json-object)
+
+#+RESULTS: json-pp
+{
+  "foo": {
+    "key": "X"
+  },
+  "bar": {
+    "key": "Y"
+  },
+  "qux": [
+    {
+      "key": "W"
+    },
+    {
+      "key": "Z"
+    }
+  ]
+}
+
+#+name: el-json-wrap
+#+header: :var body=""
+#+header: :var ref=""
+#+header: :var lang="json"
+#+begin_src emacs-lisp
+  (concat "#+header: :noweb-ref " ref "\n" "#+begin_src " lang "\n" body "\n" "#+end_src")
+#+end_src
+
+#+call: el-json-object[:post el-json-wrap(*this*,ref="json-merge") :results raw](ref-list='("foo" "bar" "qux"), key-list='("foo" "bar" "qux"))
 
 #+RESULTS:
+#+header: :noweb-ref json-merge
 #+begin_src json
 {"foo":{"key":"X"},"bar":{"key":"Y"},"qux":[{"key":"W"},{"key":"Z"}]}
 #+end_src
@@ -940,17 +952,28 @@ then promote the rest of the subtree."
 
 #+header: :noweb-ref json-foo
 #+begin_src json
-  { "key" : "X" }
+  {
+      "key" : "X"
+  }
 #+end_src
 
 #+header: :noweb-ref json-bar
 #+begin_src json
-  { "key" : "Y" }
+  {
+      "key" : "Y"
+  }
 #+end_src
 
 #+header: :noweb-ref json-qux
 #+begin_src json
- [{"key":"W"},{"key":"Z"}]
+  [
+      {
+  	"key":"W"
+      },
+      {
+  	"key":"Z"
+      }
+  ]
 #+end_src
 
 * tangle
@@ -1024,6 +1047,15 @@ then promote the rest of the subtree."
 : er317/noweb-concat
 
 * scratch
+
+
+#+header: :results raw code
+#+begin_src emacs-lisp
+(json-serialize '(("foo" . "X") ("bar" . "Y"))
+                :pretty t
+                :null-object nil
+                :false-object :json-false)
+#+end_src
 
 #+header: :noweb-ref el-beta
 #+begin_src emacs-lisp

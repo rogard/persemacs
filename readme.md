@@ -15,11 +15,21 @@ This repository contains Emacs development by Erwann Rogard.
 This extension hooks into the backend of [Org's noweb reference](https://orgmode.org/manual/Noweb-Reference-Syntax.html) to provide Emacs Lisp functionality for *assembling* source blocks. This allows for more complex transformations of referenced source blocks than Org alone.
 
 #### Assemble JSON blocks
-Here are JSON blocks of different types, spanning multiple `noweb-ref`s (not necessarily in a one-to-one mapping). Next, I've wrapped an Emacs-Lisp source block around `erw/noweb-ref-encode`, taking `ref-list` and `ref-keys` (the number of matched blocks must match the number of keys) as input to assemble JSON blocks. Finally, I've [called](https://orgmode.org/manual/Evaluating-Code-Blocks.html) that block for the test case.
+The test cases are manually defined JSON blocks of various types, each assigned a `noweb-ref` (the mapping is not necessarily one-to-one). Then, a manually defined Emacs Lisp source block is used to pass `ref-list` and `ref-keys`—where each key is matched with a block returned by `ref-list`—as input to `er317/noweb-ref-assemble`. Upon evaluation, a compact JSON object is returned. The complete example in the source code also shows how to pretty-print the resulting JSON and post-process it by wrapping it in a source block with a `noweb-ref` header. By omitting `:key-list` and replacing `:encode-fn`'s value with `'json-encode-array`, the same setup returns a JSON array.
 
-![Test Cases](/home/erwann/Pictures/Screenshot/Screenshot_2025-05-25_12-51-19.png)
-![Assembler](/home/erwann/Pictures/Screenshot/Screenshot_2025-05-25_13-05-45.png)
-![Evaluation](/home/erwann/Pictures/Screenshot/Screenshot_2025-05-25_12-53-23.png)
+<details>
+  <summary>Test cases</summary>
+
+![Test cases](/home/erwann/Pictures/Screenshot/Screenshot_2025-05-25_18-15-15.png)
+
+</details>
+
+<details>
+  <summary>Assemble</summary>
+
+![Assembler](/home/erwann/Pictures/Screenshot/Screenshot_2025-05-25_19-56-55.png)
+
+</details>
 
 <!-- TODO generate this file using Org+Export -->
 
