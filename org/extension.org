@@ -217,7 +217,7 @@ whose values are non-nil."
 #+RESULTS:
 : er317/src-block-info
 
-#+header :noweb-ref el-example
+#+header:  :noweb-ref el-example
 #+begin_src emacs-lisp
 (er317/src-block-info "json-foo")
 #+end_src
@@ -234,7 +234,7 @@ whose values are non-nil."
 #+RESULTS:
 ((":var value=\"qux\""))
 
-#+header :noweb-ref el-example
+#+header: :noweb-ref el-example
 #+begin_src emacs-lisp
   (org-babel-parse-header-arguments
    (mapconcat (lambda (pair) (concat (car pair) " " (cadr pair)))
@@ -434,7 +434,7 @@ whose values are non-nil."
   	 (org-element-at-point)))
 #+end_src
 
-#+header :noweb-ref el-example
+#+header: :noweb-ref el-example
 #+begin_src emacs-lisp
   (er317/src-block-element "bar-qux")
 #+end_src
