@@ -257,7 +257,7 @@ Over this block, do:
 #+end_src
 
 #+RESULTS:
-| /home/erwann/github/er317/persemacs/sh/link.sh | /home/erwann/.emacs | /home/erwann/github/er317/persemacs/el/init.el |
+| /home/erwann/github/rogard/persemacs/sh/link.sh | /home/erwann/.emacs | /home/erwann/github/rogard/persemacs/el/init.el |
 
 Check:
 - ~M-x ctrl-c-ctrl-c~
