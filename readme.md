@@ -20,7 +20,7 @@ The test cases are manually defined JSON blocks of various types, each assigned 
 <details>
   <summary>Test cases</summary>
 
-![Test cases](aux/Screenshot_2025-05-25_18-15-45.png)
+![Test cases](aux/Screenshot_2025-05-25_18-15-15.png)
 
 </details>
 
