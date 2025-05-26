@@ -20,21 +20,21 @@ The test cases are manually defined JSON blocks of various types, each assigned 
 <details>
   <summary>Test cases</summary>
 
-![Test cases](/home/erwann/Pictures/Screenshot/Screenshot_2025-05-25_18-15-15.png)
+![Test cases](./aux/Screenshot_2025-05-25_18-15-15.png)
 
 </details>
 
 <details>
   <summary>Assembler</summary>
 
-![Assembler](/home/erwann/Pictures/Screenshot/Screenshot_2025-05-25_20-04-56.png)
+![Assembler](./aux/Screenshot_2025-05-25_20-04-56.png)
 
 </details>
 
 <details>
   <summary>Evaluate</summary>
 
-![Evaluate](/home/erwann/Pictures/Screenshot/Screenshot_2025-05-25_20-05-15.png)
+![Evaluate](./aux/Screenshot_2025-05-25_20-05-15.png)
 
 </details>
 

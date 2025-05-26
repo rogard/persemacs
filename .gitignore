@@ -6,8 +6,10 @@
 !org/
 !sh/
 !el/
+!aux/
 
 # Ensure contents of the directories are not ignored
 !org/**
 !sh/**
 !el/**
+!aux/**
