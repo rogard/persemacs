@@ -2,14 +2,16 @@
 *
 
 # But not these files/directories
-!README.md
+!README.html
 !org/
 !sh/
 !el/
 !aux/
+!md/
 
 # Ensure contents of the directories are not ignored
 !org/**
 !sh/**
 !el/**
 !aux/**
+!md/**
