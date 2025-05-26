@@ -1,4 +1,4 @@
-#+title persemacs-extension
+#+title: persemacs-extension
 #+author: Erwann Rogard
 #+property: header-args :tangle no
 
