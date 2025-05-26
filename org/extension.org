@@ -668,7 +668,7 @@ then promote the rest of the subtree."
 
 ****** string
 
-#+header: :noweb-ref el-shel
+#+header: :noweb-ref el-shell
 #+begin_src emacs-lisp
   (cl-defun er317/jq-string (&key filter string options)
     "Apply a jq filter to a JSON string and return the result."
@@ -791,6 +791,15 @@ then promote the rest of the subtree."
   <<el-license>>
   <<el-noweb>>
 #+end_src
+** json
+:PROPERTIES:
+:header-args: :tangle "../json/merge.json"
+:END:
+
+#+header: :noweb yes
+#+begin_src json
+  <<json-merge>>
+#+end_src
 
 ** org
 :PROPERTIES:
@@ -808,13 +817,13 @@ then promote the rest of the subtree."
 
 ** shell
 :PROPERTIES:
-:header-args: :tangle ../el/shell.el
+:header-args: :tangle "../el/shell.el"
 :END:
 
 #+header: :noweb yes
 #+begin_src emacs-lisp
   <<el-license>>
-  <<el-shell>
+  <<el-shell>>
 #+end_src
 
 * trash
