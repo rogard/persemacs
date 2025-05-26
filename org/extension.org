@@ -194,148 +194,6 @@ Emacs-org:
 #+RESULTS:
 : 3.0
 
-*** json
-**** notes
-:PROPERTIES:
-:created_on: <2025-05-23 Fri 11:50>
-:uname:    @elitebook
-:END:
-:LOGBOOK:
-- Note taken on [2025-05-23 Fri 11:51] \\
-  er317/json-safe to be trashed? Seems like json-* functions could do that.
-:END:
-
-#+begin_src markdown
-```elisp
-(er317/json--safe "{ \"key\": \"foo\tbar\" }" '("\t" . "\\\\t"))
-````
-
-You’re asking: **Isn't this kind of escaping already handled by `json-encode` or similar built-in functions in Emacs?**
-
----
-
-### ✅ Short Answer
-
-Yes — **`json-encode` already escapes special characters** like `\t`, `\n`, `\"`, etc.
-So if you're building your JSON with **Lisp structures** and then using `json-encode`, **you don't need to escape strings manually**.
-
----
-
-### 🔍 But Here's the Important Distinction
-
-Your function is processing a **raw JSON string**, not a Lisp structure.
-
-So:
-
-```elisp
-(er317/json-safe "{ \"key\": \"foo\tbar\" }")
-```
-
-…takes in a JSON **string**, not a Lisp object like:
-
-```elisp
-(json-encode '(("key" . "foo	bar")))
-```
-
-In the latter case, `json-encode` will automatically output:
-
-```json
-{"key":"foo\\tbar"}
-```
-
-No need for `er317/json--safe`.
-
----
-
-### 🧠 So Why Might You Still Need Your Own Preprocessing?
-
-Use your `er317/json-safe` / `er317/json--safe` when:
-
-,* You get JSON **as a string from elsewhere** (not Lisp).
-,* You want to **clean, fix, or normalize** it before parsing or writing.
-,* You're doing things like applying `jq` to **hand-written or external JSON**, not generated from `json-encode`.
-
----
-
-### ✅ TL;DR
-
-| Use Case                                                | Built-in Handles It? | Use Your Preprocessor? |
-| ------------------------------------------------------- | -------------------- | ---------------------- |
-| You build JSON from Lisp and use `json-encode`          | ✅ Yes                | ❌ No                   |
-| You receive a raw JSON string (from API, buffer, noweb) | ❌ No                 | ✅ Yes                  |
-| You need to patch bad or exotic characters in JSON text | ❌ No                 | ✅ Yes                  |
-
----
-
-Let me know if you want to expand your safe-replacements to cover more JSON troublemakers (e.g. smart quotes, non-ASCII whitespace, etc.).
-\#+end\_src
-#+end_src
-
-**** preamble
-
-#+header: :noweb-ref el-filesys
-#+begin_src emacs-lisp
-  (load-file "../el/list.el")
-#+end_src
-
-**** module
-***** safe
-
-#+header: :noweb-ref el-json
-#+begin_src emacs-lisp
-  (defconst er317/json-safe-alist
-    '(("\t" . "\\\\t"))
-    "An association list of (REGEXP . REPLACEMENT) pairs to make strings JSON-safe.")
-#+end_src
-
-#+RESULTS:
-: er317/json-safe-alist
-
-#+header: :noweb-ref el-json
-#+begin_src emacs-lisp
-  (defun er317/json--safe (string &rest re-rep)
-    "Make a STRING JSON-safe by replacing REGEXP-REPLACEMENT pairs in RE-REP"
-    (if (null re-rep)
-        string
-      (let* ((pair (car re-rep))
-             (re (car pair))
-             (rep (cdr pair))
-             (result (replace-regexp-in-string re rep string)))
-        (apply 'er317/json--safe result (cdr re-rep)))))
-#+end_src
-
-#+RESULTS:
-: er317/json--safe
-
-
-#+header: :noweb-ref el-example
-#+header: :results verbatim
-#+begin_src emacs-lisp
-  (er317/json--safe "{ \"key\": \"foo	bar\" }" '("\t" . "\\\\t"))
-#+end_src
-
-#+RESULTS:
-: "{ \"key\": \"foo\\tbar\" }"
-
-#+header: :noweb-ref el-json
-#+begin_src emacs-lisp
-  (defun er317/json-safe (string)
-    "Recursively apply REGEXP-REPLACEMENT pairs in RE-REP to STRING."
-    (apply 'er317/json--safe string er317/json-safe-alist))
-#+end_src
-
-#+RESULTS:
-: er317/json-safe
-
-#+header: :noweb-ref el-example
-#+header: :results verbatim
-#+begin_src emacs-lisp
-  (er317/json-safe "{ \"key\": \"foo	bar\" }")
-#+end_src
-
-#+RESULTS:
-: "{ \"key\": \"foo\\tbar\" }"
-
 *** shell
 **** module
 ***** jq
@@ -523,6 +381,9 @@ whose values are non-nil."
 #+name: json-object
 #+call: el-json-object[:results raw](ref-list='("foo" "bar" "qux"), key-list='("foo" "bar" "qux"))
 
+#+RESULTS: json-object
+{"foo":{"key":"X"},"bar":{"key":"Y"},"qux":[{"key":"W"},{"key":"Z"}]}
+
 #+name: el-json-pp
 #+header: :var json=""
 #+header: :var wrap=(lambda (body) body)
@@ -550,6 +411,7 @@ whose values are non-nil."
     }
   ]
 }
+
 
 #+name: el-json-wrap
 #+header: :var body=""
@@ -976,6 +838,37 @@ then promote the rest of the subtree."
   ]
 #+end_src
 
+#+header: :noweb-ref json-baz
+#+begin_src sh
+  {
+      "file":
+      ["John	Doe",
+       "Jane Smith"]
+  }
+#+end_src
+
+#+begin_src sh
+  json=$(
+      cat <<'EOF'
+  {
+    "file":
+    ["John\tDoe",
+     "Jane\tSmith"]
+  }
+  EOF
+      )
+
+  # Iterate over each line in the array, splitting on tab
+  echo "$json" | jq -r '.file[]' | while IFS=$'\t' read -r first last; do
+      printf 'first=%s; last=%s\n' "$first" "$last"
+  done
+
+#+end_src
+
+#+RESULTS:
+| first=John; | last=Doe   |
+| first=Jane; | last=Smith |
+
 * tangle
 ** filesys
 :PROPERTIES:
@@ -1047,15 +940,6 @@ then promote the rest of the subtree."
 : er317/noweb-concat
 
 * scratch
-
-
-#+header: :results raw code
-#+begin_src emacs-lisp
-(json-serialize '(("foo" . "X") ("bar" . "Y"))
-                :pretty t
-                :null-object nil
-                :false-object :json-false)
-#+end_src
 
 #+header: :noweb-ref el-beta
 #+begin_src emacs-lisp
@@ -1179,18 +1063,6 @@ then promote the rest of the subtree."
 : /home/erwann/unique/xxYG8M.org
 
 * trash
-** org
-
-#+begin_src emacs-lisp
-  (defun er317/org-subtree-paste-interactive ()
-    "Forwards to `er317/org-subtree-paste` at point"
-    (interactive)
-    (er317/org-subtree-paste (buffer-file-name) (point)))
-#+end_src
-
-#+RESULTS:
-: er317/org-subtree-paste
-
 ** shell
 *** code
 
@@ -1219,6 +1091,149 @@ then promote the rest of the subtree."
 #+begin_src emacs-lisp
 "foo\n"
 #+end_src
+
+** json
+*** notes
+:PROPERTIES:
+:created_on: <2025-05-23 Fri 11:50>
+:uname:    @elitebook
+:END:
+:LOGBOOK:
+- Note taken on [2025-05-23 Fri 11:51] \\
+  er317/json-safe to be trashed? Seems like json-* functions could do that.
+:END:
+
+
+#+begin_src markdown
+```elisp
+(er317/json--safe "{ \"key\": \"foo\tbar\" }" '("\t" . "\\\\t"))
+````
+
+You’re asking: **Isn't this kind of escaping already handled by `json-encode` or similar built-in functions in Emacs?**
+
+---
+
+### ✅ Short Answer
+
+Yes — **`json-encode` already escapes special characters** like `\t`, `\n`, `\"`, etc.
+So if you're building your JSON with **Lisp structures** and then using `json-encode`, **you don't need to escape strings manually**.
+
+---
+
+### 🔍 But Here's the Important Distinction
+
+Your function is processing a **raw JSON string**, not a Lisp structure.
+
+So:
+
+```elisp
+(er317/json-safe "{ \"key\": \"foo\tbar\" }")
+```
+
+…takes in a JSON **string**, not a Lisp object like:
+
+```elisp
+(json-encode '(("key" . "foo	bar")))
+```
+
+In the latter case, `json-encode` will automatically output:
+
+```json
+{"key":"foo\\tbar"}
+```
+
+No need for `er317/json--safe`.
+
+---
+
+### 🧠 So Why Might You Still Need Your Own Preprocessing?
+
+Use your `er317/json-safe` / `er317/json--safe` when:
+
+,* You get JSON **as a string from elsewhere** (not Lisp).
+,* You want to **clean, fix, or normalize** it before parsing or writing.
+,* You're doing things like applying `jq` to **hand-written or external JSON**, not generated from `json-encode`.
+
+---
+
+### ✅ TL;DR
+
+| Use Case                                                | Built-in Handles It? | Use Your Preprocessor? |
+| ------------------------------------------------------- | -------------------- | ---------------------- |
+| You build JSON from Lisp and use `json-encode`          | ✅ Yes                | ❌ No                   |
+| You receive a raw JSON string (from API, buffer, noweb) | ❌ No                 | ✅ Yes                  |
+| You need to patch bad or exotic characters in JSON text | ❌ No                 | ✅ Yes                  |
+
+---
+
+Let me know if you want to expand your safe-replacements to cover more JSON troublemakers (e.g. smart quotes, non-ASCII whitespace, etc.).
+\#+end\_src
+#+end_src
+
+*** preamble
+
+#+header: :noweb-ref el-filesys
+#+begin_src emacs-lisp
+  (load-file "../el/list.el")
+#+end_src
+
+*** module
+**** safe
+
+#+header: :noweb-ref el-json
+#+begin_src emacs-lisp
+  (defconst er317/json-safe-alist
+    '(("\t" . "\\\\t"))
+    "An association list of (REGEXP . REPLACEMENT) pairs to make strings JSON-safe.")
+#+end_src
+
+#+RESULTS:
+: er317/json-safe-alist
+
+#+header: :noweb-ref el-json
+#+begin_src emacs-lisp
+  (defun er317/json--safe (string &rest re-rep)
+    "Make a STRING JSON-safe by replacing REGEXP-REPLACEMENT pairs in RE-REP"
+    (if (null re-rep)
+        string
+      (let* ((pair (car re-rep))
+             (re (car pair))
+             (rep (cdr pair))
+             (result (replace-regexp-in-string re rep string)))
+        (apply 'er317/json--safe result (cdr re-rep)))))
+#+end_src
+
+#+RESULTS:
+: er317/json--safe
+
+
+#+header: :noweb-ref el-example
+#+header: :results verbatim
+#+begin_src emacs-lisp
+  (er317/json--safe "{ \"key\": \"foo	bar\" }" '("\t" . "\\\\t"))
+#+end_src
+
+#+RESULTS:
+: "{ \"key\": \"foo\\tbar\" }"
+
+#+header: :noweb-ref el-json
+#+begin_src emacs-lisp
+  (defun er317/json-safe (string)
+    "Recursively apply REGEXP-REPLACEMENT pairs in RE-REP to STRING."
+    (apply 'er317/json--safe string er317/json-safe-alist))
+#+end_src
+
+#+RESULTS:
+: er317/json-safe
+
+#+header: :noweb-ref el-example
+#+header: :results verbatim
+#+begin_src emacs-lisp
+  (er317/json-safe "{ \"key\": \"foo	bar\" }")
+#+end_src
+
+#+RESULTS:
+: "{ \"key\": \"foo\\tbar\" }"
 
 ** string
 *** wrap-single-quotes
