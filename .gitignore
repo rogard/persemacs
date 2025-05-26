@@ -4,12 +4,14 @@
 # But not these files/directories
 !README.md
 !org/
+!json/
 !sh/
 !el/
 !aux/
 !md/
 
 # Ensure contents of the directories are not ignored
+!json/**
 !org/**
 !sh/**
 !el/**

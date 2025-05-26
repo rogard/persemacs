@@ -471,6 +471,7 @@ whose values are non-nil."
         (with-current-buffer (find-file-noselect target-file)
           (goto-char target-pos)
           (setq level (funcall level-fn (org-current-level)))
+  	(message "DEBUG: %s" level)
           (org-end-of-subtree)
           (org-paste-subtree level nil nil t)
           (save-buffer))))
@@ -734,28 +735,6 @@ then promote the rest of the subtree."
   }
 #+end_src
 
-#+begin_src sh
-  json=$(
-      cat <<'EOF'
-  {
-    "file":
-    ["John\tDoe",
-     "Jane\tSmith"]
-  }
-  EOF
-      )
-
-  # Iterate over each line in the array, splitting on tab
-  echo "$json" | jq -r '.file[]' | while IFS=$'\t' read -r first last; do
-      printf 'first=%s; last=%s\n' "$first" "$last"
-  done
-
-#+end_src
-
-#+RESULTS:
-| first=John; | last=Doe   |
-| first=Jane; | last=Smith |
-
 ** org
 *** test-cases
 **** tbl
@@ -937,3 +916,27 @@ then promote the rest of the subtree."
 #+RESULTS:
 : y
 
+* scratch
+** sh
+
+#+begin_src sh
+  json=$(
+      cat <<'EOF'
+  {
+    "file":
+    ["John\tDoe",
+     "Jane\tSmith"]
+  }
+  EOF
+      )
+
+  # Iterate over each line in the array, splitting on tab
+  echo "$json" | jq -r '.file[]' | while IFS=$'\t' read -r first last; do
+      printf 'first=%s; last=%s\n' "$first" "$last"
+  done
+
+#+end_src
+
+#+RESULTS:
+| first=John; | last=Doe   |
+| first=Jane; | last=Smith |
