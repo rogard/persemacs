@@ -1,0 +1,57 @@
+<h1 id="persemacs">Persemacs</h1>
+<p>This repository contains Emacs development by Erwann Rogard.</p>
+<h2 id="description">Description</h2>
+<ul>
+<li>Directory <a href="./org/"><code>./org/</code></a> contains Org mode
+meta-code.</li>
+<li>All other directories are intended to contain code generated from
+the Org files.</li>
+<li>Emacs configuration starts with <a
+href="./org/init.org"><code>./org/init.org</code></a></li>
+<li>Extensions are in <a
+href="./org/extension.org"><code>./org/extension</code></a></li>
+</ul>
+<h2 id="highlights">Highlights</h2>
+<h3 id="noweb-ref-feature">noweb-ref-&lt;feature&gt;</h3>
+<p>This extension hooks into the backend of <a
+href="https://orgmode.org/manual/Noweb-Reference-Syntax.html">Org’s
+noweb reference</a> to provide Emacs Lisp functionality for
+<em>assembling</em> source blocks. This allows for more complex
+transformations of referenced source blocks than Org alone.</p>
+<h4 id="assemble-json-blocks">Assemble JSON blocks</h4>
+<p>The test cases are manually defined JSON blocks of various types,
+each assigned a <code>noweb-ref</code> (the mapping is not necessarily
+one-to-one). Then, a manually defined Emacs Lisp source block is used to
+pass <code>ref-list</code> and <code>ref-keys</code>—where each key is
+matched with a block returned by <code>ref-list</code>—as input to
+<code>er317/noweb-ref-assemble</code>. Upon evaluation, a compact JSON
+object is returned. The complete example in the source code also shows
+how to pretty-print the resulting JSON and post-process it by wrapping
+it in a source block with a <code>noweb-ref</code> header. By omitting
+<code>:key-list</code> and replacing <code>:encode-fn</code>’s value
+with <code>'json-encode-array</code>, the same setup returns a JSON
+array.</p>
+<details>
+<summary>
+Screenshots
+</summary>
+<!-- ##### Test cases-->
+<figure>
+<img src="aux/Screenshot_2025-05-25_18-15-15.png" alt="Test cases" />
+<figcaption aria-hidden="true">Test cases</figcaption>
+</figure>
+<!-- ##### Assembler-->
+<figure>
+<img src="./aux/Screenshot_2025-05-25_20-04-56.png" alt="Assembler" />
+<figcaption aria-hidden="true">Assembler</figcaption>
+</figure>
+<!-- ##### Evaluate-->
+<figure>
+<img src="./aux/Screenshot_2025-05-25_20-05-15.png" alt="Evaluate" />
+<figcaption aria-hidden="true">Evaluate</figcaption>
+</figure>
+</details>
+<!-- TODO 
+- Generate this file using Org+Export 
+- Figure out how to emulate github display on local machine
+-->
