@@ -1,4 +1,4 @@
-#+title persemacs-extra
+#+title persemacs-extension
 #+author: Erwann Rogard
 #+property: header-args :tangle no
 
@@ -7,68 +7,96 @@
   This is a standalone Emacs Org file containing emacs-lisp functionality.
 #+end_src
 
-* doc
-
-** reference
-
-Emacs-org:
-- [[https://orgmode.org/manual/Working-with-Source-Code.html][Working with source code]]
-
-* source
-** org
-*** test-cases
-**** tbl
-
-#+name: tbl-foo-bar-string
-| "foo" | "x" |
-| "bar" | "y" |
-
-#+name: tbl-foo-bar-dir
-| "foo" | "./foo" |
-| "bar" | "./bar" |
-*** TODO
-**** tangle
-:PROPERTIES:
-:created_on: <2025-05-22 Thu 20:10>
-:uname:    @elitebook
-:END:
-:LOGBOOK:
-- Note taken on [2025-05-22 Thu 20:11] \\
-  TARGET-FILE not seem reliable
-:END:
-
-#+begin_src emacs-lisp
-  (org-babel-tangle &optional ARG TARGET-FILE LANG-RE)
-#+end_src
-
-** el
-*** license
+* license
 
 #+name: el-license
 #+begin_src emacs-lisp
-  ;;  persemacs-extra — extra elisp functionality
+  ;;  persemacs-extension — Emacs Lisp functionality
   ;;  Copyright (C) 2024—2025 — Erwann Rogard
   ;;  Released under GPL 3.0
   ;;  See https://www.gnu.org/licenses/gpl-3.0.en.html
 #+end_src
 
-*** module
-*** filesys
-**** preamble
+* source
+** el
+*** support
+**** customizable
 
-#+header: :noweb-ref el-filesys
+Evaluate (~C-c C-c~)
+#+begin_src emacs-lisp
+(org-ql-search (current-buffer)
+  '(property "customizable" "true")
+  :title "Customizable Properties")
+#+end_src
+
+*** module
+**** list
+***** module
+****** plist-if
+#+header: :noweb-ref el-list-beta
+#+begin_src emacs-lisp
+  (cl-defun er317/plist-if (&rest keyval-list)
+    "Return a plist containing only the key-value pairs from KEYVAL-LIST
+whose values are non-nil."
+    (let ((result nil))
+      (while keyval-list
+        (let ((key (pop keyval-list))
+              (value (pop keyval-list)))
+          (when value
+            (setq result (append result (list key value))))))
+      result))
+#+end_src
+
+#+RESULTS:
+: er317/plist-if
+
+#+header: :results raw verbatim
+#+begin_src emacs-lisp
+  (plist-get (er317/plist-if :foo "foo" :bar nil :qux "qux") :qux)
+#+end_src
+
+#+RESULTS:
+"qux"
+
+**** function
+***** module
+****** compose
+#+header: :noweb-ref el-function-beta
+#+begin_src emacs-lisp
+  (defun er317/compose (arg &rest functions)
+    "Apply a sequence of FUNCTIONS to ARG in composition order."
+    (cl-reduce (lambda (acc fn) (funcall fn acc))
+               (reverse functions)
+               :initial-value arg))
+#+end_src
+
+#+RESULTS:
+: er317/compose
+
+#+header: :noweb-ref el-example
+#+begin_src emacs-lisp
+  (er317/compose 4 #'sqrt (lambda (x) (+ 1 x)))
+#+end_src
+
+#+RESULTS:
+: 3.0
+
+**** filesys
+***** preamble
+
+#+header: :noweb-ref el-filesys-beta
 #+begin_src emacs-lisp
   (load-file "../el/list.el")
 #+end_src
 
-**** module
-***** unique-file
-****** directory
-:properties:
-:customize_bool: true
-:end:
+***** module
+****** unique-file
+******* directory
+:PROPERTIES:
+:customizable: true
+:END:
 
-#+header: :noweb-ref el-filesys
+#+header: :noweb-ref el-filesys-beta
 #+begin_src emacs-lisp
   (defconst er317/filesys-unique-directory (file-name-as-directory "~/unique") "Directory for storing unique files")
 #+end_src
@@ -76,9 +104,9 @@ Emacs-org:
 #+RESULTS:
 : er317/filesys-unique-directory
 
-****** make
+******* make
 
-#+header: :noweb-ref el-filesys
+#+header: :noweb-ref el-filesys-beta
 #+begin_src emacs-lisp
   (cl-defun er317/filesys-unique-make
       (&key ((:ext ext-string))
@@ -116,9 +144,9 @@ Emacs-org:
 #+RESULTS:
 : /home/erwann/unique/GPmUqe.org
 
-****** clone
+******* clone
 
-#+header: :noweb-ref el-filesys
+#+header: :noweb-ref el-filesys-beta
 #+begin_src emacs-lisp
   (cl-defun er317/filesys-unique-clone
       (&key
@@ -145,10 +173,10 @@ Emacs-org:
 #+RESULTS:
 : er317/filesys-unique-clone
 
-****** interactive
-******* code
+******* interactive
+******** code
 
-#+header: :noweb-ref el-filesys
+#+header: :noweb-ref el-filesys-beta
 #+begin_src emacs-lisp
   (cl-defun er317/filesys-unique-clone-interactive
       (source-file &key
@@ -171,118 +199,65 @@ Emacs-org:
 #+RESULTS:
 : er317/filesys-unique-clone-interactive
 
-*** function
-**** module
-***** compose
-#+header: :noweb-ref el-function
+**** src-block
+***** module
+****** info
+
+#+header: :noweb-ref el-src-block-beta
 #+begin_src emacs-lisp
-  (defun er317/compose (arg &rest functions)
-    "Apply a sequence of FUNCTIONS to ARG in composition order."
-    (cl-reduce (lambda (acc fn) (funcall fn acc))
-               (reverse functions)
-               :initial-value arg))
+  (defun er317/src-block-info (name &optional no-eval)
+    "Gets info of block NAME"
+    (let ((block (org-babel-find-named-block name)))
+  	 (when block
+  		 (save-excursion
+                     (goto-char block)
+                     (org-babel-get-src-block-info no-eval)))))
 #+end_src
 
 #+RESULTS:
-: er317/compose
+: er317/src-block-info
+
+#+header :noweb-ref el-example
+#+begin_src emacs-lisp
+(er317/src-block-info "json-foo")
+#+end_src
+
+#+RESULTS:
+| json | { "key" : "X" } | ((:colname-names) (:rowname-names) (:result-params replace) (:result-type . value) (:results . replace) (:exports . code) (:tangle . no) (:hlines . no) (:noweb . no) (:cache . no) (:session . none)) |   | json-foo-bar | 1239 | (ref:%s) |
 
 #+header: :noweb-ref el-example
+#+header: :results verbatim raw
 #+begin_src emacs-lisp
-  (er317/compose 4 #'sqrt (lambda (x) (+ 1 x)))
+  (er317/src-block-properties "bar-qux" :header)
 #+end_src
 
 #+RESULTS:
-: 3.0
+((":var value=\"qux\""))
 
-*** shell
-**** module
-***** jq
-
-#+header: :noweb-ref el-shell
+#+header :noweb-ref el-example
 #+begin_src emacs-lisp
-  (cl-defun er317/jq-file (&key filter file options)
-    "Apply a jq FILTER to a JSON FILE and return the result."
-    (let* ((parts (delq nil (append (list "jq") options (list (format "'%s'" filter) file)))) (command (string-join parts " ")))
-;;    (message "DEBUG: parts: %s" parts)
-;;    (message "DEBUG: command: %s" command)
-    (shell-command-to-string command)))
+  (org-babel-parse-header-arguments
+   (mapconcat (lambda (pair) (concat (car pair) " " (cadr pair)))
+              (er317/src-block-properties "bar-qux" :header)
+              " "))
 #+end_src
 
 #+RESULTS:
-: er317/jq-file
+: ((:var . value="qux"))
 
-***** string
-
-#+header: :noweb-ref el-json
-#+begin_src emacs-lisp
-  (cl-defun er317/jq-string (&key filter string options)
-    "Apply a jq filter to a JSON string and return the result."
-    (let* ((temp-file (make-temp-file nil nil ".json"))
-           (result (progn
-                     (with-temp-file temp-file
-                       (insert string))
-                     (er317/jq-file :filter filter :file temp-file :options options))))
-      (delete-file temp-file)
-      (format "%s" result)))
-#+end_src
-
-#+RESULTS:
-: er317/jq-string
-
-#+header: :noweb-ref el-example
-#+header: :results raw
-#+header: :var json-object=(org-babel-ref-resolve "json-foo")
-#+header: :wrap src json
-#+begin_src emacs-lisp  
-  (er317/jq-string :filter "." :string json-object :options '("-c"))
-#+end_src
-
-#+RESULTS:
-#+begin_src json
-{"key":"X"}
-#+end_src
-
-*** list
-**** module
-***** plist-if
-#+header: :noweb-ref el-list
-#+begin_src emacs-lisp
-  (cl-defun er317/plist-if (&rest keyval-list)
-    "Return a plist containing only the key-value pairs from KEYVAL-LIST
-whose values are non-nil."
-    (let ((result nil))
-      (while keyval-list
-        (let ((key (pop keyval-list))
-              (value (pop keyval-list)))
-          (when value
-            (setq result (append result (list key value))))))
-      result))
-#+end_src
-
-#+RESULTS:
-: er317/plist-if
-
-#+header: :results raw verbatim
-#+begin_src emacs-lisp
-  (plist-get (er317/plist-if :foo "foo" :bar nil :qux "qux") :qux)
-#+end_src
-
-#+RESULTS:
-"qux"
-
-*** noweb-ref
+**** noweb-ref
 :PROPERTIES:
 :CUSTOM_ID: source-el-noweb-ref
 :END:
-**** preamble
+***** preamble
 
-#+header: :noweb-ref el-filesys
+#+header: :noweb-ref el-filesys-beta
 #+begin_src emacs-lisp
   (load-file "../el/shell.el")
 #+end_src
 
-**** module
-***** expand
+***** module
+****** expand
 
 #+header: :noweb-ref el-noweb
 #+begin_src emacs-lisp
@@ -307,7 +282,7 @@ whose values are non-nil."
 #+RESULTS:
 : er317/noweb-ref-expand
 
-***** collect
+****** collect
 
 #+header: :noweb-ref el-noweb
 #+begin_src emacs-lisp
@@ -325,7 +300,7 @@ whose values are non-nil."
 #+RESULTS:
 : foobar
 
-***** encode
+****** encode
 
 #+header: :noweb-ref el-noweb
 #+begin_src emacs-lisp
@@ -349,7 +324,7 @@ whose values are non-nil."
 #+RESULTS:
 : er317/noweb-ref-assemble
 
-**** example
+***** example
 
 #+header: :noweb yes
 #+header: :results verbatim
@@ -429,12 +404,11 @@ whose values are non-nil."
 {"foo":{"key":"X"},"bar":{"key":"Y"},"qux":[{"key":"W"},{"key":"Z"}]}
 #+end_src
 
-*** org
-**** module
-***** element
-****** code
+**** org
+***** module
+****** element
 
-#+header: :noweb-ref el-beta
+#+header: :noweb-ref el-org-beta
 #+begin_src emacs-lisp
   (defun er317/filter-block-names (regex &optional file)
     "Filter the source block names using REGEX in FILE."
@@ -450,8 +424,36 @@ whose values are non-nil."
          (flatten-list  (mapcar (lambda (string) (org-babel-parse-header-arguments string)) (org-element-property element))))
 #+end_src
 
-***** subtree
-****** paste
+****** src-block
+
+#+header: :noweb-ref el-src-block-beta
+#+begin_src emacs-lisp
+  (defun er317/src-block-element (name) "Return the whole block element"
+         (save-excursion
+  	 (goto-char (org-babel-find-named-block name))
+  	 (org-element-at-point)))
+#+end_src
+
+#+header :noweb-ref el-example
+#+begin_src emacs-lisp
+  (er317/src-block-element "bar-qux")
+#+end_src
+
+#+header: :noweb-ref el-src-block-beta
+#+begin_src emacs-lisp
+  (defun er317/src-block-properties (name &rest properties)
+    "Return block properties from the named block element. Defaults to :value if no properties are given."
+    (let* ((element (er317/src-block-element name))  ;; Use er317/src-block-element to get the block
+           (props (if properties
+                      properties
+                    '(:value))))  ;; Default to :value if no properties are provided
+      (mapcar (lambda (prop)
+                (org-element-property prop element))  ;; Get each property using org-element-property
+              props)))
+#+end_src
+
+****** subtree
+******* paste
 
 #+header: :noweb-ref el-org
 #+begin_src emacs-lisp
@@ -477,13 +479,12 @@ whose values are non-nil."
 #+RESULTS:
 : er317/org-subtree--paste
 
-****** promote
-******* code
+******* promote
 
+#+header: :noweb-ref org-subtree-beta
 #+begin_src emacs-lisp
 (defun er317/org-subtree-promote ()
   "Promote the current Org subtree.
-
 If the top heading is level 1, replace it with a `#+TITLE:` line,
 then promote the rest of the subtree."
   (interactive)
@@ -519,11 +520,10 @@ then promote the rest of the subtree."
 #+RESULTS:
 : er317/org-subtree-promote
 
-***** refactor
-****** define
-******* code
+****** refactor
+******* define
 
-#+header: :noweb-ref el-org
+#+header: :noweb-ref el-org-beta
 #+begin_src emacs-lisp
   (cl-defmacro er317/org-refactor-define (&key
       					     ((:source source-fn))
@@ -547,7 +547,7 @@ then promote the rest of the subtree."
 #+RESULTS:
 : er317/org-refactor-define
 
-****** example
+******* example
 
 #+header: :noweb-ref el-example
 #+begin_src emacs-lisp
@@ -577,10 +577,9 @@ then promote the rest of the subtree."
 #+RESULTS:
 : 50
 
-***** apply
-****** code
+******* apply
 
-#+header: :noweb-ref el-org
+#+header: :noweb-ref el-org-beta
 #+begin_src emacs-lisp
   (er317/org-refactor-define
    :source org-heading-components
@@ -600,10 +599,9 @@ then promote the rest of the subtree."
 #+RESULTS:
 : er317/org-heading-components
 
-***** global
-******* code
+****** global
 
-#+header: :noweb-ref el-org
+#+header: :noweb-ref el-org-beta
 #+begin_src emacs-lisp
   (cl-defun er317/org-global-header-position-next (&optional buffer)
     "Return the BUFFER position where the next global header line (e.g. `#+property:`) should be inserted."
@@ -615,11 +613,10 @@ then promote the rest of the subtree."
         (point))))
 #+end_src
 
-**** property
-***** define
-****** code
+***** property
+****** define
 
-#+header: :noweb-ref el-org
+#+header: :noweb-ref el-org-beta
 #+begin_src emacs-lisp
   (cl-defmacro er317/org-property-define (&key
                                         ((:name name-symb))
@@ -637,10 +634,9 @@ then promote the rest of the subtree."
 #+RESULTS:
 : er317/org-property-define
 
-***** apply
-****** code
+****** apply
 
-#+header: :noweb-ref el-org
+#+header: :noweb-ref el-org-beta
 #+begin_src emacs-lisp
   (er317/org-property-define
    :key "parent-id"
@@ -652,161 +648,52 @@ then promote the rest of the subtree."
 #+RESULTS:
 : er317/org-property-parent-id
 
-*** src-block
-**** module
-***** info
-#+header: :noweb-ref el-beta
+**** shell
+***** module
+****** jq
+
+#+header: :noweb-ref el-shell
 #+begin_src emacs-lisp
-  (defun er317/src-block-info (name &optional no-eval)
-    "Gets info of block NAME"
-    (let ((block (org-babel-find-named-block name)))
-  	 (when block
-  		 (save-excursion
-                     (goto-char block)
-                     (org-babel-get-src-block-info no-eval)))))
+  (cl-defun er317/jq-file (&key filter file options)
+    "Apply a jq FILTER to a JSON FILE and return the result."
+    (let* ((parts (delq nil (append (list "jq") options (list (format "'%s'" filter) file)))) (command (string-join parts " ")))
+;;    (message "DEBUG: parts: %s" parts)
+;;    (message "DEBUG: command: %s" command)
+    (shell-command-to-string command)))
 #+end_src
 
 #+RESULTS:
-: er317/src-block-info
+: er317/jq-file
 
-#+header :noweb-ref el-example
+****** string
+
+#+header: :noweb-ref el-shel
 #+begin_src emacs-lisp
-(er317/src-block-info "json-foo")
+  (cl-defun er317/jq-string (&key filter string options)
+    "Apply a jq filter to a JSON string and return the result."
+    (let* ((temp-file (make-temp-file nil nil ".json"))
+           (result (progn
+                     (with-temp-file temp-file
+                       (insert string))
+                     (er317/jq-file :filter filter :file temp-file :options options))))
+      (delete-file temp-file)
+      (format "%s" result)))
 #+end_src
 
 #+RESULTS:
-| json | { "key" : "X" } | ((:colname-names) (:rowname-names) (:result-params replace) (:result-type . value) (:results . replace) (:exports . code) (:tangle . no) (:hlines . no) (:noweb . no) (:cache . no) (:session . none)) |   | json-foo-bar | 1239 | (ref:%s) |
+: er317/jq-string
 
 #+header: :noweb-ref el-example
-#+header: :results verbatim raw
-#+begin_src emacs-lisp
-  (er317/src-block-properties "bar-qux" :header)
+#+header: :results raw
+#+header: :var json-object=(org-babel-ref-resolve "json-foo")
+#+header: :wrap src json
+#+begin_src emacs-lisp  
+  (er317/jq-string :filter "." :string json-object :options '("-c"))
 #+end_src
 
 #+RESULTS:
-((":var value=\"qux\""))
-
-#+header :noweb-ref el-example
-#+begin_src emacs-lisp
-  (org-babel-parse-header-arguments
-   (mapconcat (lambda (pair) (concat (car pair) " " (cadr pair)))
-              (er317/src-block-properties "bar-qux" :header)
-              " "))
-#+end_src
-
-#+RESULTS:
-: ((:var . value="qux"))
-
-*** table
-**** module
-***** field-address
-****** code
-#+header: :noweb-ref el-table
-#+begin_src emacs-lisp
-  (defun er317/function-table-field-address (index)
-    "Table address for field INDEX"
-    (format "@1$%d..@>$%d" index index))
-  (defalias 'er317/field-address 'er317/function-table-field-address)
-#+end_src
-
-#+RESULTS:
-: er317/field-address
-
-****** example
-#+header: :noweb-ref el-example
-#+begin_src emacs-lisp
-  (er317/field-address 2)
-#+end_src
-
-#+RESULTS:
-: @1$2..@>$2
-
-***** get-range
-****** code
-#+header: :noweb-ref el-table
-#+begin_src emacs-lisp
-  (defun er317/function-table-get-range-at-file (tbl-id range-address &optional file-name)
-    "Get list of values in RANGE-ADDRESS from TBL-ID at FILE-NAME.
-       Credits: https://redd.it/r2nig7"
-    (let ((file-name (or file-name (buffer-file-name (current-buffer)))))
-      (with-current-buffer (find-file-noselect file-name)
-        (let ((result-with-properties
-               (org-table-get-remote-range tbl-id range-address)))
-          (mapcar (lambda (s)
-                    (substring-no-properties (substring s 1 -1)))
-                  result-with-properties)))))
-  (defalias 'er317/table-range 'er317/function-table-get-range-at-file)
-#+end_src
-
-#+RESULTS:
-: er317/table-range
-
-****** example
-
-#+header: :noweb-ref el-example
-#+header: :results value verbatim
-#+begin_src emacs-lisp
-(er317/table-range "tbl-foo-bar-string" (format "@1$%d..@>$%d" 2 2))
-#+end_src
-
-#+RESULTS:
-: ("x" "y")
-
-***** lookup
-****** code
-#+header: :noweb-ref el-table
-#+begin_src emacs-lisp
-    (defun er317/function-table-lookup (tbl-id key &optional file-name key-index value-index match-predicate)
-      "Lookup field KEY-INDEX and return corresponding entry in field VALUE-INDEX from table TBL-ID."
-      (interactive)
-      (let ((key-address (er317/field-address (or key-index 1)))
-            (value-address (er317/field-address (or value-index 2)))
-            (file-name (or file-name (buffer-file-name (current-buffer))))
-            (match-predicate (or match-predicate 'string-match-p)))
-        (let ((key-range (er317/table-range tbl-id key-address file-name))
-              (value-range (er317/table-range tbl-id value-address file-name)))
-          (org-lookup-first key key-range value-range 'string-match-p))))
-  (defalias 'er317/table-lookup 'er317/function-table-lookup)
-#+end_src
-
-#+RESULTS:
-: er317/table-lookup
-
-****** example
-
-#+header: :noweb-ref el-example
-#+begin_src emacs-lisp
-(er317/table-lookup "tbl-foo-bar-string" "foo")
-#+end_src
-
-#+RESULTS:
-: x
-
-#+header: :noweb-ref el-example
-#+begin_src emacs-lisp
-(er317/table-lookup "tbl-foo-bar-string" "bar")
-#+end_src
-
-#+RESULTS:
-: y
-
-** sh
-*** test-cases
-
-#+header: :noweb-ref sh-foo
-#+begin_src sh
-  echo 'Hello, world!'
-#+end_src
-
-#+header: :noweb-ref sh-bar
-#+begin_src sh
-  echo 'Hello, universe!'
-#+end_src
-
-#+name: bar-qux
-#+header: :var value="qux"
-#+begin_src sh
-  echo "${value}"
+#+begin_src json
+{"key":"X"}
 #+end_src
 
 ** json
@@ -869,51 +756,52 @@ then promote the rest of the subtree."
 | first=John; | last=Doe   |
 | first=Jane; | last=Smith |
 
+** org
+*** test-cases
+**** tbl
+
+#+name: tbl-foo-bar-string
+| "foo" | "x" |
+| "bar" | "y" |
+
+#+name: tbl-foo-bar-dir
+| "foo" | "./foo" |
+| "bar" | "./bar" |
+*** notes
+**** TODO tangle
+:PROPERTIES:
+:created_on: <2025-05-22 Thu 20:10>
+:uname:    @elitebook
+:END:
+:LOGBOOK:
+- Note taken on [2025-05-22 Thu 20:11] \\
+  TARGET-FILE not seem reliable
+:END:
+
+#+begin_src emacs-lisp
+  (org-babel-tangle &optional ARG TARGET-FILE LANG-RE)
+#+end_src
+
+** sh
+*** test-cases
+
+#+header: :noweb-ref sh-foo
+#+begin_src sh
+  echo 'Hello, world!'
+#+end_src
+
+#+header: :noweb-ref sh-bar
+#+begin_src sh
+  echo 'Hello, universe!'
+#+end_src
+
+#+name: bar-qux
+#+header: :var value="qux"
+#+begin_src sh
+  echo "${value}"
+#+end_src
+
 * tangle
-** filesys
-:PROPERTIES:
-:header-args: :tangle ../el/filesys.el
-:END:
-
-#+header: :noweb yes
-#+begin_src emacs-lisp
-  <<el-license>>
-  <<el-filesys>>
-#+end_src
-
-** shell
-:PROPERTIES:
-:header-args: :tangle ../el/shell.el
-:END:
-
-#+header: :noweb yes
-#+begin_src emacs-lisp
-  <<el-license>>
-  <<el-shell>
-#+end_src
-
-** json
-:PROPERTIES:
-:header-args: :tangle "../el/json.el"
-:END:
-
-#+header: :noweb yes
-#+begin_src emacs-lisp
-  <<el-license>>
-  <<el-json>>
-#+end_src
-
-** list
-:PROPERTIES:
-:header-args: :tangle ../el/list.el
-:END:
-
-#+header: :noweb yes
-#+begin_src emacs-lisp
-  <<el-license>>
-  <<el-list>>
-#+end_src
-
 ** noweb
 :PROPERTIES:
 :header-args: :tangle "../el/noweb.el"
@@ -939,326 +827,113 @@ then promote the rest of the subtree."
 #+RESULTS:
 : er317/noweb-concat
 
-* scratch
+** shell
+:PROPERTIES:
+:header-args: :tangle ../el/shell.el
+:END:
 
-#+header: :noweb-ref el-beta
+#+header: :noweb yes
 #+begin_src emacs-lisp
-  (defun er317/src-block-element (name) "Return the whole block element"
-         (save-excursion
-  	 (goto-char (org-babel-find-named-block name))
-  	 (org-element-at-point)))
+  <<el-license>>
+  <<el-shell>
 #+end_src
-
-#+header :noweb-ref el-example
-#+begin_src emacs-lisp
-  (er317/src-block-element "bar-qux")
-#+end_src
-
-#+header: :noweb-ref el-beta
-#+begin_src emacs-lisp
-  (defun er317/src-block-properties (name &rest properties)
-    "Return block properties from the named block element. Defaults to :value if no properties are given."
-    (let* ((element (er317/src-block-element name))  ;; Use er317/src-block-element to get the block
-           (props (if properties
-                      properties
-                    '(:value))))  ;; Default to :value if no properties are provided
-      (mapcar (lambda (prop)
-                (org-element-property prop element))  ;; Get each property using org-element-property
-              props)))
-#+end_src
-
-** package
-
-#+header: :noweb-ref el-leaveout
-#+begin_src emacs-lisp
-  (use-package dash
-    :ensure t)
-#+end_src
-
-** id-link
-*** const
-
-#+property: p
-
-
-#+begin_src emacs-lisp
-    (defconst er317/org-property-rdf
-  '(:primary-key "rdf-like"
-    :secondary-key '(
-  		   :predicate
-  		   :object
-  		   )
-      
-      "db-like" "Main key")
-#+end_src
-
-#+begin_src emacs-lisp
-  (defconst er317/org-property-db-optional-keys '(collection predicate type) "Optional secondary keys")
-#+end_src
-
-#+RESULTS:
-: er317/org-property-db-optional-keys
-
-*** set-helper
-
-#+begin_src emacs-lisp
-  (defun er317/org-property-plist-helper (primary-key secondary-key-list &rest plist)
-    ""
-      (let ((parts '()))
-        ;; Collect optional key-value pairs
-        (dolist (k secondary-key-list)
-          (let ((val (plist-get plist k)))
-            (when val
-              (push (format ":%s %s" (substring (symbol-name k) 1) val) parts))))
-        (let ((property-value (string-join (nreverse parts) " "))
-              (property-name (if (org-entry-get (point) primary-key)
-                                 (concat primary-key "+")
-                               primary-key)))
-          (org-set-property property-name property-value)))))
-#+end_src
-
-#+RESULTS:
-: set-erw-graph-property
-
-*** set
-
-#+begin_src emacs-lisp
-(eval-and-compile
-  (let* ((optional-args (mapcar (lambda (k) (list k)) er317/org-property-db-optional-keys))
-         (arglist `(&key ,@optional-args id secondary-key))
-         (forward-body
-          `(apply #'er317/org-property-db-set-helper
-                  "erw-link"
-                  ',er317/org-property-db-optional-keys
-                  (list
-                   ,@(apply #'append
-                            (mapcar (lambda (k) `(',k ,k))
-                                    (append er317/org-property-db-optional-keys '(:id :secondary-key))))))))
-    (eval `(cl-defun er317/org-property-db-set ,arglist
-             ,(format "Auto-generated wrapper forwarding to `er317/org-property-db-set-helper`.\nOptional keys: %s"
-                      er317/org-property-db-optional-keys)
-             ,forward-body))))
-#+end_src
-
-
-#+begin_src emacs-lisp
-    (cl-defun my-func (source-file
-    		   &key
-           		   ((:directory directory-string))
-           		   ((:do-trash trash-bool)))    
-      "Interactively clone SOURCE-FILE to a uniquely named one."
-      (interactive "fEnter source file")
-      ;; (message "DEBUG: %s" source-file)
-      )
-#+end_src
-
-#+RESULTS:
-: my-func
-
-#+begin_src emacs-lisp
-  (er317/filesys-unique-clone :source "/home/erwann/src/org/AiSv8K.org")
-#+end_src
-
-#+RESULTS:
-: /home/erwann/unique/xxYG8M.org
 
 * trash
-** shell
-*** code
-
-#+header: :noweb-ref el-shell
-#+begin_src emacs-lisp
-  (defun er317/sh-check (command &optional re)
-    "Issues a warning if the shell does not match RE; then executes shell COMMAND."
-    (let ((re (or re "bash$")))
-      (unless (string-match-p re (format "%s" shell-file-name))
-        (warn "Warning: expecting shell to match %s; got %s" re shell-file-name))
-      (shell-command-to-string command)))
-#+end_src
-
-#+RESULTS:
-: er317/sh-check
-
-*** example
-
-#+header: :noweb-ref el-example
-#+header: :results code
-#+begin_src emacs-lisp
-  (er317/sh-check "echo \"foo\"" "fish$")
-#+end_src
-
-#+RESULTS:
-#+begin_src emacs-lisp
-"foo\n"
-#+end_src
-
-** json
-*** notes
-:PROPERTIES:
-:created_on: <2025-05-23 Fri 11:50>
-:uname:    @elitebook
-:END:
+** table
 :LOGBOOK:
-- Note taken on [2025-05-23 Fri 11:51] \\
-  er317/json-safe to be trashed? Seems like json-* functions could do that.
+- Note taken on [2025-05-25 Sun 21:55] \\
+  Works, but just not needed anymore.
 :END:
-
-
-#+begin_src markdown
-```elisp
-(er317/json--safe "{ \"key\": \"foo\tbar\" }" '("\t" . "\\\\t"))
-````
-
-You’re asking: **Isn't this kind of escaping already handled by `json-encode` or similar built-in functions in Emacs?**
-
----
-
-### ✅ Short Answer
-
-Yes — **`json-encode` already escapes special characters** like `\t`, `\n`, `\"`, etc.
-So if you're building your JSON with **Lisp structures** and then using `json-encode`, **you don't need to escape strings manually**.
-
----
-
-### 🔍 But Here's the Important Distinction
-
-Your function is processing a **raw JSON string**, not a Lisp structure.
-
-So:
-
-```elisp
-(er317/json-safe "{ \"key\": \"foo\tbar\" }")
-```
-
-…takes in a JSON **string**, not a Lisp object like:
-
-```elisp
-(json-encode '(("key" . "foo	bar")))
-```
-
-In the latter case, `json-encode` will automatically output:
-
-```json
-{"key":"foo\\tbar"}
-```
-
-No need for `er317/json--safe`.
-
----
-
-### 🧠 So Why Might You Still Need Your Own Preprocessing?
-
-Use your `er317/json-safe` / `er317/json--safe` when:
-
-,* You get JSON **as a string from elsewhere** (not Lisp).
-,* You want to **clean, fix, or normalize** it before parsing or writing.
-,* You're doing things like applying `jq` to **hand-written or external JSON**, not generated from `json-encode`.
-
----
-
-### ✅ TL;DR
-
-| Use Case                                                | Built-in Handles It? | Use Your Preprocessor? |
-| ------------------------------------------------------- | -------------------- | ---------------------- |
-| You build JSON from Lisp and use `json-encode`          | ✅ Yes                | ❌ No                   |
-| You receive a raw JSON string (from API, buffer, noweb) | ❌ No                 | ✅ Yes                  |
-| You need to patch bad or exotic characters in JSON text | ❌ No                 | ✅ Yes                  |
-
----
-
-Let me know if you want to expand your safe-replacements to cover more JSON troublemakers (e.g. smart quotes, non-ASCII whitespace, etc.).
-\#+end\_src
-#+end_src
-
-*** preamble
-
-#+header: :noweb-ref el-filesys
-#+begin_src emacs-lisp
-  (load-file "../el/list.el")
-#+end_src
 
 *** module
-**** safe
-
-#+header: :noweb-ref el-json
+**** field-address
+***** code
+#+header: :noweb-ref el-table
 #+begin_src emacs-lisp
-  (defconst er317/json-safe-alist
-    '(("\t" . "\\\\t"))
-    "An association list of (REGEXP . REPLACEMENT) pairs to make strings JSON-safe.")
+  (defun er317/function-table-field-address (index)
+    "Table address for field INDEX"
+    (format "@1$%d..@>$%d" index index))
+  (defalias 'er317/field-address 'er317/function-table-field-address)
 #+end_src
 
 #+RESULTS:
-: er317/json-safe-alist
+: er317/field-address
 
-#+header: :noweb-ref el-json
-#+begin_src emacs-lisp
-  (defun er317/json--safe (string &rest re-rep)
-    "Make a STRING JSON-safe by replacing REGEXP-REPLACEMENT pairs in RE-REP"
-    (if (null re-rep)
-        string
-      (let* ((pair (car re-rep))
-             (re (car pair))
-             (rep (cdr pair))
-             (result (replace-regexp-in-string re rep string)))
-        (apply 'er317/json--safe result (cdr re-rep)))))
-#+end_src
-
-#+RESULTS:
-: er317/json--safe
-
-
-#+header: :noweb-ref el-example
-#+header: :results verbatim
-#+begin_src emacs-lisp
-  (er317/json--safe "{ \"key\": \"foo	bar\" }" '("\t" . "\\\\t"))
-#+end_src
-
-#+RESULTS:
-: "{ \"key\": \"foo\\tbar\" }"
-
-#+header: :noweb-ref el-json
-#+begin_src emacs-lisp
-  (defun er317/json-safe (string)
-    "Recursively apply REGEXP-REPLACEMENT pairs in RE-REP to STRING."
-    (apply 'er317/json--safe string er317/json-safe-alist))
-#+end_src
-
-#+RESULTS:
-: er317/json-safe
-
-#+header: :noweb-ref el-example
-#+header: :results verbatim
-#+begin_src emacs-lisp
-  (er317/json-safe "{ \"key\": \"foo	bar\" }")
-#+end_src
-
-#+RESULTS:
-: "{ \"key\": \"foo\\tbar\" }"
-
-** string
-*** wrap-single-quotes
-**** code
-#+begin_src emacs-lisp
-  (defun er317/function-string-wrap-single-quotes (string)
-    "Wraps STRING with single quotes if absent."
-    (if (string-match-p "^'.*'$" string)
-       string
-      (concat "'" string "'")))
-  (defalias 'er317/wrap-single-quotes 'er317/function-string-wrap-single-quotes)
-#+end_src
-
-#+RESULTS:
-: er317/wrap-single-quotes
-
-**** example
+***** example
 #+header: :noweb-ref el-example
 #+begin_src emacs-lisp
-  (let ((string (buffer-file-name (current-buffer))))
-    (format "before: %s\nafter: %s" string 
-             (funcall 'er317/wrap-single-quotes string)))
+  (er317/field-address 2)
 #+end_src
 
 #+RESULTS:
-: before: /home/erwann/.emacs.d/routinel.org
-: after: '/home/erwann/.emacs.d/routinel.org'
+: @1$2..@>$2
+
+**** get-range
+***** code
+#+header: :noweb-ref el-table
+#+begin_src emacs-lisp
+  (defun er317/function-table-get-range-at-file (tbl-id range-address &optional file-name)
+    "Get list of values in RANGE-ADDRESS from TBL-ID at FILE-NAME.
+       Credits: https://redd.it/r2nig7"
+    (let ((file-name (or file-name (buffer-file-name (current-buffer)))))
+      (with-current-buffer (find-file-noselect file-name)
+        (let ((result-with-properties
+               (org-table-get-remote-range tbl-id range-address)))
+          (mapcar (lambda (s)
+                    (substring-no-properties (substring s 1 -1)))
+                  result-with-properties)))))
+  (defalias 'er317/table-range 'er317/function-table-get-range-at-file)
+#+end_src
+
+#+RESULTS:
+: er317/table-range
+
+***** example
+
+#+header: :noweb-ref el-example
+#+header: :results value verbatim
+#+begin_src emacs-lisp
+(er317/table-range "tbl-foo-bar-string" (format "@1$%d..@>$%d" 2 2))
+#+end_src
+
+#+RESULTS:
+: ("x" "y")
+
+**** lookup
+***** code
+#+header: :noweb-ref el-table
+#+begin_src emacs-lisp
+    (defun er317/function-table-lookup (tbl-id key &optional file-name key-index value-index match-predicate)
+      "Lookup field KEY-INDEX and return corresponding entry in field VALUE-INDEX from table TBL-ID."
+      (interactive)
+      (let ((key-address (er317/field-address (or key-index 1)))
+            (value-address (er317/field-address (or value-index 2)))
+            (file-name (or file-name (buffer-file-name (current-buffer))))
+            (match-predicate (or match-predicate 'string-match-p)))
+        (let ((key-range (er317/table-range tbl-id key-address file-name))
+              (value-range (er317/table-range tbl-id value-address file-name)))
+          (org-lookup-first key key-range value-range 'string-match-p))))
+  (defalias 'er317/table-lookup 'er317/function-table-lookup)
+#+end_src
+
+#+RESULTS:
+: er317/table-lookup
+
+***** example
+
+#+header: :noweb-ref el-example
+#+begin_src emacs-lisp
+(er317/table-lookup "tbl-foo-bar-string" "foo")
+#+end_src
+
+#+RESULTS:
+: x
+
+#+header: :noweb-ref el-example
+#+begin_src emacs-lisp
+(er317/table-lookup "tbl-foo-bar-string" "bar")
+#+end_src
+
+#+RESULTS:
+: y
 

@@ -1,0 +1,13 @@
+# Ignore everything
+*
+
+# But not these files/directories
+!README.md
+!org/
+!sh/
+!el/
+
+# Ensure contents of the directories are not ignored
+!org/**
+!sh/**
+!el/**
