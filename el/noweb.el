@@ -18,29 +18,30 @@
             (let ((expanded (org-babel-expand-noweb-references info)))
               (push expanded results))))))
     (nreverse results)))
-(cl-defun er317/noweb-ref-collect (&key head ref-list tail (results '()))
-  "Collects source blocks with nowef-ref matching REF-LIST with optional HEAD and TAIL anchors. Recurses on duplicates inside REF-LIST."
-  (if (null ref-list)
-      results
-    (let ((parsed-list '())
-          (duplicate-found nil))
-      ;; Collect unique segment until first duplicate
-      (while (and ref-list (not duplicate-found))
-        (let ((item (car ref-list)))
-          (if (member item parsed-list)
-              (setq duplicate-found t)
-            (push item parsed-list)
-            (setq ref-list (cdr ref-list)))))
-      ;; Expand current segment
-      (let* ((regex-body (mapconcat #'identity (nreverse parsed-list) "\\|"))
-             (regex (concat (or head "") "\\(" regex-body "\\)" (or tail "")))
-             (segment-results (apply #'er317/noweb-ref-expand `(:regex ,regex))))
-        ;; Recurse on remainder
-        (er317/noweb-ref-collect
-         :head head
-         :ref-list ref-list
-         :tail tail
-         :results (append results segment-results))))))
+(cl-defun er317/noweb-ref-collect
+    (&key head ref-list tail (results '()) (order :buffer))
+  "Collect source blocks matching REF-LIST in ORDER (:buffer or :ref-list)."
+  (pcase order
+    (:ref-list
+     ;; One-by-one regex match per ref
+     (if (null ref-list)
+         results
+       (let* ((ref (car ref-list))
+              (regex (concat (or head "") ref (or tail "")))
+              (segment-results (apply #'er317/noweb-ref-expand `(:regex ,regex))))
+         (er317/noweb-ref-collect
+          :head head
+          :ref-list (cdr ref-list)
+          :tail tail
+          :results (append results segment-results)
+          :order order))))
+    (:buffer
+     ;; Collapse ref-list into a single regex, match in buffer order
+     (let* ((regex-body (mapconcat #'identity ref-list "\\|"))
+            (regex (concat (or head "") "\\(" regex-body "\\)" (or tail "")))
+            (segment-results (apply #'er317/noweb-ref-expand `(:regex ,regex))))
+       (append results segment-results)))
+    (_ (error "Unknown :order %s" order))))
 (cl-defun er317/noweb-ref-assemble
     (&key key-list head ref-list tail parse-fn encode-fn)
   "Expand noweb REF-LIST, each surrounded by HEAD and TAIL.
