@@ -20,7 +20,7 @@
 * source
 ** el
 *** support
-**** customize
+**** search
 
 Evaluate (~C-c C-c~)
 #+begin_src emacs-lisp
@@ -29,7 +29,7 @@ Evaluate (~C-c C-c~)
     :title "Customize Properties")
 #+end_src
 
-**** TODO [#C] support
+**** TODO [#C] noweb-ref
 :PROPERTIES:
 :created_on: <2025-05-27 Tue 00:11>
 :uname:    @elitebook
@@ -46,9 +46,8 @@ Evaluate (~C-c C-c~)
  #+header: :var ref=""
  #+header: :var lang=""
  #+begin_src emacs-lisp
-  (concat "#+header: :noweb-ref " ref "\n" "#+begin_src " lang "\n" body "\n" "#+end_src")
-  #+end_src
-#+end_src
+   (concat "#+header: :noweb-ref " ref "\n" "#+begin_src " lang "\n" body "\n" "#+end_src")
+ #+end_src
 
 ***** collect
 
@@ -395,7 +394,7 @@ Pending:
 : er317/noweb-ref-collect
 
 Evaluate (~C-c C-c~)
-#+call: el-collect[:post el-wrap(body=*this*,lang="sh",ref="sh-coll")](ref-list='("cat-eof" "hello" "ahoy" "eof") order=':buffer)
+#+call: el-collect[:post el-wrap(body=*this*,lang="sh",ref="sh-coll")](ref-list='("cat-eof" "hello" "ahoy" "eof"), order=':buffer)
 
 #+RESULTS:
 #+header: :noweb-ref sh-coll
