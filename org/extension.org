@@ -61,6 +61,7 @@ whose values are non-nil."
 **** function
 ***** module
 ****** compose
+
 #+header: :noweb-ref el-function-beta
 #+begin_src emacs-lisp
   (defun er317/compose (arg &rest functions)
@@ -286,19 +287,33 @@ whose values are non-nil."
 
 #+header: :noweb-ref el-noweb
 #+begin_src emacs-lisp
-  (cl-defun er317/noweb-ref-collect (&key head ref-list tail)
-    "Builds a regex from REF-LIST with optional HEAD and TAIL anchors, then forwards to `er317/noweb-ref-expand`."
-    (let* ((regex-body (mapconcat #'identity ref-list "\\|"))
-           (regex (concat (or head "") "\\(" regex-body "\\)" (or tail "")))
-           (args `(:regex ,regex)))
-      (apply #'er317/noweb-ref-expand args)))
+  (cl-defun er317/noweb-ref-collect (&key head ref-list tail (results '()))
+    "Collects source blocks with nowef-ref matching REF-LIST with optional HEAD and TAIL anchors. Recurses on duplicates inside REF-LIST."
+    (if (null ref-list)
+        results
+      (let ((parsed-list '())
+            (duplicate-found nil))
+        ;; Collect unique segment until first duplicate
+        (while (and ref-list (not duplicate-found))
+          (let ((item (car ref-list)))
+            (if (member item parsed-list)
+                (setq duplicate-found t)
+              (push item parsed-list)
+              (setq ref-list (cdr ref-list)))))
+        ;; Expand current segment
+        (let* ((regex-body (mapconcat #'identity (nreverse parsed-list) "\\|"))
+               (regex (concat (or head "") "\\(" regex-body "\\)" (or tail "")))
+               (segment-results (apply #'er317/noweb-ref-expand `(:regex ,regex))))
+          ;; Recurse on remainder
+          (er317/noweb-ref-collect
+           :head head
+           :ref-list ref-list
+           :tail tail
+           :results (append results segment-results))))))
 #+end_src
 
 #+RESULTS:
 : er317/noweb-ref-collect
-
-#+RESULTS:
-: foobar
 
 ****** encode
 
@@ -326,16 +341,47 @@ whose values are non-nil."
 
 ***** example
 
+#+name: el-wrap
+#+header: :var body=""
+#+header: :var ref="new-ref"
+#+header: :var lang=""
+#+begin_src emacs-lisp
+  (concat "#+header: :noweb-ref " ref "\n" "#+begin_src " lang "\n" body "\n" "#+end_src")
+#+end_src
+
 #+header: :noweb yes
 #+header: :results verbatim
 #+begin_src emacs-lisp
-  (string-join
-   (er317/noweb-ref-expand :regex "sh-\\(foo\\|bar\\)") "\n")
+   (er317/noweb-ref-expand :regex "sh-\\(foo\\|bar\\)")
 #+end_src
 
 #+RESULTS:
-: "echo 'Hello, world!'
-: echo 'Hello, universe!'"
+: ("echo 'Hello, world!'" "echo 'Hello, universe!'")
+
+#+name: el-collect
+#+header: :results raw
+#+header: :var head="^sh-"
+#+header: :var tail="$"
+#+header: :var ref-list='("foo" "bar" "foo")
+#+begin_src emacs-lisp
+  (string-join
+   (er317/noweb-ref-collect :head head :ref-list ref-list :tail tail) "\n")
+#+end_src
+
+#+RESULTS: el-collect
+echo 'Hello, world!'
+echo 'Hello, universe!'
+echo 'Hello, world!'
+
+#+call: el-collect[:post el-wrap(body=*this*,lang="sh")](ref-list='("foo" "bar" "foo"))
+
+#+RESULTS:
+#+header: :noweb-ref new-ref
+#+begin_src sh
+echo 'Hello, world!'
+echo 'Ahoy, planet!'
+echo 'Hello, world!'
+#+end_src
 
 #+name: el-json-object
 #+header: :var head="^json-"
@@ -387,16 +433,7 @@ whose values are non-nil."
   ]
 }
 
-
-#+name: el-json-wrap
-#+header: :var body=""
-#+header: :var ref=""
-#+header: :var lang="json"
-#+begin_src emacs-lisp
-  (concat "#+header: :noweb-ref " ref "\n" "#+begin_src " lang "\n" body "\n" "#+end_src")
-#+end_src
-
-#+call: el-json-object[:post el-json-wrap(*this*,ref="json-merge") :results raw](ref-list='("foo" "bar" "qux"), key-list='("foo" "bar" "qux"))
+#+call: el-json-object[:post el-wrap(body=*this*,lang="json",ref="json-merge") :results raw](ref-list='("foo" "bar" "qux"), key-list='("foo" "bar" "qux"))
 
 #+RESULTS:
 #+header: :noweb-ref json-merge
@@ -771,7 +808,7 @@ then promote the rest of the subtree."
 
 #+header: :noweb-ref sh-bar
 #+begin_src sh
-  echo 'Hello, universe!'
+  echo 'Ahoy, planet!'
 #+end_src
 
 #+name: bar-qux
