@@ -18,4 +18,5 @@ Tip: use `org-cut-subtree` prior to this one."
         (setq level (funcall level-fn (org-current-level)))
         (org-end-of-subtree)
         (org-paste-subtree level nil nil t)
-        (save-buffer))))
+        (save-buffer))
+      (format "✅ Pasted subtree at level %d in %s" level target-file)))

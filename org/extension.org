@@ -394,24 +394,26 @@ Pending:
 : er317/noweb-ref-collect
 
 Evaluate (~C-c C-c~)
-#+call: el-collect[:post el-wrap(body=*this*,lang="sh",ref="sh-coll")](ref-list='("cat-eof" "hello" "ahoy" "eof"), order=':buffer)
+#+call: el-collect[:post el-wrap(body=*this*,lang="sh",ref="sh-coll")](ref-list='("shebang" "cat-eof" "hello" "ahoy" "eof"), order=':buffer)
 
 #+RESULTS:
 #+header: :noweb-ref sh-coll
 #+begin_src sh
+#!/usr/bin/env bash
 cat << EOF 
-EOF
 'Ahoy, planet!'
 'Hello, world!'
 'Hello, debugger!'
+EOF
 #+end_src
 
 Evaluate (~C-c C-c~)
-#+call: el-collect[:post el-wrap(body=*this*,lang="sh",ref="sh-coll")](ref-list='("cat-eof" "hello" "ahoy" "eof"), order=':ref-list)
+#+call: el-collect[:post el-wrap(body=*this*,lang="sh",ref="sh-coll")](ref-list='("shebang" "cat-eof" "hello" "ahoy" "eof"), order=':ref-list)
 
 #+RESULTS:
 #+header: :noweb-ref sh-coll
 #+begin_src sh
+#!/usr/bin/env bash
 cat << EOF 
 'Hello, world!'
 'Hello, debugger!'
@@ -550,7 +552,8 @@ EOF
   	(message "DEBUG: %s" level)
           (org-end-of-subtree)
           (org-paste-subtree level nil nil t)
-          (save-buffer))))
+          (save-buffer)
+  	(format "Pasted subtree at level %d in %s" level target-file))))
 #+end_src
 
 #+RESULTS:
@@ -854,6 +857,11 @@ then promote the rest of the subtree."
 
 ** sh
 *** test-cases
+
+#+header: :noweb-ref sh-shebang
+#+begin_src sh
+  #!/usr/bin/env bash
+#+end_src
 
 #+header: :noweb-ref sh-cat-eof
 #+begin_src sh
