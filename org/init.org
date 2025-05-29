@@ -91,14 +91,14 @@ This is meta-code for generating Emacs initialization file and ensuring it is lo
 #+end_src
 
 *** tangle
-**** package-manager
+**** manager
 
 #+header: :noweb-ref el-leave-out
 #+begin_src emacs-lisp
   ;; https://github.com/radian-software/straight.el?tab=readme-ov-file#getting-started
 #+end_src
 
-#+header: :noweb-ref el-package-manager
+#+header: :noweb-ref el-manager
 #+begin_src emacs-lisp
   (let ((bootstrap-file
          (expand-file-name
@@ -118,7 +118,7 @@ This is meta-code for generating Emacs initialization file and ensuring it is lo
 #+RESULTS:
 : t
 
-#+header: :noweb-ref el-package-manager
+#+header: :noweb-ref el-manager
 #+begin_src emacs-lisp
   (straight-use-package 'use-package)
 #+end_src
@@ -130,7 +130,7 @@ This is meta-code for generating Emacs initialization file and ensuring it is lo
 #+end_src
 
 
-#+header: :noweb-ref el-package-manager
+#+header: :noweb-ref el-manager
 #+begin_src emacs-lisp
   (straight-use-package 'org)
 #+end_src
@@ -138,8 +138,6 @@ This is meta-code for generating Emacs initialization file and ensuring it is lo
 #+RESULTS:
 : t
 
-**** eval-and-compile
-***** use-package
 
 #+header: :noweb-ref el-leave-out
 #+begin_src emacs-lisp
@@ -148,22 +146,23 @@ This is meta-code for generating Emacs initialization file and ensuring it is lo
   ;;    (package-install 'use-package))
 #+end_src
 
-#+header: :noweb-ref el-eval-and-compile
+#+header: :noweb-ref el-manager
 #+begin_src emacs-lisp
-    (setq use-package-always-ensure t)
+  (eval-and-compile
+    (setq use-package-always-ensure t))
   ;; (setq use-package-always-defer t))
 #+end_src
 
 #+RESULTS:
 : t
 
-***** module
+**** delegate
 
-#+header: :noweb-ref el-eval-and-compile
+#+header: :noweb-ref el-delegate
 #+begin_src emacs-lisp
   (let ((dir-name (file-name-directory
   		 (or (file-truename load-file-name) buffer-file-name))))
-    (dolist (pair meta-module-list)
+    (dolist (pair meta-delegate-list)
       (let ((source-file (plist-get pair :file))
   	  (source-lang (plist-get pair :lang)))
         (with-current-buffer (find-file-noselect (expand-file-name source-file dir-name))
@@ -285,21 +284,13 @@ Execute:
 
 #+header: :noweb yes
 #+begin_src emacs-lisp 
-  <<el-package-manager>>
-#+end_src
-
-#+begin_src emacs-lisp
-  (eval-and-compile
+  <<el-manager>>
 #+end_src
 
 #+header: :noweb yes
-#+header: :var meta-module-list=(er317/init-parameter-value "delegate-org")
+#+header: :var meta-delegate-list=(er317/init-parameter-value "delegate-org")
 #+begin_src emacs-lisp 
-  <<el-eval-and-compile>>
-#+end_src
-
-#+begin_src emacs-lisp
-  )
+  <<el-delegate>>
 #+end_src
 
 ** sh
