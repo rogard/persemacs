@@ -29,16 +29,7 @@ Evaluate (~C-c C-c~)
     :title "Customize Properties")
 #+end_src
 
-**** TODO [#C] noweb-ref
-:PROPERTIES:
-:created_on: <2025-05-27 Tue 00:11>
-:uname:    @elitebook
-:END:
-:LOGBOOK:
-- Note taken on [2025-05-27 Tue 00:12] \\
-  Find a way to tangle this as an org file, while still being able to use it locally.
-:END:
-
+**** noweb-ref                                                    :tangle:
 ***** wrap
 
  #+name: el-wrap
@@ -74,11 +65,13 @@ Evaluate (~C-c C-c~)
 #+header: :var key-list='()
 #+header: :var parse-fn='json-read-from-string
 #+header: :var encode-fn='json-encode
+#+header: :var order=':buffer
 #+begin_src emacs-lisp
   (er317/noweb-ref-assemble
    :head head
    :ref-list ref-list
    :tail tail
+   :order order
    :key-list key-list
    :parse-fn parse-fn
    :encode-fn encode-fn)
@@ -96,6 +89,7 @@ Evaluate (~C-c C-c~)
 **** list
 ***** module
 ****** plist-if
+
 #+header: :noweb-ref el-list-beta
 #+begin_src emacs-lisp
   (cl-defun er317/plist-if (&rest keyval-list)
@@ -312,7 +306,7 @@ whose values are non-nil."
 **** noweb-ref
 :PROPERTIES:
 :CUSTOM_ID: source-el-noweb-ref
-:EN:D
+:END:
 
 ***** preamble
 
@@ -357,10 +351,7 @@ whose values are non-nil."
 #+RESULTS:
 : ("'Hello, world!'" "'Hello, debugger!'" "'Ahoy, planet!'")
 
-****** TODO collect
-
-Pending:
-[ ] Test
+****** collect
 
 #+header: :noweb-ref el-noweb
 #+begin_src emacs-lisp
@@ -426,24 +417,65 @@ EOF
 #+header: :noweb-ref el-noweb
 #+begin_src emacs-lisp
   (cl-defun er317/noweb-ref-assemble
-      (&key key-list head ref-list tail parse-fn encode-fn)
+      (&key key-list head ref-list tail order parse-fn encode-fn)
     "Expand noweb REF-LIST, each surrounded by HEAD and TAIL.
-  PARSE-FN parses the raw strings; 
-  ENCODE-FN turns parsed data into final output.
-  When provided, KEY-LIST is passed to ENCODE-FN."
-    (let* ((raw-blocks (er317/noweb-ref-collect :head head :ref-list ref-list :tail tail))
-           (parsed-list (mapcar parse-fn raw-blocks)))
-      (when (and key-list
-                 (/= (length key-list) (length parsed-list)))
-        (error "key-list and parsed-list must be of equal length"))
-      (funcall encode-fn
-               (if key-list
-                   (cl-pairlis key-list parsed-list)
-                 parsed-list))))
+    PARSE-FN parses the raw strings; 
+    ENCODE-FN turns parsed data into final output.
+    When provided, KEY-LIST is passed to ENCODE-FN."
+    (let* ((raw-blocks
+            (apply #'er317/noweb-ref-collect
+  		 `(:head ,head :ref-list ,ref-list :tail ,tail
+  			 ,@(when order `(:order ,order)))))
+      (parsed-list (mapcar parse-fn raw-blocks)))
+    (when (and key-list
+               (/= (length key-list) (length parsed-list)))
+      (error "key-list and parsed-list must be of equal length"))
+    (funcall encode-fn
+             (if key-list
+                 (cl-pairlis key-list parsed-list)
+               parsed-list))))
 #+end_src
 
 #+RESULTS:
 : er317/noweb-ref-assemble
+
+****** org
+
+#+header: :noweb-ref el-noweb-org
+#+begin_src emacs-lisp
+  (defconst er317/noweb-ref-org-config
+      '( :url-ext-org "https://github.com/rogard/persemacs/raw/ffed250e6c0549bd75b26b95b26ec8e5ebc70382/org/extension.org"
+         :url-org-el "https://github.com/rogard/persemacs/raw/ffed250e6c0549bd75b26b95b26ec8e5ebc70382/el/org.el"
+         :org-heading "^\\*\\{4\\} noweb-ref[ \t]*:.*\\<tangle\\>.*:$" ) )
+#+end_src
+
+#+header: :noweb-ref el-noweb-org
+#+begin_src emacs-lisp
+  (cl-defun er317/noweb-ref-org ()
+    "Inserts Org support for noweb-ref"
+    (let (
+  	  (url-ext-org (plist-get er317/noweb-ref-config :url-ext-org))
+  	  (url-org-el (plist-get er317/noweb-ref-config :url-org-el))
+  	  (org-heading (plist-get er317/noweb-ref-config :org-heading))
+  	  )
+      (let ((local-file (make-temp-file "noweb-" nil ".el")))
+        (url-copy-file url-org-el local-file t)
+        (load-file local-file)
+        (progn
+  	(with-current-buffer (url-retrieve-synchronously url-ext-org)
+      	  (re-search-forward "\n\n")
+      	  (let ((content (buffer-substring (point) (point-max))))
+      	    (with-temp-buffer
+      	      (insert content)
+      	      (goto-char (point-min))
+      	      (org-mode)
+      	      (search-forward org-heading)
+      	      (org-back-to-heading)
+      	      ;;(buffer-substring (point) (point-max))
+      	      (org-cut-subtree))))
+  	(er317/org-subtree-paste))
+        (delete-file local-file))))
+#+end_src
 
 ***** example
 
@@ -904,7 +936,16 @@ then promote the rest of the subtree."
 #+header: :noweb yes
 #+begin_src emacs-lisp
   <<el-license>>
+#+end_src
+
+#+header: :noweb yes
+#+begin_src emacs-lisp
   <<el-noweb>>
+#+end_src
+
+#+header: :noweb yes
+#+begin_src emacs-lisp
+  <<el-noweb-org>>
 #+end_src
 
 *** json
