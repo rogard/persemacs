@@ -148,36 +148,101 @@ whose values are non-nil."
 
 **** function
 ***** module
-****** default
+****** refactor
 
-#+header: :noweb-ref el-key
+#+header: :noweb-ref el-func
 #+begin_src emacs-lisp
-  (cl-defun er317/inspec-key-default (&key func key)
-    "Return the default value for KEY in the argument list of FUNC."
-    ;; TODO
-    )
+(cl-defmacro er317/func-refactor (&key
+                                  (source-func 'identity)
+                                  args-func
+                                  (result-func 'identity)
+                                  target-func
+                                  msg-type
+                                  target-key-list)
+  (condition-case err
+      (let ((args-plist (list
+                         :source-func source-func
+                         :args-func args-func
+                         :result-func result-func
+                         :target-func target-func
+                         :msg-type msg-type
+                         :target-key-list target-key-list)))
+        (cond
+         ;; Auto-generate args-func if not provided and target-key-list is available
+         ((not args-func)
+          (if (not target-key-list)
+              (error "Cannot determine args-func — supply :args-func or :target-key-list")
+            `(er317/func-refactor
+              ,@(plist-put args-plist
+                           :args-func
+                           `(lambda (&rest kv)
+                              (mapcar (lambda (k) (plist-get kv k))
+                                      ',target-key-list))))))
+
+         ;; Handle quoted symbol for :target-func (e.g. 'my-func)
+         ((not (symbolp target-func))
+          (if (and (consp target-func) (eq (car target-func) 'quote))
+              `(er317/func-refactor
+                ,@(plist-put args-plist :target-func (cadr target-func)))
+            (error "target-func must be a symbol or quoted symbol")))
+
+         ;; Final case: All arguments resolved — emit function definition
+         (t
+          `(cl-defun ,target-func (&rest keyval)
+             ,(format "Refactored wrapper around `%s`, accepting keyword args %s."
+                      source-func target-key-list)
+             (condition-case err
+                 (let* ((result-raw
+                         (let ((args-list (apply ,args-func keyval)))
+                           (apply ,source-func args-list)))
+                        (result
+                         (if ,result-func
+                             (funcall ,result-func result-raw)
+                           (progn
+                             (warn "No output function found for %s; returning raw output"
+                                   ',target-func)
+                             result-raw))))
+                   result)
+               (error
+                (er317/raise
+                 :type ',msg-type
+                 :message (error-message-string err)
+                 :arg-list keyval)))))))
+    (error
+     `(er317/raise
+       :type 'macro-error
+       :message ,(error-message-string err)))))
 #+end_src
 
 #+RESULTS:
-: er317/func-key-default
+: er317/func-refactor
 
+#+header: :noweb-ref el-example
 #+begin_src emacs-lisp
-  (cl-defun er317/debug (&key (foo "X")) ""
-  	  (message "%s" foo))
+  (defun er317/source-func (x y)
+    (message "ARGS: x=%S y=%S" x y)
+    (+ x y))
 #+end_src
 
 #+RESULTS:
-: er317/debug
+: er317/source-func
 
-#+header: :results raw
-#+begin_src emacs-lisp
-(er317/func-key-default :func 'er317/debug :key :foo)
+#+header: :noweb-ref el-example
+#+begin_src emacs-lisp  
+  (er317/func-refactor
+   :source-func 'er317/source-func
+   :target-key-list '(:x :y)
+   :result-func (lambda (result) (* result 10))
+   :target-func 'er317/target-func)
 #+end_src
 
 #+RESULTS:
-nil
-nil
+: er317/target-func
 
+#+header: :noweb-ref el-example
+#+begin_src emacs-lisp  
+  (er317/target-func :x 2 :y 3) ;; => 30
+#+end_src
 
 ****** compose
 
@@ -319,83 +384,72 @@ nil
 #+RESULTS:
 : er317/filesys-unique-clone-interactive
 
-**** src-block
-***** module
-****** info
-
-#+header: :noweb-ref el-src-block-beta
-#+begin_src emacs-lisp
-  (defun er317/src-block-info (name &optional no-eval)
-    "Gets info of block NAME"
-    (let ((block (org-babel-find-named-block name)))
-  	 (when block
-  		 (save-excursion
-                     (goto-char block)
-                     (org-babel-get-src-block-info no-eval)))))
-#+end_src
-
-#+RESULTS:
-: er317/src-block-info
-
-#+header:  :noweb-ref el-example
-#+begin_src emacs-lisp
-(er317/src-block-info "json-foo")
-#+end_src
-
-#+RESULTS:
-| json | { "key" : "X" } | ((:colname-names) (:rowname-names) (:result-params replace) (:result-type . value) (:results . replace) (:exports . code) (:tangle . no) (:hlines . no) (:noweb . no) (:cache . no) (:session . none)) |   | json-foo-bar | 1239 | (ref:%s) |
-
-#+header: :noweb-ref el-example
-#+header: :results verbatim raw
-#+begin_src emacs-lisp
-  (er317/src-block-properties "bar-qux" :header)
-#+end_src
-
-#+RESULTS:
-((":var value=\"qux\""))
-
-#+header: :noweb-ref el-example
-#+begin_src emacs-lisp
-  (org-babel-parse-header-arguments
-   (mapconcat (lambda (pair) (concat (car pair) " " (cadr pair)))
-              (er317/src-block-properties "bar-qux" :header)
-              " "))
-#+end_src
-
-#+RESULTS:
-: ((:var . value="qux"))
-
 **** babel
+***** load
+
+#+header: :noweb-ref el-babel
+#+begin_src emacs-lisp
+  (load-file "./except.el")
+#+end_src
+
+#+header: :noweb-ref el-babel
+#+begin_src emacs-lisp
+  (load-file "./func.el")
+#+end_src
+
 ***** info
 
 #+header: :noweb-ref el-babel
 #+begin_src emacs-lisp
-  (cl-defun er317/as-plist (&key info)
-    "Return INFO as a property list with keys
-    :lang,
-    :body,
-    :header-args,
-    :switches,
-    :name,
-    :start,
-    and :coderef."
-    ;; BUG - Syntax highlighting
-    (unless (and info (listp info) (>= (length info) 3))
-      (error "Invalid Org Babel info object"))
-    (let ((lang         (nth 0 info))
-          (body         (nth 1 info))
-          (header-args  (nth 2 info))
-          (switches     (nth 3 info))
-          (name         (nth 4 info))
-          (start        (nth 5 info))
-          (coderef      (nth 6 info)))
-      (list :lang lang
-            :body body
-            :header-args header-args
-            :switches switches
-            :name name
-            :start start
-            :coderef coderef)))
+  (er317/func-refactor
+   :target-func 'er317/org-babel-info-as-plist
+   :args-func 'identity
+;;   :msg-type msg-type
+   :result-func (lambda (info)
+  (let ((keyval-list '(:lang 0 :body 1 :header-args 2 :switches 3 :name 4 :start 5 :coderef 6))
+        (result '()))
+    (progn
+      (unless (and info (listp info) (>= (length info) 3)) ;; <-- syntax highlighting bug
+        (error "Invalid Org Babel info object %s" info))
+             (while keyval-list
+               (let ((key (pop keyval-list))
+                     (pos (pop keyval-list)))
+                 (push key result)
+                 (push (nth pos info) result)))
+             (nreverse result)))))) ;; <-- one more highlighter due to bug
+#+end_src
+
+#+RESULTS:
+: er317/org-babel-info-as-plist
+
+#+header: :noweb-ref el-trash
+#+begin_src emacs-lisp
+    ;;  (cl-defun er317/org-babel-info-as-plist (&key info)
+  ;;    "Return INFO as a property list with keys
+  ;;    :lang,
+  ;;    :body,
+  ;;    :header-args,
+  ;;    :switches,
+  ;;    :name,
+  ;;    :start,
+  ;;    and :coderef."
+  ;;    ;; BUG - Syntax highlighting
+  ;;    (unless (and info (listp info) (>= (length info) 3))
+  ;;      (error "Invalid Org Babel info object"))
+  ;;    (let ((lang         (nth 0 info))
+  ;;          (body         (nth 1 info))
+  ;;          (header-args  (nth 2 info))
+  ;;          (switches     (nth 3 info))
+  ;;          (name         (nth 4 info))
+  ;;          (start        (nth 5 info))
+  ;;          (coderef      (nth 6 info)))
+  ;;      (list :lang lang
+  ;;            :body body
+  ;;            :header-args header-args
+  ;;            :switches switches
+  ;;            :name name
+  ;;            :start start
+  ;;            :coderef coderef)))
 #+end_src
 
 ***** comment
@@ -451,7 +505,7 @@ nil
             ;; (message "DEBUG parsed params: %S" params)
             (when (and ref (string-match-p regex ref))
                 (push info results)))))
-      (nreverse results)))
+      (nreverse results))))
 #+end_src
 
 #+RESULTS:
@@ -473,11 +527,11 @@ nil
 ********* json
 
 #+begin_src emacs-lisp
-  (er317/func-doc
+  (er317/nowef-ref-register
    :key ':json
    :func (lambda (info) (json-read-from-string (plist-get (er317/org-babel-info info) :body)))
    :doc "`json-read-from-string`"
-   :group :read)
+   :group :read-info)
 #+end_src
 
 ********* body
@@ -789,19 +843,6 @@ EOF
 
 #+header: :noweb-ref el-src-block-beta
 #+begin_src emacs-lisp
-  (defun er317/src-block-element (name) "Return the whole block element"
-         (save-excursion
-  	 (goto-char (org-babel-find-named-block name))
-  	 (org-element-at-point)))
-#+end_src
-
-#+header: :noweb-ref el-example
-#+begin_src emacs-lisp
-  (er317/src-block-element "bar-qux")
-#+end_src
-
-#+header: :noweb-ref el-src-block-beta
-#+begin_src emacs-lisp
   (defun er317/src-block-properties (name &rest properties)
     "Return block properties from the named block element. Defaults to :value if no properties are given."
     (let* ((element (er317/src-block-element name))  ;; Use er317/src-block-element to get the block
@@ -891,134 +932,6 @@ then promote the rest of the subtree."
 #+RESULTS:
 : er317/org-subtree-promote
 
-****** refactor
-******* define
-
-#+header: :noweb-ref el-org-beta
-#+begin_src emacs-lisp
-  (cl-defmacro er317/org-refactor-define (&key
-      					     ((:source source-fn))
-      					     ((:args args-lambda))
-      					     ((:result result-lambda))
-      					     ((:target target-fn)))
-    `(cl-defun ,target-fn (&rest keyval)
-       ,(format "Wrapper around `%s` with optional input/output transformation." source-fn)
-       (let* ((result-raw (if ,args-lambda
-                              (let ((args-list (apply ,args-lambda keyval)))
-                                (apply ,source-fn args-list))
-                            (,source-fn)))
-              (result (if ,result-lambda
-  			(funcall ,result-lambda result-raw)
-                        (progn
-  			(warn "No output function found for %s; returning raw output instead" ',target-fn)
-  			result-raw))))
-         result)))
-#+end_src
-
-#+RESULTS:
-: er317/org-refactor-define
-
-******* example
-
-#+header: :noweb-ref el-example
-#+begin_src emacs-lisp
-    (defun my-source-fn (x y) (+ x y))
-#+end_src
-
-#+RESULTS:
-: my-source-fn
-
-#+header: :noweb-ref el-example
-#+begin_src emacs-lisp  
-  (er317/org-refactor-define
-   :source 'my-source-fn
-   :args (lambda (&rest kv) (list (plist-get kv :x) (plist-get kv :y))) ;; ignore input
-   :result (lambda (result) (* result 10))
-   :target my-wrapped-fn)
-#+end_src
-
-#+RESULTS:
-: my-wrapped-fn
-
-#+header: :noweb-ref el-example
-#+begin_src emacs-lisp  
-  (my-wrapped-fn :x 2 :y 3) ;; => 30
-#+end_src
-
-#+RESULTS:
-: 50
-
-******* apply
-
-#+header: :noweb-ref el-org-beta
-#+begin_src emacs-lisp
-  (er317/org-refactor-define
-   :source org-heading-components
-   :target er317/org-heading-components
-   :args nil
-   :result (lambda (list)
-             (let ((keyval-list '(:level 0 :reduced-level 1 :todo-keyword 2 :priority 3 :headline 4 :tags 5))
-                   (result '()))
-               (while keyval-list
-                 (let ((key (pop keyval-list))
-                       (pos (pop keyval-list)))
-                   (push key result)
-                   (push (nth pos list) result)))
-               (nreverse result))))
-#+end_src
-
-#+RESULTS:
-: er317/org-heading-components
-
-****** global
-
-#+header: :noweb-ref el-org-beta
-#+begin_src emacs-lisp
-  (cl-defun er317/org-global-header-position-next (&optional buffer)
-    "Return the BUFFER position where the next global header line (e.g. `#+property:`) should be inserted."
-    (with-current-buffer (or buffer (current-buffer))
-      (save-excursion
-        (goto-char (point-min))
-        (while (looking-at "^#\\+\\w+:")
-          (forward-line 1))
-        (point))))
-#+end_src
-
-***** property
-****** define
-
-#+header: :noweb-ref el-org-beta
-#+begin_src emacs-lisp
-  (cl-defmacro er317/org-property-define (&key
-                                        ((:name name-symb))
-                                        ((:key key-string))
-                                        ((:value value-lambda)))
-    "Create a function NAME-SYMB to set Org property KEY-STRING using VALUE-LAMBDA."
-    (let ((name-symb (or name-symb
-                         (intern (concat "er317/org-property-" key-string)))))
-      `(cl-defun ,name-symb (&rest keyval)
-         ,(format "Set the Org property %s using a computed value." key-string)
-         (let ((value (save-excursion (apply ,value-lambda keyval))))
-           (org-set-property ,key-string value)))))
-#+end_src
-
-#+RESULTS:
-: er317/org-property-define
-
-****** apply
-
-#+header: :noweb-ref el-org-beta
-#+begin_src emacs-lisp
-  (er317/org-property-define
-   :key "parent-id"
-   :value (lambda ()
-            (when (org-up-heading-safe)
-              (org-id-get-create))))
-#+end_src
-
-#+RESULTS:
-: er317/org-property-parent-id
-
 **** shell
 ***** module
 ****** jq
@@ -1067,104 +980,31 @@ then promote the rest of the subtree."
 {"key":"X"}
 #+end_src
 
-**** generic
-***** keyval
-
-#+begin_src emacs-lisp
-  (defvar er317/generic-keyval-plist () "")
-#+end_src
-
-#+begin_src emacs-lisp
-  (cl-defmacro
-      er317/generic-keyval-put (&key key value)
-    "Associate VALUE with KEY in `er317/generic-keyval-plist`.
-
-  Arguments:
-    :key   — A symbol or keyword identifying the handler.
-    :value — The value to associate with KEY."
-    `(setq er317/generic-keyval-plist
-           (plist-put er317/generic-keyval-plist
-                      ,key
-                      ,value)))
-#+end_src
-
-#+begin_src emacs-lisp
-  (defun er317/generic-keyval-get (key)
-    "Return value for KEY"
-    (plist-get er317/generic-keyval-plist key))
-#+end_src
-
-***** group
-
-#+begin_src emacs-lisp
-  (cl-defmacro
-      er317/generic-group-put (&key group symb-list)
-    "Create a macro from GROUP and SYMB-LIST that forwards to the backend."
-    (let* (symb-string
-  	 (string-join (symb-prefix "er317/generic") (symbol-name group) (symb-suffix "put") "-"))
-      (symb-intern (intern symb-string))
-      (backend-rest (mapcan (lambda (symb)
-  			    (let ((key (format ":%s" symb))) (list key symb))) symb-list))
-      (cl-defmacro symb-intern `(&key key ,@symb-list) ""
-  		 (apply #'er317/generic-backend-put :key key ,@back-rest))))
-#+end_src
-
-***** frontend
-
-#+begin_src emacs-lisp
-  (cl-defmacro er317/generic-info (&key key func doc) ""
-  	     :group 'info
-  	     :key key
-  	     :func func
-  	     :doc doc)
-#+end_src
-
-***** instance
-****** requirement
-
-#+begin_src emacs-lisp
-  (er317/generic-put
-   :group :group
-   :key :arg-name
-   :func nil
-   :semantic
-   :doc "Declaring :arg-name as a group")
-#+end_src
-
-#+begin_src emacs-lisp
-  (er317/generic-put
-   :group :arg-name
-   :key :babel-info
-   :func (lambda (func) (help-function-arglist func)
-        	 (equal '(info) '(info)))
-   :doc "Checks argument name")
-#+end_src
-
 **** symb
 ***** combo
 
 #+header: :noweb-ref el-symb
 #+begin_src emacs-lisp
-  (cl-defun er317/symb-combo-next (&key (start-key nil) (next-symb nil) (msg-type 'error) (key-p t))
-    "Return a new interned symbol by appending NEXT-SYMB to START-KEY using a separator."
+  (cl-defun er317/symb-combo-next (&key (start-symb nil) (next-symb nil) (msg-type 'error) (key-p t))
+    "Return a new interned symbol by appending NEXT-SYMB to START-SYMB using a separator."
     (condition-case err
         (cond
-         ((null start-key) start-key)
-         ((null next-symb) start-key)
+         ((null start-symb) start-symb)
+         ((null next-symb) start-symb)
          ((not (symbolp next-symb))
           (error "NEXT-SYMB is not a symbol: %S" next-symb))
-         ((and key-p (not (keywordp start-key)))
-          (error "START-KEY is not a keyword: %S" start-key))
+         ((and key-p (not (keywordp start-symb)))
+          (error "START-SYMB is not a keyword: %S" start-symb))
          (t
           (let* ((sep "-")
-                 (string-list (mapcar #'symbol-name (list start-key next-symb)))
+                 (string-list (mapcar #'symbol-name (list start-symb next-symb)))
                  (symb-string (string-join string-list sep)))
             (intern (format "%s" symb-string)))))
       (error
        (er317/raise
         :type msg-type
         :message (error-message-string err)
-        :arg-list (list :start-key ,start-key :next-symb ,next-symb))
+        :arg-list (list :start-symb ,start-symb :next-symb ,next-symb))
        )))
 #+end_src
 
@@ -1174,7 +1014,7 @@ then promote the rest of the subtree."
 
 #+header: :noweb-ref el-example
 #+begin_src emacs-lisp
-  (er317/symb-combo-next :start-key ':foo :next-symb 'bar)
+  (er317/symb-combo-next :start-symb ':foo :next-symb 'bar)
 #+end_src
 
 #+RESULTS:
@@ -1185,8 +1025,8 @@ then promote the rest of the subtree."
 (mapcar (lambda (args)
           (apply #'er317/symb-combo-next args))
         (list nil
-          (list :start-key :foo)
-          (list :start-key :foo :next-symb 'bar)))
+          (list :start-symb :foo)
+          (list :start-symb :foo :next-symb 'bar)))
 #+end_src
 
 #+RESULTS:
@@ -1194,26 +1034,26 @@ then promote the rest of the subtree."
 
 #+header: :noweb-ref el-symb
 #+begin_src emacs-lisp
-  (cl-defun er317/symb-combo-list (&key (start-key nil) (symb-list '()) (msg-type 'error) (key-p t))
-    "Recursively builds a keyword by combining START-KEY with each symbol in SYMB-LIST."
+  (cl-defun er317/symb-combo-list (&key (start-symb nil) (symb-list '()) (msg-type 'error) (key-p t))
+    "Recursively builds a keyword by combining START-SYMB with each symbol in SYMB-LIST."
     (condition-case err
         (cond
          ((not (listp symb-list))
   	(error "SYMB-LIST is not a list: %S" symb-list))
 
          ((null symb-list)
-  	(er317/symb-combo-next :start-key start-key :key-p key-p))
+  	(er317/symb-combo-next :start-symb start-symb :key-p key-p))
          (t
   	(let* ((next-symb (car symb-list))
                  (rest-symbs (cdr symb-list))
   	       ;; BUG:
                  (next-key (er317/symb-combo-next
-  			  :start-key start-key
+  			  :start-symb start-symb
   			  :next-symb next-symb
   			  :msg-type msg-type))
   	       )
   	  (er317/symb-combo-list
-  	   :start-key next-key
+  	   :start-symb next-key
   	   :symb-list rest-symbs
   	   :msg-type msg-type
   	   :key-p key-p))))
@@ -1221,7 +1061,7 @@ then promote the rest of the subtree."
        (er317/raise
         :type msg-type
         :message (error-message-string err)
-        :arg-list (list :start-key start-key :symb-list symb-list)))))
+        :arg-list (list :start-symb start-symb :symb-list symb-list)))))
 #+end_src
 
 #+RESULTS:
@@ -1229,7 +1069,7 @@ then promote the rest of the subtree."
 
 
 #+begin_src emacs-lisp
-  (er317/symb-combo-list :start-key :foo :symb-list '(bar))
+  (er317/symb-combo-list :start-symb :foo :symb-list '(bar))
 #+end_src
 
 #+RESULTS:
@@ -1242,9 +1082,9 @@ then promote the rest of the subtree."
      (apply #'er317/symb-combo-list args))
    (list
     nil
-    (list :start-key :foo)
-    (list :start-key :foo :symb-list '(bar))
-    (list :start-key :foo :symb-list '(bar baz))))
+    (list :start-symb :foo)
+    (list :start-symb :foo :symb-list '(bar))
+    (list :start-symb :foo :symb-list '(bar baz))))
 #+end_src
 
 #+RESULTS:
@@ -1425,6 +1265,117 @@ then promote the rest of the subtree."
   <<el-shell>>
 #+end_src
 * trash
+** org
+*** src-block
+
+#+header: :noweb-ref el-src-block-beta
+#+begin_src emacs-lisp
+  (defun er317/src-block-element (name) "Return the whole block element"
+         (save-excursion
+  	 (goto-char (org-babel-find-named-block name))
+  	 (org-element-at-point)))
+#+end_src
+
+#+header: :noweb-ref el-example
+#+begin_src emacs-lisp
+  (er317/src-block-element "bar-qux")
+#+end_src
+
+*** property
+**** define
+
+#+header: :noweb-ref el-org-beta
+#+begin_src emacs-lisp
+  (cl-defmacro er317/org-property-define (&key
+                                        ((:name name-symb))
+                                        ((:key key-string))
+                                        ((:value value-lambda)))
+    "Create a function NAME-SYMB to set Org property KEY-STRING using VALUE-LAMBDA."
+    (let ((name-symb (or name-symb
+                         (intern (concat "er317/org-property-" key-string)))))
+      `(cl-defun ,name-symb (&rest keyval)
+         ,(format "Set the Org property %s using a computed value." key-string)
+         (let ((value (save-excursion (apply ,value-lambda keyval))))
+           (org-set-property ,key-string value)))))
+#+end_src
+
+#+RESULTS:
+: er317/org-property-define
+
+**** apply
+
+#+header: :noweb-ref el-org-beta
+#+begin_src emacs-lisp
+  (er317/org-property-define
+   :key "parent-id"
+   :value (lambda ()
+            (when (org-up-heading-safe)
+              (org-id-get-create))))
+#+end_src
+
+#+RESULTS:
+: er317/org-property-parent-id
+
+*** src-block
+**** module
+***** info
+
+#+header: :noweb-ref el-src-block-beta
+#+begin_src emacs-lisp
+  (defun er317/src-block-info (name &optional no-eval)
+    "Gets info of block NAME"
+    (let ((block (org-babel-find-named-block name)))
+  	 (when block
+  		 (save-excursion
+                     (goto-char block)
+                     (org-babel-get-src-block-info no-eval)))))
+#+end_src
+
+#+RESULTS:
+: er317/src-block-info
+
+#+header:  :noweb-ref el-example
+#+begin_src emacs-lisp
+(er317/src-block-info "json-foo")
+#+end_src
+
+#+RESULTS:
+| json | { "key" : "X" } | ((:colname-names) (:rowname-names) (:result-params replace) (:result-type . value) (:results . replace) (:exports . code) (:tangle . no) (:hlines . no) (:noweb . no) (:cache . no) (:session . none)) |   | json-foo-bar | 1239 | (ref:%s) |
+
+#+header: :noweb-ref el-example
+#+header: :results verbatim raw
+#+begin_src emacs-lisp
+  (er317/src-block-properties "bar-qux" :header)
+#+end_src
+
+#+RESULTS:
+((":var value=\"qux\""))
+
+#+header: :noweb-ref el-example
+#+begin_src emacs-lisp
+  (org-babel-parse-header-arguments
+   (mapconcat (lambda (pair) (concat (car pair) " " (cadr pair)))
+              (er317/src-block-properties "bar-qux" :header)
+              " "))
+#+end_src
+
+#+RESULTS:
+: ((:var . value="qux"))
+
+** global
+
+#+header: :noweb-ref el-org-beta
+#+begin_src emacs-lisp
+  (cl-defun er317/org-global-header-position-next (&optional buffer)
+    "Return the BUFFER position where the next global header line (e.g. `#+property:`) should be inserted."
+    (with-current-buffer (or buffer (current-buffer))
+      (save-excursion
+        (goto-char (point-min))
+        (while (looking-at "^#\\+\\w+:")
+          (forward-line 1))
+        (point))))
+#+end_src
+
 ** table
 :LOGBOOK:
 - Note taken on [2025-05-25 Sun 21:55] \\
@@ -1524,6 +1475,128 @@ then promote the rest of the subtree."
 : y
 
 * scratch
+** el
+*** func
+**** default
+
+#+header: :noweb-ref el-func-beta
+#+begin_src emacs-lisp
+  (cl-defun er317/func-default (&key func key)
+    "Return the default value for KEY in the argument list of FUNC."
+    ;; TODO
+    )
+#+end_src
+
+#+RESULTS:
+: er317/func-key-default
+
+#+header: :noweb-ref el-example
+#+begin_src emacs-lisp
+  (cl-defun er317/debug (&key (foo "X")) ""
+  	  (message "%s" foo))
+#+end_src
+
+#+RESULTS:
+: er317/debug
+
+#+header: :results raw
+#+header: :noweb-ref el-example
+#+begin_src emacs-lisp
+(er317/func-default :func 'er317/debug :key :foo)
+#+end_src
+
+*** generic
+**** keyval
+
+#+begin_src emacs-lisp
+  (defvar er317/generic-keyval-plist () "")
+#+end_src
+
+#+begin_src emacs-lisp
+  (cl-defmacro
+      er317/generic-keyval-put (&key symb-list value)
+    "Associate VALUE with KEY in `er317/generic-keyval-plist`.
+
+  Arguments:
+    :symb-list — A symbol or keyword identifying the handler.
+    :value     — The value to associate with KEY."
+    `(setq er317/generic-keyval-plist
+           (plist-put er317/generic-keyval-plist
+                      ,symb-list
+                      ,value)))
+#+end_src
+
+#+begin_src emacs-lisp
+  (defun er317/generic-keyval-get (&key symb-list)
+    "Return value for KEY"
+    (plist-get er317/generic-keyval-plist symb-list))
+#+end_src
+
+**** meta
+
+#+begin_src emacs-lisp
+    (cl-defmacro er317/generic-meta (&key symb-list rest-list)
+      "Define a forwarding macro that wraps `er317/generic-keyval-put`.
+
+        SYMB-LIST determines the prefix for the :key.
+        REST-LIST is a list of expected keyword arguments to forward."
+      (let* ((symb (er317/symb-combo-list
+                    :start-symb 'er317/generic
+                    :symb-list symb-list
+                    :key-p nil))
+    	 macroput macro
+  	 -get))
+      (dolist (suffix '(put get))
+        (progn
+          (setq (intern (string-join (symbol-name symb) suffix "-"))    	 
+      	    (symb-put (er317/symb-combo-list
+                           :start-symb symb
+                           :symb-list (list ,(intern suffix))
+                           :key-p nil)))))
+      (arglist (append '(&key key) (mapcar (lambda (k) (intern (format "%s" k))) rest-list)))
+      (body `(er317/generic-keyval-put
+      	  :symb-list (append ',symb-list (list key))
+      	  ,@(apply #'append
+      		   (mapcar (lambda (k)
+      			     (let ((sym (intern (format "%s" k))))
+      			       (list (intern (format ":%s" k)) sym)))
+      			   rest-list)))))
+    `(cl-defmacro ,macro-put ,arglist
+       ,(format "Auto-generated macro forwarding to `er317/generic-keyval-put` with prefix `%s`." symb-list)
+       ,body)))
+#+end_src
+
+**** frontend
+
+#+begin_src emacs-lisp
+  (cl-defmacro er317/generic-info (&key key func doc) ""
+  	     :group 'info
+  	     :key key
+  	     :func func
+  	     :doc doc)
+#+end_src
+
+**** instance
+***** requirement
+
+#+begin_src emacs-lisp
+  (er317/generic-put
+   :group :group
+   :key :arg-name
+   :func nil
+   :semantic
+   :doc "Declaring :arg-name as a group")
+#+end_src
+
+#+begin_src emacs-lisp
+  (er317/generic-put
+   :group :arg-name
+   :key :babel-info
+   :func (lambda (func) (help-function-arglist func)
+        	 (equal '(info) '(info)))
+   :doc "Checks argument name")
+#+end_src
+
 ** sh
 
 #+begin_src sh
