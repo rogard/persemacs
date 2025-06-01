@@ -1106,7 +1106,7 @@ then promote the rest of the subtree."
       (backend-rest (mapcan (lambda (symb)
   			    (let ((key (format ":%s" symb))) (list key symb))) symb-list))
       (cl-defmacro symb-intern `(&key key ,@symb-list) ""
-  		 (apply #'er317/generic-backend-put :key key ,@back-rest)))))
+  		 (apply #'er317/generic-backend-put :key key ,@back-rest))))
 #+end_src
 
 ***** frontend
@@ -1141,24 +1141,24 @@ then promote the rest of the subtree."
 #+end_src
 
 **** symb
-***** key-combo
+***** combo
 
 #+header: :noweb-ref el-symb
 #+begin_src emacs-lisp
-  (cl-defun er317/key-combo-next (&key (start-key nil) (next-symb nil) (msg-type 'error))
-    "Return a new interned keyword by appending NEXT-SYMB to START-KEY using a separator."
+  (cl-defun er317/symb-combo-next (&key (start-key nil) (next-symb nil) (msg-type 'error) (key-p t))
+    "Return a new interned symbol by appending NEXT-SYMB to START-KEY using a separator."
     (condition-case err
         (cond
          ((null start-key) start-key)
          ((null next-symb) start-key)
          ((not (symbolp next-symb))
           (error "NEXT-SYMB is not a symbol: %S" next-symb))
-         ((not (keywordp start-key))
+         ((and key-p (not (keywordp start-key)))
           (error "START-KEY is not a keyword: %S" start-key))
          (t
           (let* ((sep "-")
-            (string-list (mapcar #'symbol-name (list start-key next-symb)))
-            (symb-string (string-join string-list sep)))
+                 (string-list (mapcar #'symbol-name (list start-key next-symb)))
+                 (symb-string (string-join string-list sep)))
             (intern (format "%s" symb-string)))))
       (error
        (er317/raise
@@ -1169,12 +1169,12 @@ then promote the rest of the subtree."
 #+end_src
 
 #+RESULTS:
-: er317/key-combo-next
+: er317/symb-combo-next
 
 
 #+header: :noweb-ref el-example
 #+begin_src emacs-lisp
-  (er317/key-combo-next :start-key ':foo :next-symb 'bar)
+  (er317/symb-combo-next :start-key ':foo :next-symb 'bar)
 #+end_src
 
 #+RESULTS:
@@ -1183,7 +1183,7 @@ then promote the rest of the subtree."
 #+header: :noweb-ref el-example
 #+begin_src emacs-lisp
 (mapcar (lambda (args)
-          (apply #'er317/key-combo-next args))
+          (apply #'er317/symb-combo-next args))
         (list nil
           (list :start-key :foo)
           (list :start-key :foo :next-symb 'bar)))
@@ -1194,43 +1194,42 @@ then promote the rest of the subtree."
 
 #+header: :noweb-ref el-symb
 #+begin_src emacs-lisp
-       (cl-defun er317/key-combo-list (&key (start-key nil) (symb-list '()) (msg-type 'error))
-         "Recursively builds a keyword by combining START-KEY with each symbol in SYMB-LIST."
-         (condition-case err
-             (cond
-              ((not (listp symb-list))
-       	(error "SYMB-LIST is not a list: %S" symb-list))
+  (cl-defun er317/symb-combo-list (&key (start-key nil) (symb-list '()) (msg-type 'error) (key-p t))
+    "Recursively builds a keyword by combining START-KEY with each symbol in SYMB-LIST."
+    (condition-case err
+        (cond
+         ((not (listp symb-list))
+  	(error "SYMB-LIST is not a list: %S" symb-list))
 
-              ((null symb-list)
-       	(er317/key-combo-next :start-key start-key))
-
-              (t
-       	(let* ((next-symb (car symb-list))
-                      (rest-symbs (cdr symb-list))
-  		    ;; BUG:
-                      (next-key (er317/key-combo-next
-       			  :start-key start-key
-       			  :next-symb next-symb
-       			  :msg-type msg-type))
-     		 )
-       	  (er317/key-combo-list
-       	   :start-key next-key
-       	   :symb-list rest-symbs
-       	   :msg-type msg-type)
-    	  )))
-           (error
-            (er317/raise
-             :type msg-type
-             :message (error-message-string err)
-             :arg-list (list :start-key start-key :symb-list symb-list)))))
+         ((null symb-list)
+  	(er317/symb-combo-next :start-key start-key :key-p key-p))
+         (t
+  	(let* ((next-symb (car symb-list))
+                 (rest-symbs (cdr symb-list))
+  	       ;; BUG:
+                 (next-key (er317/symb-combo-next
+  			  :start-key start-key
+  			  :next-symb next-symb
+  			  :msg-type msg-type))
+  	       )
+  	  (er317/symb-combo-list
+  	   :start-key next-key
+  	   :symb-list rest-symbs
+  	   :msg-type msg-type
+  	   :key-p key-p))))
+      (error
+       (er317/raise
+        :type msg-type
+        :message (error-message-string err)
+        :arg-list (list :start-key start-key :symb-list symb-list)))))
 #+end_src
 
 #+RESULTS:
-: er317/key-combo-list
+: er317/symb-combo-list
 
 
 #+begin_src emacs-lisp
-  (er317/key-combo-list :start-key :foo :symb-list '(bar))
+  (er317/symb-combo-list :start-key :foo :symb-list '(bar))
 #+end_src
 
 #+RESULTS:
@@ -1240,7 +1239,7 @@ then promote the rest of the subtree."
 #+begin_src emacs-lisp
   (mapcar
    (lambda (args)
-     (apply #'er317/key-combo-list args))
+     (apply #'er317/symb-combo-list args))
    (list
     nil
     (list :start-key :foo)
