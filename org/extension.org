@@ -119,9 +119,48 @@ ARG-LIST is a list of arguments for MESSAGE."
 
 **** list
 ***** module
+****** zip-to-list
+
+#+header: :noweb-ref el-list
+#+begin_src emacs-lisp
+  (cl-defun er317/zip-to-plist
+      (&key key-list value-list result (discard nil) msg-type)
+    "Recursively zip KEY-LIST and VALUE-LIST into a plist. Optionally discard extra values."
+    (condition-case err
+        (cond
+         ;; Base case: both lists empty
+         ((null key-list)
+          (cond
+           ((null value-list) result)
+           (discard result)
+           (t (error "Length mismatch: values left over: %S" value-list))))
+
+         ;; Recursive case: process one key-value pair
+         (t
+          (let ((key (car key-list)))
+            (cond
+             ((not (keywordp key))
+              (error "Expected keyword, got: %S" key))
+
+             ((null value-list)
+              (error "Not enough values for key: %S" key))
+
+             (t
+              (er317/zip-to-plist
+               :key-list (cdr key-list)
+               :value-list (cdr value-list)
+               :result (append result (list key (car value-list)))
+               :discard discard
+               :msg-type msg-type))))))
+      (error
+       (er317/raise
+        :type msg-type
+        :message (error-message-string err)))))
+#+end_src
+
 ****** plist-if
 
-#+header: :noweb-ref el-list-beta
+#+header: :noweb-ref el-list
 #+begin_src emacs-lisp
   (cl-defun er317/plist-if (&rest keyval-list)
     "Return a plist containing only the key-value pairs from KEYVAL-LIST
@@ -386,55 +425,14 @@ whose values are non-nil."
 #+header: :noweb-ref el-babel
 #+begin_src emacs-lisp
   (er317/func-refactor
-   :target-func 'er317/org-babel-info-as-plist
-   :args-func 'identity
-;;   :msg-type msg-type
-   :result-func (lambda (info)
-  (let ((keyval-list '(:lang 0 :body 1 :header-args 2 :switches 3 :name 4 :start 5 :coderef 6))
-        (result '()))
-    (progn
-      (unless (and info (listp info) (>= (length info) 3)) ;; <-- syntax highlighting bug
-        (error "Invalid Org Babel info object %s" info))
-             (while keyval-list
-               (let ((key (pop keyval-list))
-                     (pos (pop keyval-list)))
-                 (push key result)
-                 (push (nth pos info) result)))
-             (nreverse result)))))) ;; <-- one more highlighter due to bug
+   :source-func 'org-babel-get-src-block-info
+   :target-func 'er317/org-babel-info
+   :key-target-list '(:no-eval :datum)
+   :result-func (lambda (info) (er317/zip-to-plist :key-list '(:lang :body :header-args :switches :name :start :coderef) :value-list info)))
 #+end_src
 
 #+RESULTS:
 : er317/org-babel-info-as-plist
-
-#+header: :noweb-ref el-trash
-#+begin_src emacs-lisp
-    ;;  (cl-defun er317/org-babel-info-as-plist (&key info)
-  ;;    "Return INFO as a property list with keys
-  ;;    :lang,
-  ;;    :body,
-  ;;    :header-args,
-  ;;    :switches,
-  ;;    :name,
-  ;;    :start,
-  ;;    and :coderef."
-  ;;    ;; BUG - Syntax highlighting
-  ;;    (unless (and info (listp info) (>= (length info) 3))
-  ;;      (error "Invalid Org Babel info object"))
-  ;;    (let ((lang         (nth 0 info))
-  ;;          (body         (nth 1 info))
-  ;;          (header-args  (nth 2 info))
-  ;;          (switches     (nth 3 info))
-  ;;          (name         (nth 4 info))
-  ;;          (start        (nth 5 info))
-  ;;          (coderef      (nth 6 info)))
-  ;;      (list :lang lang
-  ;;            :body body
-  ;;            :header-args header-args
-  ;;            :switches switches
-  ;;            :name name
-  ;;            :start start
-  ;;            :coderef coderef)))
-#+end_src
 
 ***** comment
 
