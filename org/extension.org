@@ -152,66 +152,47 @@ whose values are non-nil."
 
 #+header: :noweb-ref el-func
 #+begin_src emacs-lisp
-(cl-defmacro er317/func-refactor (&key
-                                  (source-func 'identity)
-                                  args-func
-                                  (result-func 'identity)
-                                  target-func
-                                  msg-type
-                                  target-key-list)
-  (condition-case err
-      (let ((args-plist (list
-                         :source-func source-func
-                         :args-func args-func
-                         :result-func result-func
-                         :target-func target-func
-                         :msg-type msg-type
-                         :target-key-list target-key-list)))
-        (cond
-         ;; Auto-generate args-func if not provided and target-key-list is available
-         ((not args-func)
-          (if (not target-key-list)
-              (error "Cannot determine args-func — supply :args-func or :target-key-list")
-            `(er317/func-refactor
-              ,@(plist-put args-plist
-                           :args-func
-                           `(lambda (&rest kv)
-                              (mapcar (lambda (k) (plist-get kv k))
-                                      ',target-key-list))))))
-
-         ;; Handle quoted symbol for :target-func (e.g. 'my-func)
-         ((not (symbolp target-func))
-          (if (and (consp target-func) (eq (car target-func) 'quote))
-              `(er317/func-refactor
-                ,@(plist-put args-plist :target-func (cadr target-func)))
-            (error "target-func must be a symbol or quoted symbol")))
-
-         ;; Final case: All arguments resolved — emit function definition
-         (t
-          `(cl-defun ,target-func (&rest keyval)
-             ,(format "Refactored wrapper around `%s`, accepting keyword args %s."
-                      source-func target-key-list)
-             (condition-case err
-                 (let* ((result-raw
-                         (let ((args-list (apply ,args-func keyval)))
-                           (apply ,source-func args-list)))
-                        (result
-                         (if ,result-func
-                             (funcall ,result-func result-raw)
-                           (progn
-                             (warn "No output function found for %s; returning raw output"
-                                   ',target-func)
-                             result-raw))))
-                   result)
-               (error
-                (er317/raise
-                 :type ',msg-type
-                 :message (error-message-string err)
-                 :arg-list keyval)))))))
-    (error
-     `(er317/raise
-       :type 'macro-error
-       :message ,(error-message-string err)))))
+  (cl-defmacro er317/func-refactor
+      (&key
+       (source-func 'identity)
+       target-key-list
+       (result-func 'identity)
+       target-func
+       msg-type
+       (arg-list-func
+        `(lambda (&rest kv)
+      	 (mapcar (lambda (k) (plist-get kv k))
+      		 ,target-key-list))))
+    (condition-case err
+        (let ((target-symb
+               (cond
+                ((symbolp target-func) target-func)
+                ((and (consp target-func) (eq (car target-func) 'quote))
+                 (cadr target-func))
+                (t (error "target-func must be a symbol or quoted symbol")))))
+          `(cl-defun ,target-symb (&rest keyval) ,(format "Refactored wrapper around `%s`, accepting keyword args %s." source-func target-key-list)
+                     (condition-case err
+                         (let* ((result-raw
+                                 (let ((arg-list (apply ,arg-list-func keyval)))
+  				 (apply ,source-func arg-list)))
+                                (result
+                                 (if ,result-func
+                                     (funcall ,result-func result-raw)
+  				 
+  				 (progn
+                                     (warn "No output function found for %s; returning raw output"
+  					 ',target-symb)
+                                     result-raw))))
+  			 result)
+                       (error
+                        (er317/raise
+                         :type ',msg-type
+                         :message (error-message-string err)
+                         :arg-list keyval)))))
+      (error
+       `(er317/raise
+         :type 'macro-error
+         :message ,(error-message-string err)))))
 #+end_src
 
 #+RESULTS:
@@ -241,8 +222,11 @@ whose values are non-nil."
 
 #+header: :noweb-ref el-example
 #+begin_src emacs-lisp  
-  (er317/target-func :x 2 :y 3) ;; => 30
+  (er317/target-func :x 2 :y 3) ;; => 50
 #+end_src
+
+#+RESULTS:
+: 50
 
 ****** compose
 
