@@ -161,51 +161,68 @@ ARG-LIST is a list of arguments for MESSAGE."
                     "dir-path"))))))
 #+end_src
   	 
+**** read
 
-#+header: :noweb-ref symbol
+#+header: :noweb-ref el-read
 #+begin_src emacs-lisp
-  (cl-defun er317/stamp-replace
-      version-url ;; example: https://raw.githubusercontent.com/rogard/persemacs/77b3f0c08ae5672a9dad27513e41edaefe7d2955/el/noweb.el
-      (symbol-list )
-    (author-alias "er317")
-    sha-full
-    (sha-short (substring))
-
-    regexp (format "%s/%s")
-    result)
-  ""
-  (cond
-   (null symbol-list) result)
-  (let* (
-         (current-name (symbol-name (car symbol-list)))
-         (new-name (format format-control ))
-         ))
-  )
+  (defconst er317/read-config-plist "Configuration plist for `read`"
+    '(:define-name-list
+      '("defun"
+        "defmacro"
+        "cl-defun"
+        "cl-defmacro"
+        "defsubst"
+        "defalias"
+        "defvar"
+        "defconst"
+        "defcustom"
+        "defparameter"
+        "defstruct"
+        "cl-defstruct"
+        "deftype"
+        "defclass"
+        "defmethod"
+        "defgeneric"
+        "define-derived-mode"
+        "define-minor-mode"
+        "define-skeleton"
+        "define-widget"
+        "define-compilation-mode"
+        "define-error"
+        "define-obsolete-function-alias"
+        "define-obsolete-variable-alias"))
 #+end_src
 
 #+begin_src emacs-lisp
-  (cl-defun er317/symbol-versionize (&key
-  				   (author-alias "er317")
-  				   sha-full
-  				   symbol-list
-  				   sha-short (substring shall-full 0 7)
-  				   regex (format "^%s/%s" author-alias "[^ ]+")
-  				   replace (format "%s-%s/%s" author-alias sha-short "\1")
-  				   "")
-#+end_src
-
-**** inspect
-
-#+begin_src emacs-lisp
-       (cl-defun er317/inspect (&key
-
-       			 (file
-(let ((make-temp-file prefix dir-flag suffix)
-
-  			  (make)
-       			     )
-           (file)
-         )
+  (defun er317/read-defined-symbols
+      (&key
+       ;; url TODO
+       ;; noweb-ref TODO
+       noweb-ref-plist
+       (expand (cond
+  	    (noweb-ref-plist
+  	     (er317/noweb-ref-expand ,@noweb-ref-plist))
+  	    (t nil)))
+       file
+       (buffer (find-file-noselect file))
+       (define-name-list (plist-get er317/read-config-plist :define-name-list)))
+    "Return a list of symbols defined in BUFFER matching DEFINE-NAME-LIST."
+    (interactive)
+    (let* ((result '())
+           (regexp (format "^(\\(%s\\)\\_>" (string-join define-name-list "\\|"))))
+      (with-current-buffer buffer
+        (save-excursion
+          (goto-char (point-min))
+          (while (re-search-forward regexp nil t)
+            (goto-char (match-beginning 0))
+            (condition-case nil
+                (let ((form (read (current-buffer))))
+                  (when (and (consp form)
+                             (member (symbol-name (car form)) define-name-list)
+                             (symbolp (cadr form)))
+                    (push (cadr form) result)))
+              (error nil)))))
+      (nreverse result)))
 #+end_src
 
 **** list
@@ -560,25 +577,49 @@ whose values are non-nil."
 #+end_src
 
 ***** module
+****** define
+
+#+begin_src emacs-lisp
+  (defconst er317/noweb-ref-key-main-list "Main key list for `noweb-ref`"
+    '(ref-list
+      (head-re "^")
+      (middle-re (string-join ref-list "\\|"))
+      (tail-re "$")
+      (regex (concat head-re (format "\\(%s\\)" middle-re) tail-re))))
+#+end_src
+
+#+begin_src emacs-lisp
+  (cl-defmacro er317/noweb-ref-define
+      (&key (prefix "er317/noweb-ref")
+            suffix-name
+            (doc-string "A `noweb-ref` function")
+            (key-main-list er317/noweb-ref-key-main-list)
+            key-other-list
+            body)
+    `(cl-defun ,(intern (concat prefix suffix-name))
+         (&key ,@key-main-list ,@key-other-list)
+       ,doc-string
+       ,@body))
+#+end_src
+
 ****** info
 
 #+header: :noweb-ref el-noweb
 #+begin_src emacs-lisp
-  (cl-defun er317/noweb-ref-info (&key regex)
-    "Collect source block info whose :noweb-ref matches REGEX"
-    (let ((results '()))
-      (org-element-map (org-element-parse-buffer) 'src-block
-        (lambda (src)
-  	(let* ((begin (org-element-property :begin src))
-                 (info (erw/noweb-ref-info (save-excursion
-                         (goto-char begin)
-                         (org-babel-get-src-block-info t)))
-                 (header-args (plist-get info :header-args))  ; header arguments parsed by org-babel
-                 (ref (cdr (assoc :noweb-ref params))))
-            ;; (message "DEBUG parsed params: %S" params)
-            (when (and ref (string-match-p regex ref))
-                (push info results)))))
-      (nreverse results))))
+  (er317/noweb-ref-define
+   :suffix-name "info-list"
+   :doc-string "Collect source block info whose :noweb-ref matches REGEX."
+   :body (let ((results '()))
+           (org-element-map (org-element-parse-buffer) 'src-block
+             (lambda (src)
+               (let* ((begin (org-element-property :begin src))
+      		    (info (erw/noweb-ref-info (save-excursion
+               					(goto-char begin)
+               					(ref (cdr (assoc :noweb-ref params))))
+      					      ;; (message "DEBUG parsed params: %S" params)
+      					      (when (and ref (string-match-p regex ref))
+               					(push info results)))))
+                 (nreverse results))))
 #+end_src
 
 #+RESULTS:
@@ -593,6 +634,71 @@ whose values are non-nil."
 
 #+RESULTS:
 : (("sh" "'Ahoy, planet!'" ((:results . "replace") (:exports . "code") (:noweb-ref . "sh-ahoy") (:tangle . "no") (:hlines . "no") (:noweb . "no") (:cache . "no") (:session . "none")) "" nil 26969 "(ref:%s)") ("sh" "'Hello, world!'" ((:results . "replace") (:exports . "code") (:noweb-ref . "sh-hello") (:tangle . "no") (:hlines . "no") (:noweb . "no") (:cache . "no") (:session . "none")) "" nil 27043 "(ref:%s)") ("sh" "'Hello, debugger!'" ((:results . "replace") (:exports . "code") (:noweb-ref . "sh-hello") (:tangle . "no") (:hlines . "no") (:noweb . "no") (:cache . "no") (:session . "none")) "" nil 27117 "(ref:%s)"))
+
+****** expand
+
+#+header: :noweb-ref el-noweb
+#+begin_src emacs-lisp
+  (er317/noweb-ref-define
+   :suffix-name "expand"
+   :doc-string "Expand noweb REF-LIST, each surrounded by HEAD and TAIL.
+
+              Applied         Optional
+              to              arg-list
+    EACH-FUNC each info       EACH-ARG-LIST
+    FOLD-FUNC resulting list. FOLD-ARG-LIST"
+   :key-other-list '(each-func each-arg-list fold-func fold-arg-list)
+   :body  (let* ((info-list
+  		(apply #'er317/noweb-ref-info-list
+  		       :ref-list ref-list
+  		       :head-re head-re
+  		       :middle-re middle-re
+  		       :tail-re tail-re
+  		       :regex regex))
+  	       (each-list (mapcar (lambda (info) (funcall each-func info ,@each-arg-list)) info-list)))
+  	  (funcall fold-func map-list ,@fold-arg-list)))
+#+end_src
+
+#+RESULTS:
+: er317/noweb-ref-assemble
+
+****** org
+
+#+header: :noweb-ref el-noweb-org
+#+begin_src emacs-lisp
+  (defconst er317/noweb-ref-org-config
+      '( :url-ext-org "https://github.com/rogard/persemacs/raw/ffed250e6c0549bd75b26b95b26ec8e5ebc70382/org/extension.org"
+         :url-org-el "https://github.com/rogard/persemacs/raw/ffed250e6c0549bd75b26b95b26ec8e5ebc70382/el/org.el"
+         :org-heading "^\\*\\{4\\} noweb-ref[ \t]*:.*\\<tangle\\>.*:$" ) )
+#+end_src
+
+#+header: :noweb-ref el-noweb-org
+#+begin_src emacs-lisp
+  (cl-defun er317/noweb-ref-org ()
+    "Inserts Org support for noweb-ref"
+    (let (
+  	  (url-ext-org (plist-get er317/noweb-ref-config :url-ext-org))
+  	  (url-org-el (plist-get er317/noweb-ref-config :url-org-el))
+  	  (org-heading (plist-get er317/noweb-ref-config :org-heading))
+  	  )
+      (let ((local-file (make-temp-file "noweb-" nil ".el")))
+        (url-copy-file url-org-el local-file t)
+        (load-file local-file)
+        (progn
+  	(with-current-buffer (url-retrieve-synchronously url-ext-org)
+      	  (re-search-forward "\n\n")
+      	  (let ((content (buffer-substring (point) (point-max))))
+      	    (with-temp-buffer
+      	      (insert content)
+      	      (goto-char (point-min))
+      	      (org-mode)
+      	      (search-forward org-heading)
+      	      (org-back-to-heading)
+      	      ;;(buffer-substring (point) (point-max))
+      	      (org-cut-subtree))))
+  	(er317/org-subtree-paste))
+        (delete-file local-file))))
+#+end_src
 
 ****** func-doc
 ******* define
@@ -665,194 +771,6 @@ whose values are non-nil."
            )
      :doc "Fetches info's body"
      :read t)
-#+end_src
-
-****** expand
-
-#+header: :noweb-ref el-noweb
-#+begin_src emacs-lisp
-  (cl-defun er317/noweb-ref-expand (&key regex)
-    "Expands all source blocks whose :noweb-ref matches REGEX and returns their expanded contents in a list."
-    (let ((results '()))
-      (org-element-map (org-element-parse-buffer) 'src-block
-        (lambda (src)
-          (let* ((begin (org-element-property :begin src))
-                 (info (save-excursion
-                         (goto-char begin)
-                         (org-babel-get-src-block-info t)))
-                 (params (nth 2 info))  ; header arguments parsed by org-babel
-                 (ref (cdr (assoc :noweb-ref params))))
-            ;; (message "DEBUG parsed params: %S" params)
-            (when (and ref (string-match-p regex ref))
-              (let ((expanded (org-babel-expand-noweb-references info)))
-                (push expanded results))))))
-      (nreverse results)))
-#+end_src
-
-#+RESULTS:
-: er317/noweb-ref-expand
-
-#+header: :noweb yes
-#+header: :results verbatim
-#+header: :noweb-ref el-example
-#+begin_src emacs-lisp
-   (er317/noweb-ref-expand :regex "sh-\\(hello\\|ahoy\\)")
-#+end_src
-
-#+RESULTS:
-: ("'Hello, world!'" "'Hello, debugger!'" "'Ahoy, planet!'")
-
-****** collect
-
-#+header: :noweb-ref el-noweb
-#+begin_src emacs-lisp
-  (cl-defun er317/noweb-ref-collect
-      (&key head ref-list tail (results '()) (order :buffer))
-    "Collect source blocks' info matching REF-LIST in ORDER (:buffer or :ref-list)."
-    (pcase order
-      (:ref-list
-       ;; One-by-one regex match per ref
-       (if (null ref-list)
-           results
-         (let* ((ref (car ref-list))
-                (regex (concat (or head "") ref (or tail "")))
-                (segment-results (apply #'er317/noweb-ref-info `(:regex ,regex))))
-           (er317/noweb-ref-collect
-            :head head
-            :ref-list (cdr ref-list)
-            :tail tail
-            :results (append results segment-results)
-            :order order))))
-      (:buffer
-       ;; Collapse ref-list into a single regex, match in buffer order
-       (let* ((regex-body (mapconcat #'identity ref-list "\\|"))
-              (regex (concat (or head "") "\\(" regex-body "\\)" (or tail "")))
-              (segment-results (apply #'er317/noweb-ref-info `(:regex ,regex))))
-         (append results segment-results)))
-      (_ (error "Unknown :order %s" order))))
-#+end_src
-
-#+RESULTS:
-: er317/noweb-ref-collect
-
-#+header: :results raw code
-#+begin_src emacs-lisp
-  (er317/noweb-ref-collect
-   :head "^sh-" :ref-list '("shebang" "hello") :tail "$")
-#+end_src
-
-#+RESULTS:
-#+begin_src emacs-lisp
-(("sh" "#!/usr/bin/env bash"
-  ((:results . "replace") (:exports . "code")
-   (:noweb-ref . "sh-shebang") (:tangle . "no") (:hlines . "no")
-   (:noweb . "no") (:cache . "no") (:session . "none"))
-  "" nil 27871 "(ref:%s)")
- ("sh" "'Hello, world!'"
-  ((:results . "replace") (:exports . "code")
-   (:noweb-ref . "sh-hello") (:tangle . "no") (:hlines . "no")
-   (:noweb . "no") (:cache . "no") (:session . "none"))
-  "" nil 28094 "(ref:%s)")
- ("sh" "'Hello, debugger!'"
-  ((:results . "replace") (:exports . "code")
-   (:noweb-ref . "sh-hello") (:tangle . "no") (:hlines . "no")
-   (:noweb . "no") (:cache . "no") (:session . "none"))
-  "" nil 28168 "(ref:%s)"))
-#+end_src
-
-Evaluate (~C-c C-c~)
-#+call: el-collect[:post el-wrap(body=*this*,lang="sh",ref="sh-coll")](ref-list='("shebang" "cat-eof" "hello" "ahoy" "eof"), order=':buffer)
-
-#+call: el-collect(ref-list='("shebang" "cat-eof" "hello" "ahoy" "eof"), order=':buffer)
-
-#+RESULTS:
-#+header: :noweb-ref sh-coll
-#+begin_src sh
-#!/usr/bin/env bash
-cat << EOF 
-'Ahoy, planet!'
-'Hello, world!'
-'Hello, debugger!'
-EOF
-#+end_src
-
-Evaluate (~C-c C-c~)
-#+call: el-collect[:post el-wrap(body=*this*,lang="sh",ref="sh-coll")](ref-list='("shebang" "cat-eof" "hello" "ahoy" "eof"), order=':ref-list)
-
-#+RESULTS:
-#+header: :noweb-ref sh-coll
-#+begin_src sh
-#!/usr/bin/env bash
-cat << EOF 
-'Hello, world!'
-'Hello, debugger!'
-'Ahoy, planet!'
-EOF
-#+end_src
-
-****** assemble
-
-#+header: :noweb-ref el-noweb
-#+begin_src emacs-lisp
-  (cl-defun er317/noweb-ref-assemble
-      (&key key-list head ref-list tail order parse-fn encode-fn)
-    "Expand noweb REF-LIST, each surrounded by HEAD and TAIL.
-    PARSE-FN parses the raw strings; 
-    ENCODE-FN turns parsed data into final output.
-    When provided, KEY-LIST is passed to ENCODE-FN."
-    (let* ((raw-blocks
-            (apply #'er317/noweb-ref-collect
-  		 `(:head ,head :ref-list ,ref-list :tail ,tail
-  			 ,@(when order `(:order ,order)))))
-      (parsed-list (mapcar parse-fn raw-blocks)))
-    (when (and key-list
-               (/= (length key-list) (length parsed-list)))
-      (error "key-list and parsed-list must be of equal length"))
-    (funcall encode-fn
-             (if key-list
-                 (cl-pairlis key-list parsed-list)
-               parsed-list))))
-#+end_src
-
-#+RESULTS:
-: er317/noweb-ref-assemble
-
-****** org
-
-#+header: :noweb-ref el-noweb-org
-#+begin_src emacs-lisp
-  (defconst er317/noweb-ref-org-config
-      '( :url-ext-org "https://github.com/rogard/persemacs/raw/ffed250e6c0549bd75b26b95b26ec8e5ebc70382/org/extension.org"
-         :url-org-el "https://github.com/rogard/persemacs/raw/ffed250e6c0549bd75b26b95b26ec8e5ebc70382/el/org.el"
-         :org-heading "^\\*\\{4\\} noweb-ref[ \t]*:.*\\<tangle\\>.*:$" ) )
-#+end_src
-
-#+header: :noweb-ref el-noweb-org
-#+begin_src emacs-lisp
-  (cl-defun er317/noweb-ref-org ()
-    "Inserts Org support for noweb-ref"
-    (let (
-  	  (url-ext-org (plist-get er317/noweb-ref-config :url-ext-org))
-  	  (url-org-el (plist-get er317/noweb-ref-config :url-org-el))
-  	  (org-heading (plist-get er317/noweb-ref-config :org-heading))
-  	  )
-      (let ((local-file (make-temp-file "noweb-" nil ".el")))
-        (url-copy-file url-org-el local-file t)
-        (load-file local-file)
-        (progn
-  	(with-current-buffer (url-retrieve-synchronously url-ext-org)
-      	  (re-search-forward "\n\n")
-      	  (let ((content (buffer-substring (point) (point-max))))
-      	    (with-temp-buffer
-      	      (insert content)
-      	      (goto-char (point-min))
-      	      (org-mode)
-      	      (search-forward org-heading)
-      	      (org-back-to-heading)
-      	      ;;(buffer-substring (point) (point-max))
-      	      (org-cut-subtree))))
-  	(er317/org-subtree-paste))
-        (delete-file local-file))))
 #+end_src
 
 ***** example
@@ -1338,6 +1256,130 @@ then promote the rest of the subtree."
   <<el-shell>>
 #+end_src
 * trash
+** noweb-ref
+*** expand
+
+#+header: :noweb-ref el-noweb
+#+begin_src emacs-lisp
+  (cl-defun er317/noweb-ref-expand (&key regex)
+    "Expands all source blocks whose :noweb-ref matches REGEX and returns their expanded contents in a list."
+    (let ((results '()))
+      (org-element-map (org-element-parse-buffer) 'src-block
+        (lambda (src)
+          (let* ((begin (org-element-property :begin src))
+                 (info (save-excursion
+                         (goto-char begin)
+                         (org-babel-get-src-block-info t)))
+                 (params (nth 2 info))  ; header arguments parsed by org-babel
+                 (ref (cdr (assoc :noweb-ref params))))
+            ;; (message "DEBUG parsed params: %S" params)
+            (when (and ref (string-match-p regex ref))
+              (let ((expanded (org-babel-expand-noweb-references info)))
+                (push expanded results))))))
+      (nreverse results)))
+#+end_src
+
+#+RESULTS:
+: er317/noweb-ref-expand
+
+#+header: :noweb yes
+#+header: :results verbatim
+#+header: :noweb-ref el-example
+#+begin_src emacs-lisp
+   (er317/noweb-ref-expand :regex "sh-\\(hello\\|ahoy\\)")
+#+end_src
+
+#+RESULTS:
+: ("'Hello, world!'" "'Hello, debugger!'" "'Ahoy, planet!'")
+
+*** collect
+
+#+header: :noweb-ref el-noweb
+#+begin_src emacs-lisp
+  (cl-defun er317/noweb-ref-collect
+      (&key head ref-list tail (results '()) (order :buffer))
+    "Collect source blocks' info matching REF-LIST in ORDER (:buffer or :ref-list)."
+    (pcase order
+      (:ref-list
+       ;; One-by-one regex match per ref
+       (if (null ref-list)
+           results
+         (let* ((ref (car ref-list))
+                (regex (concat (or head "") ref (or tail "")))
+                (segment-results (apply #'er317/noweb-ref-info `(:regex ,regex))))
+           (er317/noweb-ref-collect
+            :head head
+            :ref-list (cdr ref-list)
+            :tail tail
+            :results (append results segment-results)
+            :order order))))
+      (:buffer
+       ;; Collapse ref-list into a single regex, match in buffer order
+       (let* ((regex-body (mapconcat #'identity ref-list "\\|"))
+              (regex (concat (or head "") "\\(" regex-body "\\)" (or tail "")))
+              (segment-results (apply #'er317/noweb-ref-info `(:regex ,regex))))
+         (append results segment-results)))
+      (_ (error "Unknown :order %s" order))))
+#+end_src
+
+#+RESULTS:
+: er317/noweb-ref-collect
+
+#+header: :results raw code
+#+begin_src emacs-lisp
+  (er317/noweb-ref-collect
+   :head "^sh-" :ref-list '("shebang" "hello") :tail "$")
+#+end_src
+
+#+RESULTS:
+#+begin_src emacs-lisp
+(("sh" "#!/usr/bin/env bash"
+  ((:results . "replace") (:exports . "code")
+   (:noweb-ref . "sh-shebang") (:tangle . "no") (:hlines . "no")
+   (:noweb . "no") (:cache . "no") (:session . "none"))
+  "" nil 27871 "(ref:%s)")
+ ("sh" "'Hello, world!'"
+  ((:results . "replace") (:exports . "code")
+   (:noweb-ref . "sh-hello") (:tangle . "no") (:hlines . "no")
+   (:noweb . "no") (:cache . "no") (:session . "none"))
+  "" nil 28094 "(ref:%s)")
+ ("sh" "'Hello, debugger!'"
+  ((:results . "replace") (:exports . "code")
+   (:noweb-ref . "sh-hello") (:tangle . "no") (:hlines . "no")
+   (:noweb . "no") (:cache . "no") (:session . "none"))
+  "" nil 28168 "(ref:%s)"))
+#+end_src
+
+Evaluate (~C-c C-c~)
+#+call: el-collect[:post el-wrap(body=*this*,lang="sh",ref="sh-coll")](ref-list='("shebang" "cat-eof" "hello" "ahoy" "eof"), order=':buffer)
+
+#+call: el-collect(ref-list='("shebang" "cat-eof" "hello" "ahoy" "eof"), order=':buffer)
+
+#+RESULTS:
+#+header: :noweb-ref sh-coll
+#+begin_src sh
+#!/usr/bin/env bash
+cat << EOF 
+'Ahoy, planet!'
+'Hello, world!'
+'Hello, debugger!'
+EOF
+#+end_src
+
+Evaluate (~C-c C-c~)
+#+call: el-collect[:post el-wrap(body=*this*,lang="sh",ref="sh-coll")](ref-list='("shebang" "cat-eof" "hello" "ahoy" "eof"), order=':ref-list)
+
+#+RESULTS:
+#+header: :noweb-ref sh-coll
+#+begin_src sh
+#!/usr/bin/env bash
+cat << EOF 
+'Hello, world!'
+'Hello, debugger!'
+'Ahoy, planet!'
+EOF
+#+end_src
+
 ** org
 *** src-block
 
