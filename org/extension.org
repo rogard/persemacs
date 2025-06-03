@@ -117,6 +117,97 @@ ARG-LIST is a list of arguments for MESSAGE."
        :arg-list (list expected actual))))
 #+end_src
 
+**** mangle
+
+#+header: :noweb-ref el-mangle-meta
+#+begin_src emacs-lisp
+  (cl-defmacro er317/mangle-config-define
+      (&key
+       (author-alias "er317")
+       (user-alias author-alias)
+       (target-name (format "%s/mangle-config-plist" author-alias))
+       (doc-string (format "Mangle property list tagged %s." author-alias))
+       (key-list '(:commit))
+       (commit-re-rep '("^\\([[:alnum:]]\\{7\\}\\).*$" . "\\1"))
+       (symbol-name-re-rep (cons (format "^%s/\\([^ ]+\\)$" author-alias) "\\1"))
+       (symbol-name-fcs (format "%s-%%s/%%s" author-alias))
+       (package-fcs (format "%s-%%s-%%s" author-alias))
+       (parent-dir user-emacs-directory)
+       (dir-name "mangled")
+       (dir-path (let ((path (expand-file-name dir-name parent-dir)))
+                   (file-name-as-directory path))))
+    "Defines TARGET-NAME as a property list representing the mangle configuration.
+
+     AUTHOR-ALIAS     | Compile-time mangling key
+     KEY-LIST         | Run-time mangling key list
+     <PREFIX>-FCS     | Format Control String
+     <PREFIX>-RE-REP  | (REGEX.REPLACEMENT)"
+    `(defconst ,(intern target-name) ,doc-string
+       (list
+        ,@(apply #'append (mapcar (lambda (symb-name)
+                    `(cons ',(intern (format ":%s" symb-name))
+                           ,(intern symb-name)))
+                  '("author-alias"
+                    "user-alias"
+                    "target-name"
+                    "doc-string"
+                    "key-list"
+                    "commit-re-rep"
+                    "symbol-name-re-rep"
+                    "symbol-name-fcs"
+                    "package-fcs"
+                    "parent-dir"
+                    "dir-name"
+                    "dir-path"))))))
+#+end_src
+  	 
+
+#+header: :noweb-ref symbol
+#+begin_src emacs-lisp
+  (cl-defun er317/stamp-replace
+      version-url ;; example: https://raw.githubusercontent.com/rogard/persemacs/77b3f0c08ae5672a9dad27513e41edaefe7d2955/el/noweb.el
+      (symbol-list )
+    (author-alias "er317")
+    sha-full
+    (sha-short (substring))
+
+    regexp (format "%s/%s")
+    result)
+  ""
+  (cond
+   (null symbol-list) result)
+  (let* (
+         (current-name (symbol-name (car symbol-list)))
+         (new-name (format format-control ))
+         ))
+  )
+#+end_src
+
+#+begin_src emacs-lisp
+  (cl-defun er317/symbol-versionize (&key
+  				   (author-alias "er317")
+  				   sha-full
+  				   symbol-list
+  				   sha-short (substring shall-full 0 7)
+  				   regex (format "^%s/%s" author-alias "[^ ]+")
+  				   replace (format "%s-%s/%s" author-alias sha-short "\1")
+  				   "")
+#+end_src
+
+**** inspect
+
+#+begin_src emacs-lisp
+       (cl-defun er317/inspect (&key
+
+       			 (file
+(let ((make-temp-file prefix dir-flag suffix)
+
+  			  (make)
+       			     )
+           (file)
+         )
+#+end_src
+
 **** list
 ***** module
 ****** zip-to-list
