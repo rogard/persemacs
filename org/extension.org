@@ -199,12 +199,18 @@ ARG-LIST is a list of arguments for MESSAGE."
        ;; url TODO
        ;; noweb-ref TODO
        noweb-ref-plist
-       (expand (cond
-  	    (noweb-ref-plist
-  	     (er317/noweb-ref-expand ,@noweb-ref-plist))
-  	    (t nil)))
+       (string (when noweb-ref-plist
+                 (apply #'er317/noweb-ref-expand noweb-ref-plist)))
        file
-       (buffer (find-file-noselect file))
+       (buffer (cond
+                (file (find-file-noselect file))
+                (string
+                 (let ((name (generate-new-buffer "*er317/read-symbols*")))
+  		 (with-current-buffer name
+  		   (goto-char (point-min))
+  		   (insert expand))
+  		 buffer-name))
+                (t nil)))
        (define-name-list (plist-get er317/read-config-plist :define-name-list)))
     "Return a list of symbols defined in BUFFER matching DEFINE-NAME-LIST."
     (interactive)
