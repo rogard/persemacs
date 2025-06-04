@@ -90,17 +90,17 @@ Evaluate (~C-c C-c~)
 
 #+header: :noweb-ref el-exception
 #+begin_src emacs-lisp
-(cl-defmacro er317/exception-raise (&key (type 'error) (message "ARGS: %S") (arg-list nil))
-  "Raise an error or warning with file and line info.
-TYPE is a function symbol like 'error or 'warn.
-MESSAGE is a format string.
-ARG-LIST is a list of arguments for MESSAGE."
-  (let ((file (or load-file-name buffer-file-name))
-        (line (line-number-at-pos)))
-    `(funcall ,type
-              (format "[%s:%d] %s"
-                      ,file ,line
-                      (apply #'format ,message ,arg-list)))))
+  (cl-defmacro er317/exception-raise (&key type (message "ARGS: %S") (arg-list nil) (type-if-nil (if type type 'error)))
+    "Raise an error or warning with file and line info.
+  TYPE is a function symbol like 'error or 'warn.
+  MESSAGE is a format string.
+  ARG-LIST is a list of arguments for MESSAGE."
+    (let ((file (or load-file-name buffer-file-name))
+          (line (line-number-at-pos)))
+      `(funcall ,type-if-nil
+                (format "[%s:%d] %s"
+                        ,file ,line
+                        (apply #'format ,message ,arg-list)))))
 #+end_src
 
 #+RESULTS:
@@ -269,7 +269,6 @@ ARG-LIST is a list of arguments for MESSAGE."
                :msg-type msg-type))))))
       (error
        (er317/exception-raise
-        :type msg-type
         :message (error-message-string err)))))
 #+end_src
 
@@ -341,8 +340,7 @@ whose values are non-nil."
                        (error
                         (er317/exception-raise
                          :type ',msg-type
-                         :message (error-message-string err)
-                         :arg-list keyval)))))
+                         :message (error-message-string err)))))
       (error
        `(er317/exception-raise
          :type 'macro-error
@@ -585,15 +583,13 @@ whose values are non-nil."
 
 ***** module
 ****** keyval
-******* define
+******* backend
 
 #+header: :noweb-ref el-noweb-ref
 #+begin_src emacs-lisp
-  (defvar er317/noweb-ref-keyval-alist nil "Backend")
+    (defvar er317/noweb-ref-keyval-alist nil
+      "Key-value list for noweb-ref")
 #+end_src
-
-#+RESULTS:
-: er317/noweb-ref-keyval-alist
 
 #+begin_src emacs-lisp
   (pp er317/noweb-ref-keyval-alist)
@@ -605,34 +601,80 @@ whose values are non-nil."
 :   :doc
 :   "Combines a ref-list into a non-anchored regex suitable to parse a buffer"))
 
+
 #+header: :noweb-ref el-noweb-ref
 #+begin_src emacs-lisp
-  (cl-defmacro er317/noweb-ref-keyval-define (&key group)
-    "Define put/get functions for GROUP using an alist with plist values."
-    (let* ((group-symb (if (and (consp group) (eq (car group) 'quote))
-                           (cadr group)
-                         group))
-           (group-name (symbol-name group-symb))
-           (put-fun-name (intern (format "er317/noweb-ref-%s-put" group-name)))
-           (get-fun-name (intern (format "er317/noweb-ref-%s-get" group-name))))
-      `(progn
-         ;; PUT FUNCTION
-         (cl-defun ,put-fun-name (&key method func doc)
-           ,(format "Associate FUNC and DOC with (%s . METHOD) in `er317/noweb-ref-keyval-alist`." group-name)
-           (let* ((key (cons ',group-symb method))
-                  (existing (assoc key er317/noweb-ref-keyval-alist))
-                  (value (list :func func :doc doc)))
-             (if existing
-                 (setcdr existing value)
-               (push (cons key value) er317/noweb-ref-keyval-alist))))
+  (defun er317/noweb-ref-put-backend (group method plist)
+  "Store PLIST under (GROUP . METHOD)."
+  (let ((key (cons group method))
+        (existing (assoc (cons group method) er317/noweb-ref-keyval-alist)))
+    (if existing
+        (setcdr existing plist)
+      (push (cons key plist) er317/noweb-ref-keyval-alist))))
+#+end_src
 
-         ;; GET FUNCTION
-         (cl-defun ,get-fun-name (&key method key)
-           ,(format "Access value for KEY (:func or :doc) from (%s . METHOD) in `er317/noweb-ref-keyval-alist`." group-name)
-           (let* ((lookup-key (cons ',group-symb method))
-                  (prop-list (cdr (assoc lookup-key er317/noweb-ref-keyval-alist))))
-             (message "DEBUG GET [%s . %s] => %S" ',group-symb method prop-list)
-             (plist-get prop-list key))))))
+#+header: :noweb-ref el-noweb-ref
+#+begin_src emacs-lisp
+  (defun er317/noweb-ref-get-backend (group method &key &rest args)
+    "Retrieve a plist value for (GROUP . METHOD) using keys in ARGS.
+  ARGS must contain exactly one key from the known keys."
+    (let* ((lookup-key (cons group method))
+           (prop-list (cdr (assoc lookup-key er317/noweb-ref-keyval-alist)))
+           (key-list (cl-loop for k on args by #'cddr collect (car k)))
+           (requested
+            (cl-loop for k in key-list
+                     when (plist-member args k)
+                     collect k)))
+      (unless (= (length requested) 1)
+        (error "Expected exactly one keyword key in get: %S" requested))
+      (plist-get prop-list (car requested))))
+#+end_src
+
+******* define
+
+#+RESULTS:
+: er317/noweb-ref-keyval-alist
+
+#+header: :noweb-ref el-noweb-ref
+#+begin_src emacs-lisp
+  (cl-defmacro er317/noweb-ref-keyval-define (&key group msg-type (symb-list '(func doc)))
+    "Define put/get frontend functions for GROUP, delegating to shared backends."
+    (condition-case err
+        (let* ((group-symb (if (and (consp group) (eq (car group) 'quote))
+                               (cadr group)
+                             group))
+               (group-name (symbol-name group-symb))
+               (key-list (cl-loop for symb in symb-list
+                                  collect (intern (format ":%s" (symbol-name symb)))))
+               (put-name (intern (format "er317/noweb-ref-%s-put" group-name)))
+               (get-name (intern (format "er317/noweb-ref-%s-get" group-name))))
+          `(progn
+             ;; Frontend PUT forwards plist to backend
+             (cl-defun ,put-name (&key method ,@symb-list)
+               ,(format "Frontend put for group `%s` storing keys: %s"
+                        group-name (mapconcat #'symbol-name key-list ", "))
+               (er317/noweb-ref-put-backend
+                ',group-symb
+                method
+                (list ,@key-list)))
+
+             ;; Frontend GET forwards args to backend
+             (cl-defun ,get-name (&rest rest)
+               ,(format "Frontend get for group `%s`, forwarding keys %s to backend"
+                        group-name (mapconcat #'symbol-name key-list ", "))
+               (let ((valid-keys ',key-list)
+                     (filtered (cl-loop for (k v) on rest by #'cddr
+                                        when (and (memq k valid-keys) v)
+                                        collect k)))
+                 (unless (= (length filtered) 1)
+                   (error "Expected exactly one valid key from %S; got %S" valid-keys filtered))
+                 (apply #'er317/noweb-ref-get-backend
+                        ',group-symb
+                        (plist-get rest :method)
+                        rest)))))
+      (er317/exception-raise
+       :type msg-type
+       :message (error-message-string err))))
 #+end_src
 
 #+RESULTS:
@@ -661,37 +703,17 @@ whose values are non-nil."
 #+RESULTS:
 | :func | #[(ref-list) ((format \(%s\) (string-join ref-list \ | ))) nil] | :doc | Combines a ref-list into a non-anchored regex suitable to parse a buffer |
 
-#+begin_src emacs-lisp :results value
-  (er317/noweb-ref-helper-get :method 'buffer-re :key :func)
+#+header: :noweb-ref el-example
+#+header: :results raw code
+#+begin_src emacs-lisp 
+  (funcall 
+   (er317/noweb-ref-helper-get :method 'buffer-re :key :func) '("x" "y"))
 #+end_src
 
 #+RESULTS:
-
 #+begin_src emacs-lisp
-  (makunbound 'er317/debug-plist)
-  (defvar er317/debug-plist nil)
+"\\(x\\|y\\)"
 #+end_src
-
-#+begin_src emacs-lisp
-  (setq er317/debug-plist (plist-put er317/debug-plist (cons 'x 'y) 'z))
-#+end_src
-
-#+RESULTS:
-: ((x . y) z)
-
-#+begin_src emacs-lisp
-  (plist-get er317/debug-plist (cons 'x 'y))
-#+end_src
-
-#+RESULTS:
-
-#+begin_src emacs-lisp
-  (setq er317/debug-plist (plist-put er317/debug-plist (cons 'x 'y) 'z))
-#+end_src
-
-#+RESULTS:
-: ((x . y) z (x . y) z)
-
 
 ****** filter
 
@@ -1719,25 +1741,22 @@ EOF
 *** func
 **** default
 
+
 #+header: :noweb-ref el-func-beta
 #+begin_src emacs-lisp
-  (cl-defun er317/func-default (&key func key)
-    "Return the default value for KEY in the argument list of FUNC."
-    ;; TODO
-    )
+  (cl-defun er317/debug-func (&rest rest &allow-other-keys &key key) (message "DEBUG %S" key))
 #+end_src
 
 #+RESULTS:
-: er317/func-key-default
+: er317/debug-func
 
 #+header: :noweb-ref el-example
 #+begin_src emacs-lisp
-  (cl-defun er317/debug (&key (foo "X")) ""
-  	  (message "%s" foo))
+  (er317/debug-func :foo :key 'bar)
 #+end_src
 
 #+RESULTS:
-: er317/debug
+: DEBUG nil
 
 #+header: :results raw
 #+header: :noweb-ref el-example
