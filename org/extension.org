@@ -85,12 +85,13 @@ Evaluate (~C-c C-c~)
   (with-temp-buffer (insert json) (json-pretty-print (point-min) (point-max)) (buffer-string))
 #+end_src
 
-*** module
+*** topic
 **** exception
+***** module
 
-#+header: :noweb-ref el-exception
+#+header: :noweb-ref el-raise
 #+begin_src emacs-lisp
-  (cl-defmacro er317/exception-raise (&key type (message "ARGS: %S") (arg-list nil) (type-if-nil (if type type 'error)))
+  (cl-defmacro er317/raise (&key type (message "ARGS: %S") (arg-list nil) (type-if-nil (if type type 'error)))
     "Raise an error or warning with file and line info.
   TYPE is a function symbol like 'error or 'warn.
   MESSAGE is a format string.
@@ -104,22 +105,24 @@ Evaluate (~C-c C-c~)
 #+end_src
 
 #+RESULTS:
-: er317/exception-raise
+: er317/raise
 
 #+header: :noweb-ref el-example
 #+begin_src emacs-lisp
   (let ((expected 42)
         (actual 13))
     (when (/= expected actual)
-      (er317/exception-raise
+      (er317/raise
        :type 'error
        :message "Mismatch! Expected %d, but got %d"
        :arg-list (list expected actual))))
 #+end_src
 
 **** mangle
+***** module
+****** define
 
-#+header: :noweb-ref el-mangle-meta
+#+header: :noweb-ref el-mangle
 #+begin_src emacs-lisp
     (cl-defmacro er317/mangle-config-define
         (&key
@@ -133,7 +136,7 @@ Evaluate (~C-c C-c~)
          (symbol-name-fcs (format "%s-%%s/%%s" author-alias))
          (package-fcs (format "%s-%%s-%%s" author-alias))
          (parent-dir user-emacs-directory)
-;;         (dir-name "mangled")
+;;         (dir-name "mangle")
 ;;         (dir-path (let ((path (expand-file-name dir-name parent-dir)))
 ;;                    (file-name-as-directory path)))
          )
@@ -162,76 +165,6 @@ Evaluate (~C-c C-c~)
                       "dir-path"))))))
 #+end_src
   	 
-**** read
-
-#+header: :noweb-ref el-read
-#+begin_src emacs-lisp
-  (defconst er317/read-config-plist "Configuration plist for `read`"
-    '(:define-name-list
-      '("defun"
-        "defmacro"
-        "cl-defun"
-        "cl-defmacro"
-        "defsubst"
-        "defalias"
-        "defvar"
-        "defconst"
-        "defcustom"
-        "defparameter"
-        "defstruct"
-        "cl-defstruct"
-        "deftype"
-        "defclass"
-        "defmethod"
-        "defgeneric"
-        "define-derived-mode"
-        "define-minor-mode"
-        "define-skeleton"
-        "define-widget"
-        "define-compilation-mode"
-        "define-error"
-        "define-obsolete-function-alias"
-        "define-obsolete-variable-alias"))
-#+end_src
-
-#+begin_src emacs-lisp
-  (defun er317/read-defined-symbols
-      (&key
-       ;; url TODO
-       ;; noweb-ref TODO
-       noweb-ref-plist
-       (string (when noweb-ref-plist
-                 (apply #'er317/noweb-ref-expand noweb-ref-plist)))
-       file
-       (buffer (cond
-                (file (find-file-noselect file))
-                (string
-                 (let ((name (generate-new-buffer "*er317/read-symbols*")))
-  		 (with-current-buffer name
-  		   (goto-char (point-min))
-  		   (insert expand))
-  		 buffer-name))
-                (t nil)))
-       (define-name-list (plist-get er317/read-config-plist :define-name-list)))
-    "Return a list of symbols defined in BUFFER matching DEFINE-NAME-LIST."
-    (interactive)
-    (let* ((result '())
-           (regexp (format "^(\\(%s\\)\\_>" (string-join define-name-list "\\|"))))
-      (with-current-buffer buffer
-        (save-excursion
-          (goto-char (point-min))
-          (while (re-search-forward regexp nil t)
-            (goto-char (match-beginning 0))
-            (condition-case nil
-                (let ((form (read (current-buffer))))
-                  (when (and (consp form)
-                             (member (symbol-name (car form)) define-name-list)
-                             (symbolp (cadr form)))
-                    (push (cadr form) result)))
-              (error nil)))))
-      (nreverse result)))
-#+end_src
-
 **** list
 ***** module
 ****** zip-to-list
@@ -268,7 +201,7 @@ Evaluate (~C-c C-c~)
                :discard discard
                :msg-type msg-type))))))
       (error
-       (er317/exception-raise
+       (er317/raise
         :message (error-message-string err)))))
 #+end_src
 
@@ -299,13 +232,11 @@ whose values are non-nil."
 #+RESULTS:
 "qux"
 
-**** function
-***** module
-****** refactor
+**** refactor
 
-#+header: :noweb-ref el-func
+#+header: :noweb-ref el-refactor
 #+begin_src emacs-lisp
-  (cl-defmacro er317/func-refactor
+  (cl-defmacro er317/refactor
       (&key
        (source-func 'identity)
        target-key-list
@@ -338,17 +269,17 @@ whose values are non-nil."
                                      result-raw))))
   			 result)
                        (error
-                        (er317/exception-raise
+                        (er317/raise
                          :type ',msg-type
                          :message (error-message-string err)))))
       (error
-       `(er317/exception-raise
+       `(er317/raise
          :type 'macro-error
          :message ,(error-message-string err)))))
 #+end_src
 
 #+RESULTS:
-: er317/func-refactor
+: er317/refactor
 
 #+header: :noweb-ref el-example
 #+begin_src emacs-lisp
@@ -362,7 +293,7 @@ whose values are non-nil."
 
 #+header: :noweb-ref el-example
 #+begin_src emacs-lisp  
-  (er317/func-refactor
+  (er317/refactor
    :source-func 'er317/source-func
    :target-key-list '(:x :y)
    :result-func (lambda (result) (* result 10))
@@ -379,28 +310,6 @@ whose values are non-nil."
 
 #+RESULTS:
 : 50
-
-****** compose
-
-#+header: :noweb-ref el-function-beta
-#+begin_src emacs-lisp
-  (defun er317/compose (arg &rest functions)
-    "Apply a sequence of FUNCTIONS to ARG in composition order."
-    (cl-reduce (lambda (acc fn) (funcall fn acc))
-               (reverse functions)
-               :initial-value arg))
-#+end_src
-
-#+RESULTS:
-: er317/compose
-
-#+header: :noweb-ref el-example
-#+begin_src emacs-lisp
-  (er317/compose 4 #'sqrt (lambda (x) (+ 1 x)))
-#+end_src
-
-#+RESULTS:
-: 3.0
 
 **** filesys
 ***** preamble
@@ -534,10 +443,11 @@ whose values are non-nil."
 #+end_src
 
 ***** info
+****** refactor
 
-#+header: :noweb-ref el-babel
+#+header: :noweb-ref el-babel-info
 #+begin_src emacs-lisp
-  (er317/func-refactor
+  (er317/refactor
    :source-func 'org-babel-get-src-block-info
    :target-func 'er317/org-babel-info
    :key-target-list '(:no-eval :datum)
@@ -547,9 +457,34 @@ whose values are non-nil."
 #+RESULTS:
 : er317/org-babel-info-as-plist
 
+****** group
+
+#+header: :noweb-ref el-babel-info
+#+begin_src emacs-lisp
+  (er317/group-keyval-define :group 'babel-info)
+#+end_src
+
+#+RESULTS:
+: er317/noweb-ref-babel-info-get
+
+#+header: :noweb-ref el-babel-info
+#+begin_src emacs-lisp
+  (er317/group-info-put
+   :method 'body
+   :func '(lambda (refactored-info key-list) (plist-get refactored-info body))
+   :doc "Maps an org babel info to itself")
+#+end_src
+
+#+header: :noweb-ref el-example
+#+header: :var name="json-foo"
+#+begin_src emacs-lisp :wrap src json
+  (let* ((info (org-babel-find-named-block)))
+    (funcall (er317/group-info-get :method 'body :func t) info))
+#+end_src
+
 ***** comment
 
-#+header: :noweb-ref el-babel
+#+header: :noweb-ref el-babel-comment
 #+begin_src emacs-lisp
   (cl-defun er317/org-babel-comment (&key lang)
     "Return a format control string for commenting in a given mode.
@@ -569,47 +504,31 @@ whose values are non-nil."
               (format "%s %%s %s" (string-trim start) (string-trim end))))))))
 #+end_src
 
-**** noweb-ref
-:PROPERTIES:
-:CUSTOM_ID: source-el-noweb-ref
-:END:
+**** global-alist
+***** backend
 
-***** preamble
-
-#+header: :noweb-ref el-filesys-beta
+#+header: :noweb-ref el-keyval
 #+begin_src emacs-lisp
-  (load-file "../el/shell.el")
+  (defvar er317/global-alist nil "A global alist.")
 #+end_src
-
-***** module
-****** keyval
-******* backend
 
 #+header: :noweb-ref el-noweb-ref
 #+begin_src emacs-lisp
-  (defvar er317/noweb-ref-keyval-alist nil "Key-value list for noweb-ref")
-#+end_src
-
-#+RESULTS:
-: er317/noweb-ref-keyval-alist
-
-#+header: :noweb-ref el-noweb-ref
-#+begin_src emacs-lisp
-  (cl-defun er317/noweb-ref-put-backend (&key group method ((:value plist)))
+  (cl-defun er317/global-alist-put-backend (&key group method ((:value plist)))
     "Store PLIST under (GROUP . METHOD)."
     (let ((key (cons group method))
-  	(existing (assoc (cons group method) er317/noweb-ref-keyval-alist)))
+  	(existing (assoc (cons group method) er317/global-alist)))
       (if existing
   	(setcdr existing plist)
-        (push (cons key plist) er317/noweb-ref-keyval-alist))))
+        (push (cons key plist) er317/global-alist))))
 #+end_src
 
 #+RESULTS:
-: er317/noweb-ref-put-backend
+: er317/global-alist-put-backend
 
 #+header: :noweb-ref el-example
 #+begin_src emacs-lisp
-  (er317/noweb-ref-put-backend :group "test"  :method "foo" :value '(:func (lambda () (message "hello"))))
+  (er317/global-alist-put-backend :group "test"  :method "foo" :value '(:func (lambda () (message "hello"))))
 #+end_src
 
 #+RESULTS:
@@ -617,33 +536,33 @@ whose values are non-nil."
 
 #+header: :noweb-ref el-noweb-ref
 #+begin_src emacs-lisp
-(cl-defun er317/noweb-ref-get-backend (&key group method key)
+(cl-defun er317/global-alist-get-backend (&key group method key)
   "Retrieve a plist value for (GROUP . METHOD) using keys in ARGS.
 ARGS must contain exactly one key from the known keys."
   (let* ((lookup-key (cons group method))
-         (prop-list (cdr (assoc lookup-key er317/noweb-ref-keyval-alist))))
+         (prop-list (cdr (assoc lookup-key er317/global-alist))))
     (plist-get prop-list key)))
 #+end_src
 
 #+RESULTS:
-: er317/noweb-ref-get-backend
+: er317/global-alist-get-backend
 
 #+header: :noweb-ref el-example
 #+begin_src emacs-lisp
-  (er317/noweb-ref-get-backend :group "test" :method "foo" :key :func)
+  (er317/global-alist-get-backend :group "test" :method "foo" :key :func)
 #+end_src
 
 #+RESULTS:
 | lambda | nil | (message hello) |
 
-******* define
+***** define
 
 #+RESULTS:
-: er317/noweb-ref-keyval-alist
+: er317/global-alist
 
 #+header: :noweb-ref el-noweb-ref
 #+begin_src emacs-lisp
-  (cl-defmacro er317/noweb-ref-keyval-define (&key group msg-type (symb-list '(func doc)))
+  (cl-defmacro er317/global-alist-define (&key group msg-type (symb-list '(func doc)))
     "Define put/get frontend functions for GROUP, delegating to shared backends."
     (condition-case err
         (let* ((group-symb (if (and (consp group) (eq (car group) 'quote))
@@ -664,7 +583,7 @@ ARGS must contain exactly one key from the known keys."
              (cl-defun ,put-name (&key method ,@symb-list)
                ,(format "Frontend put for group `%s` storing keys: %s"
                         group-name (mapconcat #'symbol-name key-list ", "))
-               (er317/noweb-ref-put-backend
+               (er317/global-alist-put-backend
                 :group ',group-symb
                 :method method
                 :value (list ,@(cl-loop for symb in symb-list
@@ -675,60 +594,22 @@ ARGS must contain exactly one key from the known keys."
              (cl-defun ,get-name (&rest rest)
                ,(format "Frontend get for group `%s`, forwarding keys %s to backend"
                         group-name (mapconcat #'symbol-name key-list ", "))
-               (apply #'er317/noweb-ref-get-backend
+               (apply #'er317/global-alist-get-backend
                       :group ',group-symb rest))))
-      (er317/exception-raise
+      (er317/raise
        :type msg-type
        :message (error-message-string err))))
 #+end_src
 
 #+RESULTS:
-: er317/noweb-ref-keyval-define
+: er317/global-alist-define
 
-******* group
-******** helper
+**** noweb-ref
+:PROPERTIES:
+:CUSTOM_ID: source-el-noweb-ref
+:END:
 
-#+header: :noweb-ref el-noweb-ref
-#+begin_src emacs-lisp
-  (er317/noweb-ref-keyval-define :group 'helper)
-#+end_src
-
-#+RESULTS:
-: er317/noweb-ref-helper-get
-
-#+header: :noweb-ref el-noweb-ref
-#+header: :results raw
-#+begin_src emacs-lisp
-  (er317/noweb-ref-helper-put
-   :method 'buffer-re
-   :func '(lambda (ref-list)
-  	 (format "\\(%s\\)" (string-join ref-list "\\|")))
-   :doc "Combines a ref-list into a non-anchored regex suitable to parse a buffer")
-#+end_src
-
-#+RESULTS:
-(:func (lambda (ref-list) (format \(%s\) (string-join ref-list \|))) :doc Combines a ref-list into a non-anchored regex suitable to parse a buffer)
-
-#+begin_src emacs-lisp
-  (pp er317/noweb-ref-keyval-alist)
-#+end_src
-
-#+RESULTS:
-: (((helper . buffer-re) :func
-:   (lambda (ref-list) (format "\\(%s\\)" (string-join ref-list "\\|")))
-:   :doc
-:   "Combines a ref-list into a non-anchored regex suitable to parse a buffer")
-:  (("test" . "foo") :func (lambda nil (message "hello"))))
-
-#+header: :noweb-ref el-example
-#+begin_src emacs-lisp
- (funcall (er317/noweb-ref-get-backend :group 'helper :method 'buffer-re :key :func) '("foo" "bar"))
-#+end_src
-
-#+RESULTS:
-: \(foo\|bar\)
-
-******** filter
+***** module
 ****** filter
 
 #+header: :noweb-ref el-noweb
@@ -737,13 +618,11 @@ ARGS must contain exactly one key from the known keys."
       (&key
        ref-list
        (head-re "^")
-       (middle-re (string-join ref-list "\\|"))
+       (middle-re (funcall (er317/regex-get :method union-re :key :func) ref-list))
        (tail-re "$")
        (regex (concat head-re (format "\\(%s\\)" middle-re) tail-re))
-       func-key
-       (func
-        (cond (func-key (er317/noweb-ref-keyval-get :info-func func-key))
-              (t #'identity)))
+       (info-symb 'body)
+       (func (er317/group-babel-info :method info-symb :key :func))
        arg-list)
     "Filters source block info by matching noweb-ref on REGEX, transforming each using FUNC+ARG-LIST."
     (let ((results '()))
@@ -785,7 +664,7 @@ ARGS must contain exactly one key from the known keys."
          (cond
           (fold-func (er317/nowef-ref-fold-func fold-func-key))
           (fold-func fold-func)
-          (t (er317/exception-raise :message "Missing FOLD-FUNC")))))
+          (t (er317/raise :message "Missing FOLD-FUNC")))))
         
         "Assemble source block info using noweb-refences for collection.
 
@@ -972,6 +851,16 @@ ARGS must contain exactly one key from the known keys."
 {"foo":{"key":"X"},"bar":{"key":"Y"},"qux":[{"key":"W"},{"key":"Z"}]}
 #+end_src
 
+**** regex
+***** module
+****** union
+
+#+begin_src emacs-lisp
+  (cl-defun er317/union-re (&key string-list)
+    "Return a regexp matching any string in STRING-LIST as a group."
+    (format "\\(%s\\)" (string-join string-list "\\|")))
+#+end_src
+
 **** org
 ***** module
 ****** element
@@ -1136,7 +1025,7 @@ then promote the rest of the subtree."
 **** symb
 ***** combo
 
-#+header: :noweb-ref el-symb
+#+header: :noweb-ref el-symb-beta
 #+begin_src emacs-lisp
   (cl-defun er317/symb-combo-next (&key (start-symb nil) (next-symb nil) (msg-type 'error) (key-p t))
     "Return a new interned symbol by appending NEXT-SYMB to START-SYMB using a separator."
@@ -1154,7 +1043,7 @@ then promote the rest of the subtree."
                  (symb-string (string-join string-list sep)))
             (intern (format "%s" symb-string)))))
       (error
-       (er317/exception-raise
+       (er317/raise
         :type msg-type
         :message (error-message-string err)
         :arg-list (list :start-symb ,start-symb :next-symb ,next-symb))
@@ -1211,7 +1100,7 @@ then promote the rest of the subtree."
   	   :msg-type msg-type
   	   :key-p key-p))))
       (error
-       (er317/exception-raise
+       (er317/raise
         :type msg-type
         :message (error-message-string err)))))
 #+end_src
@@ -1241,6 +1130,77 @@ then promote the rest of the subtree."
 
 #+RESULTS:
 | nil | :foo | :foo-bar | :foo-bar-baz |
+
+**** read
+
+#+header: :noweb-ref el-read
+#+begin_src emacs-lisp
+  (defconst er317/read-config-plist "Configuration plist for `silo`"
+    '(:define-name-list
+      '("defun"
+        "defmacro"
+        "cl-defun"
+        "cl-defmacro"
+        "defsubst"
+        "defalias"
+        "defvar"
+        "defconst"
+        "defcustom"
+        "defparameter"
+        "defstruct"
+        "cl-defstruct"
+        "deftype"
+        "defclass"
+        "defmethod"
+        "defgeneric"
+        "define-derived-mode"
+        "define-minor-mode"
+        "define-skeleton"
+        "define-widget"
+        "define-compilation-mode"
+        "define-error"
+        "define-obsolete-function-alias"
+        "define-obsolete-variable-alias"))
+#+end_src
+
+#+header: :noweb-ref el-read
+#+begin_src emacs-lisp
+  (defun er317/read-defined-symbols
+      (&key
+       ;; url TODO
+       ;; noweb-ref TODO
+       noweb-ref-fold-plist
+       (string (when noweb-ref-plist
+                 (apply #'er317/noweb-ref-fold noweb-ref-fold-plist)))
+       file
+       (buffer (cond
+                (file (find-file-noselect file))
+                (string
+                 (let ((name (generate-new-buffer "*er317/read-symbols*")))
+  		 (with-current-buffer name
+  		   (goto-char (point-min))
+  		   (insert expand))
+  		 buffer-name))
+                (t nil)))
+       (define-name-list (plist-get er317/read-config-plist :define-name-list)))
+    "Return a list of symbols defined in BUFFER matching DEFINE-NAME-LIST."
+    (interactive)
+    (let* ((result '())
+           (regexp (format "^(\\(%s\\)\\_>" (string-join define-name-list "\\|"))))
+      (with-current-buffer buffer
+        (save-excursion
+          (goto-char (point-min))
+          (while (re-search-forward regexp nil t)
+            (goto-char (match-beginning 0))
+            (condition-case nil
+                (let ((form (read (current-buffer))))
+                  (when (and (consp form)
+                             (member (symbol-name (car form)) define-name-list)
+                             (symbolp (cadr form)))
+                    (push (cadr form) result)))
+              (error nil)))))
+      (nreverse result)))
+#+end_src
 
 ** json
 *** test-cases
@@ -1417,6 +1377,28 @@ then promote the rest of the subtree."
   <<el-shell>>
 #+end_src
 * trash
+** compose
+
+#+header: :noweb-ref el-trash
+#+begin_src emacs-lisp
+  (defun er317/compose (arg &rest functions)
+    "Apply a sequence of FUNCTIONS to ARG in composition order."
+    (cl-reduce (lambda (acc fn) (funcall fn acc))
+               (reverse functions)
+               :initial-value arg))
+#+end_src
+
+#+RESULTS:
+: er317/compose
+
+#+header: :noweb-ref el-example
+#+begin_src emacs-lisp
+  (er317/compose 4 #'sqrt (lambda (x) (+ 1 x)))
+#+end_src
+
+#+RESULTS:
+: 3.0
+
 ** noweb-ref
 *** expand
 
