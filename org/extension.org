@@ -303,7 +303,7 @@ whose values are non-nil."
          Compile-time:
          - RESULT-FUNC constructed using RESULT-KEY-LIST else `#'identity`
 
-         Runtime behavior:
+         Runtime:
          TARGET-FUNC (KEYWORD VALUE ...)
          - RESULT <- (apply SOURCE-FUNC VALUE-LIST)
          - RESULT <- (RESULT-FUNC RESULT)
@@ -496,20 +496,7 @@ whose values are non-nil."
 : er317/filesys-unique-clone-interactive
 
 **** babel
-***** load
-
-#+header: :noweb-ref el-babel
-#+begin_src emacs-lisp
-  (load-file "./except.el")
-#+end_src
-
-#+header: :noweb-ref el-babel
-#+begin_src emacs-lisp
-  (load-file "./func.el")
-#+end_src
-
 ***** info
-****** refactor
 
 #+header: :noweb-ref el-babel-info
 #+begin_src emacs-lisp
@@ -536,27 +523,9 @@ whose values are non-nil."
 
 #+RESULTS:
 #+begin_src json
-"{
-    \"key\" : \"X\"
-}"
-#+end_src
-
-****** group
-
-#+header: :noweb-ref el-babel-info
-#+begin_src emacs-lisp
-  (er317/group-keyval-define :group 'babel-info)
-#+end_src
-
-#+RESULTS:
-: er317/noweb-ref-babel-info-get
-
-#+header: :noweb-ref el-babel-info
-#+begin_src emacs-lisp
-  (er317/group-info-put
-   :method 'body
-   :func '(lambda (refactored-info key-list) (plist-get refactored-info body))
-   :doc "Maps an org babel info to itself")
+{
+    "key" : "X"
+}
 #+end_src
 
 ***** comment
@@ -591,47 +560,80 @@ whose values are non-nil."
 
 #+header: :noweb-ref el-noweb
 #+begin_src emacs-lisp
-  (cl-defun er317/noweb-ref-filter
-      (&key
-       ref-list
-       (head-re "^")
-       (middle-re (format "\\(%s\\)" (string-join ref-list "\\|")))
-       (tail-re "$")
-       (regex (concat head-re middle-re tail-re))
-       (func (lambda (refactored-info) (plist-get refactored-info :body)))
-       arg-list
-       (babel-info-option-list '(t))
-       element-parse-option-list)
-    "Filters source block info by matching noweb-ref on REGEX, transforming each as FUNC (AS-PLIST-INFO ARG-LIST)."
-    (let ((results '()))
-      (org-element-map (apply #'org-element-parse-buffer element-parse-option-list) 'src-block
-        (lambda (src)
-          (let* ((begin (org-element-property :begin src))
-                 (info (save-excursion
-                         (goto-char begin)
-                         (apply #'er317/org-babel-info-as-plist babel-info-option-list)))
-                 (params (plist-get info :header-args))
-                 (ref (plist-get params :noweb-ref)))
-            (when (and ref (string-match-p regex ref))
-              (push (apply func info arg-list) results)))))
-      (nreverse results)))
+    (cl-defun er317/noweb-ref-filter
+        (&key
+         ref-list
+         (head-re "^")
+         (middle-re (when ref-list
+    		  (format "\\(%s\\)" (string-join ref-list "\\|"))))
+         (tail-re "$")
+         (regex (concat head-re middle-re tail-re))
+         element-parse-option-list
+         (babel-info-option-list '(:no-eval t))
+         each-key
+         (each-func (cond
+            	 (each-key (lambda (info-plist) (plist-get info-plist  each-key)))
+            	 (t #'identity)))
+         each-arg-list
+         (fold-func (cond
+            	 ((eq each-key :body)
+    		 (lambda (body-list) (string-join body-list "\n")))
+          		 (t #'identity)))
+         fold-arg-list)
+      "Filters source block info by matching noweb-ref on REGEX.
+
+      Execution flow:
+      - RESULT <- '()
+      - For each SOURCE-BLOCK in the buffer
+          - INFO-PLIST <- BABEL-INFO as a plist
+          - When :noweb-ref matches REGEX
+             - VALUE <- (EACH-FUNC INFO-PLIST EACH-ARG-LIST)
+             - RESULT <- (append RESULT (list VALUE))
+      - (FOLD-FUNC RESULT FOLD-ARG-LIST)
+
+      Example:
+      ```
+      (er317/noweb-ref-filter
+       :regex \"^\\(foo\\|bar\\)$\"
+       :each-key :body)
+      ```"
+      (let ((results '()))
+        (org-element-map (apply #'org-element-parse-buffer element-parse-option-list) 'src-block
+          (lambda (src)
+            (let* ((begin (org-element-property :begin src))
+                   (info-plist (save-excursion
+            		     (goto-char begin)
+            		     (apply #'er317/org-babel-info-as-plist babel-info-option-list)))
+                   (params (plist-get info-plist :header-args))
+                   (param-pair (assoc :noweb-ref params))
+                   (ref (when param-pair (cdr param-pair))))
+    	  (progn
+              (when (and param-pair (string-match-p regex ref))
+                (push (apply each-func info-plist each-arg-list) results))
+  	  (apply fold-func (nreverse results) fold-arg-list)))))))
 #+end_src
 
 #+RESULTS:
 : er317/noweb-ref-filter
 
-#+header: :noweb yes
-#+header: :results verbatim
 #+header: :noweb-ref el-example
+#+header: :results raw
 #+begin_src emacs-lisp
-  (er317/noweb-ref-filter
-   :regex "sh-\\(hello\\|ahoy\\)"
-   ;; :func #'identity
-   )
+(cl-subseq (er317/noweb-ref-filter
+   :regex "^sh-\\(hello\\|ahoy\\)$") 0 1)
 #+end_src
 
 #+RESULTS:
-: (("sh" "'Ahoy, planet!'" ((:results . "replace") (:exports . "code") (:noweb-ref . "sh-ahoy") (:tangle . "no") (:hlines . "no") (:noweb . "no") (:cache . "no") (:session . "none")) "" nil 26969 "(ref:%s)") ("sh" "'Hello, world!'" ((:results . "replace") (:exports . "code") (:noweb-ref . "sh-hello") (:tangle . "no") (:hlines . "no") (:noweb . "no") (:cache . "no") (:session . "none")) "" nil 27043 "(ref:%s)") ("sh" "'Hello, debugger!'" ((:results . "replace") (:exports . "code") (:noweb-ref . "sh-hello") (:tangle . "no") (:hlines . "no") (:noweb . "no") (:cache . "no") (:session . "none")) "" nil 27117 "(ref:%s)"))
+(((:lang sh :body 'Ahoy, planet!' :header-args ((:results . replace) (:exports . code) (:noweb-ref . sh-ahoy) (:tangle . no) (:hlines . no) (:noweb . no) (:cache . no) (:session . none)) :switches  :name nil :start 35707 :coderef (ref:%s)) (:lang sh :body 'Hello, world!' :header-args ((:results . replace) (:exports . code) (:noweb-ref . sh-hello) (:tangle . no) (:hlines . no) (:noweb . no) (:cache . no) (:session . none)) :switches  :name nil :start 35800 :coderef (ref:%s)) (:lang sh :body 'Hello, debugger!' :header-args ((:results . replace) (:exports . code) (:noweb-ref . sh-hello) (:tangle . no) (:hlines . no) (:noweb . no) (:cache . no) (:session . none)) :switches  :name nil :start 35874 :coderef (ref:%s))))
+
+#+header: :noweb-ref el-example
+#+header: :results raw
+#+begin_src emacs-lisp
+  ;; TODO check
+  (string-join (er317/noweb-ref-filter
+  	      :regex "^sh-\\(hello\\|ahoy\\)$"
+  	      :each-key :body))
+#+end_src
 
 ****** fold
 
@@ -639,7 +641,9 @@ whose values are non-nil."
 #+begin_src emacs-lisp
   (cl-defun er317/noweb-ref-fold
       (&key
-       filter-arg-list
+       (filtered-list '())
+       filter-arg-list-default
+       
        (func (lambda (body-list) (string-join body-list "\n")))
        arg-list)
     "Workflow:
@@ -1178,7 +1182,7 @@ then promote the rest of the subtree."
 ** json
 *** test-cases
 
-Keep both the name and noweb-ref.
+Where applicable, keep both the name and noweb-ref.
 
 #+name: json-foo
 #+header: :noweb-ref json-foo
@@ -1270,8 +1274,7 @@ Keep both the name and noweb-ref.
   cat << EOF 
 #+end_src
 
-#+header: :noweb-ref sh-ahoy
-#+begin_src sh
+#+begin_src sh :noweb-ref sh-ahoy
   'Ahoy, planet!'
 #+end_src
 
