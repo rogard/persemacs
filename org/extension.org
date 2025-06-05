@@ -106,6 +106,15 @@ Evaluate (~C-c C-c~)
 
 **** exception
 ***** module
+:PROPERTIES:
+:created_on: <2025-06-05 Thu>
+:uname:    @elitebook
+:is-public: false
+:END:
+:LOGBOOK:
+- Note taken on [2025-06-05 Thu 11:44] \\
+  Appears to be buggy.
+:END:
 
 #+header: :noweb-ref el-raise
 #+begin_src emacs-lisp
@@ -191,17 +200,17 @@ Evaluate (~C-c C-c~)
 #+begin_src emacs-lisp
   (cl-defun er317/zip-to-plist
       (&key key-list value-list result (discard nil) msg-type)
-    "Recursively zip KEY-LIST and VALUE-LIST into a plist. Optionally discard extra values."
-    (condition-case err
+    "Recursively zip KEY-LIST and VALUE-LIST into a plist. Optionally discard extra values.
+
+    Syntax:
+    - KEY-LIST (quote (KEYWORD...))"
         (cond
-         ;; Base case: both lists empty
          ((null key-list)
           (cond
            ((null value-list) result)
            (discard result)
            (t (error "Length mismatch: values left over: %S" value-list))))
 
-         ;; Recursive case: process one key-value pair
          (t
           (let ((key (car key-list)))
             (cond
@@ -217,10 +226,33 @@ Evaluate (~C-c C-c~)
                :value-list (cdr value-list)
                :result (append result (list key (car value-list)))
                :discard discard
-               :msg-type msg-type))))))
-      (error
-       (er317/raise
-        :message (error-message-string err)))))
+               :msg-type msg-type)))))))
+;;      (condition-case err
+;;
+;;      (error
+;;       (er317/raise
+;;        :message (error-message-string err)))))
+#+end_src
+
+#+RESULTS:
+: er317/zip-to-plist
+
+#+header: :noweb-ref el-example
+#+header: :var name="json-foo"
+#+begin_src emacs-lisp :wrap src json
+  (let* ((location (org-babel-find-named-block name))
+         (info (save-excursion
+  	       (goto-char location)
+  	       (org-babel-get-src-block-info)))
+         (plist (er317/zip-to-plist :key-list '(:lang :body :header-args :switches :name :start :coderef) :value-list info)))
+    (plist-get plist :body))
+#+end_src
+
+#+RESULTS:
+#+begin_src json
+{
+    "key" : "X"
+}
 #+end_src
 
 ****** plist-if
@@ -253,30 +285,58 @@ whose values are non-nil."
 **** refactor
 
 #+header: :noweb-ref el-refactor
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
   (cl-defmacro er317/refactor
       (&key
-       (source-func 'identity)
+       source-func
        target-key-list
-       (result-func 'identity)
+       result-key-list
        target-func
        msg-type)
-    "Generate a keyword-based wrapper function around SOURCE-FUNC."
-    (let* ((target-symb
+    "Define TARGET-FUNC as a keyword-based function that wraps around SOURCE-FUNC.
+
+         Syntax:
+         - SOURCE-FUNC              (quote SYMB) | (lambda (...) ...)
+         - <RESULT|TARGET>-KEY-LIST (KEYWORD ... )
+         - TARGET-FUNC              (quote SYMB)
+
+         Compile-time:
+         - RESULT-FUNC constructed using RESULT-KEY-LIST else `#'identity`
+
+         Runtime behavior:
+         TARGET-FUNC (KEYWORD VALUE ...)
+         - RESULT <- (apply SOURCE-FUNC VALUE-LIST)
+         - RESULT <- (RESULT-FUNC RESULT)
+         - RESULT
+
+         Example:
+         (er317/refactor
+         :source-func 'org-babel-get-src-block-info
+         :target-func 'er317/org-babel-info-as-plist
+         :target-key-list (:no-eval :datum)
+         :result-key-list (:lang :body :header-args :switches :name :start :coderef))"
+    (let* (
+  	 (result-func
+  	  (cond
+  	   (result-key-list
+  	    `(lambda (result-list)
+  	       (er317/zip-to-plist :key-list ',result-key-list :value-list result-list)))
+  	   (t #'identity)))
+  	 (target-symb
             (cond
              ((symbolp target-func) target-func)
              ((and (consp target-func) (eq (car target-func) 'quote))
               (cadr target-func))
              (t (error "target-func must be a symbol or quoted symbol"))))
-           (target-symb-list
+     	 (target-symb-list
             (cl-loop for k in target-key-list
                      collect (intern (substring (symbol-name k) 1)))))
       `(cl-defun ,target-symb (&key ,@target-symb-list)
          ,(format "Refactored wrapper around `%s`, accepting keyword args %s."
-  		source-func target-key-list)
+     		source-func target-key-list)
          (let* ((result-raw (apply ,source-func (list ,@target-symb-list)))
-  	      (result (funcall ,result-func result-raw)))
-  	 result))))
+                (result (funcall ,result-func result-raw)))
+     	 result))))
 #+end_src
 
 #+RESULTS:
@@ -284,9 +344,7 @@ whose values are non-nil."
 
 #+header: :noweb-ref el-example
 #+begin_src emacs-lisp
-  (defun er317/source-func (x y)
-    (message "ARGS: x=%S y=%S" x y)
-    (+ x y))
+  (defun er317/source-func (x) (list x (+ x 1)))
 #+end_src
 
 #+RESULTS:
@@ -294,36 +352,30 @@ whose values are non-nil."
 
 #+header: :noweb-ref el-example
 #+begin_src emacs-lisp  
-   (er317/refactor
-     :source-func 'er317/source-func
-     :target-key-list (:x :y)
-     :result-func (lambda (r) (* r 10))
-     :target-func 'er317/target-func)
+  (er317/refactor
+   :source-func  (lambda (x) (list x (+ x 1)))
+;;    'er317/source-func
+   :target-key-list (:x)
+   :result-key-list (:x :y)
+   :target-func 'er317/target-func)
 #+end_src
 
 #+RESULTS:
 : er317/target-func
 
-(fn &key X Y) (let* ((x (car (cdr (plist-member --cl-rest-- ':x)))) (y (car (cdr (plist-member --cl-rest-- ':y))))) (progn (let ((--cl-keys-- --cl-rest--)) (while --cl-keys-- (cond ((memq (car --cl-keys--) '(:x :y :allow-other-keys)) (unless (cdr --cl-keys--) (error Missing argument for %s (car --cl-keys--))) (setq --cl-keys-- (cdr (cdr --cl-keys--)))) ((car (cdr (memq ':allow-other-keys --cl-rest--))) (setq --cl-keys-- nil)) (t (error Keyword argument %s not one of (:x :y) (car --cl-keys--)))))) (cl-block er317/target-func (let* ((result-raw (apply 'er317/source-func (list x y))) (result (funcall (lambda (r) (* r 10)) result-raw))) result))))) |
+#+header: :noweb-ref el-example
+#+begin_src emacs-lisp
+  (pp (symbol-function 'er317/target-func))
+#+end_src
 
 #+header: :noweb-ref el-example
 #+begin_src emacs-lisp  
 (setq debug-on-error t)
-(er317/target-func :x 2 :y 3)
+(er317/target-func :x 100)
 #+end_src
 
 #+RESULTS:
-: 50
-
-
-#+begin_src emacs-lisp
-  (let ((target-key-list '(:x :y)))
-    (cl-loop for k in target-key-list
-  	   collect (intern (substring (symbol-name k) 1))))
-#+end_src
-
-#+RESULTS:
-| x | y |
+| :x | 100 | :y | 101 |
 
 **** filesys
 ***** preamble
@@ -464,8 +516,8 @@ whose values are non-nil."
   (er317/refactor
    :source-func 'org-babel-get-src-block-info
    :target-func 'er317/org-babel-info-as-plist
-   :target-key-list '(:no-eval :datum)
-   :result-func (lambda (info) (er317/zip-to-plist :key-list '(:lang :body :header-args :switches :name :start :coderef) :value-list info)))
+   :target-key-list (:no-eval :datum)
+   :result-key-list (:lang :body :header-args :switches :name :start :coderef))
 #+end_src
 
 #+RESULTS:
@@ -473,9 +525,20 @@ whose values are non-nil."
 
 #+header: :noweb-ref el-example
 #+header: :var name="json-foo"
+#+header: :results raw
 #+begin_src emacs-lisp :wrap src json
-  (let* ((location (org-babel-find-named-block)))
-    (er317/org-babel-info-as-plist location)
+    (let* ((location (org-babel-find-named-block name))
+           (option-list '(:no-eval t)))
+      (save-excursion
+        (goto-char location)
+        (plist-get (apply #'er317/org-babel-info-as-plist option-list) :body)))
+#+end_src
+
+#+RESULTS:
+#+begin_src json
+"{
+    \"key\" : \"X\"
+}"
 #+end_src
 
 ****** group
@@ -1115,6 +1178,9 @@ then promote the rest of the subtree."
 ** json
 *** test-cases
 
+Keep both the name and noweb-ref.
+
+#+name: json-foo
 #+header: :noweb-ref json-foo
 #+begin_src json
   {
