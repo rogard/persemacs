@@ -279,6 +279,28 @@ whose values are non-nil."
   (plist-get (er317/plist-if :foo "foo" :bar nil :qux "qux") :qux)
 #+end_src
 
+#+header: :noweb-ref el-plist-if
+#+begin_src emacs-lisp
+  (cl-defmacro er317/inline-plist-if (&rest keyval-list)
+    "Return a plist of only key-value pairs whose values are non-nil."
+    (let ((result nil))
+      (while keyval-list
+        (let ((key (pop keyval-list))
+              (value (pop keyval-list)))
+          (when value
+            (push value result)
+            (push key result))))
+      (nreverse result)))
+#+end_src
+
+#+RESULTS:
+: er317/inline-plist-if
+
+#+header: :results raw verbatim
+#+begin_src emacs-lisp
+  (plist-get (er317/plist-if :foo "foo" :bar nil :qux "qux") :qux)
+#+end_src
+
 #+RESULTS:
 "qux"
 
@@ -291,9 +313,11 @@ whose values are non-nil."
        source-func
        target-key-list
        result-key-list
+       (result-to-plist-p (when target-key-list t))
        target-func
        msg-type)
-    "Define TARGET-FUNC as a keyword-based function that wraps around SOURCE-FUNC.
+    "Define TARGET-FUNC as a keyword-based function that wraps around SOURCE-FUNC,
+    Zipping to plist its result using TARGET-KEY-LIST if supplied.
 
          Syntax:
          - SOURCE-FUNC              (quote SYMB) | (lambda (...) ...)
@@ -301,24 +325,26 @@ whose values are non-nil."
          - TARGET-FUNC              (quote SYMB)
 
          Compile-time:
-         - RESULT-FUNC constructed using RESULT-KEY-LIST else `#'identity`
+         - RESULT-FUNC <- er317/zip-to-list or identity
 
          Runtime:
-         TARGET-FUNC (KEYWORD VALUE ...)
+         TARGET-FUNC (KEYVAL-LIST)
          - RESULT <- (apply SOURCE-FUNC VALUE-LIST)
          - RESULT <- (RESULT-FUNC RESULT)
          - RESULT
 
          Example:
+         ```
          (er317/refactor
          :source-func 'org-babel-get-src-block-info
          :target-func 'er317/org-babel-info-as-plist
          :target-key-list (:no-eval :datum)
-         :result-key-list (:lang :body :header-args :switches :name :start :coderef))"
+         :result-key-list (:lang :body :header-args :switches :name :start :coderef))
+         ```"
     (let* (
   	 (result-func
   	  (cond
-  	   (result-key-list
+  	   (result-to-plist-p
   	    `(lambda (result-list)
   	       (er317/zip-to-plist :key-list ',result-key-list :value-list result-list)))
   	   (t #'identity)))
@@ -335,7 +361,7 @@ whose values are non-nil."
          ,(format "Refactored wrapper around `%s`, accepting keyword args %s."
      		source-func target-key-list)
          (let* ((result-raw (apply ,source-func (list ,@target-symb-list)))
-                (result (funcall ,result-func result-raw)))
+  	      (result (funcall ,result-func result-raw)))
      	 result))))
 #+end_src
 
@@ -368,10 +394,41 @@ whose values are non-nil."
   (pp (symbol-function 'er317/target-func))
 #+end_src
 
+#+RESULTS:
+#+begin_example
+#[(&rest --cl-rest--)
+  ((let* ((x (car (cdr (plist-member --cl-rest-- ':x)))))
+     (progn
+       (let ((--cl-keys-- --cl-rest--))
+	 (while --cl-keys--
+	   (cond
+	    ((memq (car --cl-keys--) '(:x :allow-other-keys))
+	     (unless (cdr --cl-keys--)
+	       (error "Missing argument for %s" (car --cl-keys--)))
+	     (setq --cl-keys-- (cdr (cdr --cl-keys--))))
+	    ((car (cdr (memq ':allow-other-keys --cl-rest--)))
+	     (setq --cl-keys-- nil))
+	    (t
+	     (error "Keyword argument %s not one of (:x)"
+		    (car --cl-keys--))))))
+       (cl-block er317/target-func
+	 (let*
+	     ((result-raw
+	       (apply (lambda (x) (list x (+ x 1))) (list x)))
+	      (result
+	       (funcall
+		(lambda (result-list)
+		  (er317/zip-to-plist :key-list '(:x :y) :value-list
+				      result-list))
+		result-raw)))
+	   result)))))
+  nil nil
+  "Refactored wrapper around `(lambda (x) (list x (+ x 1)))`, accepting keyword args (:x).\n\n(fn &key X)"]
+#+end_example
+
 #+header: :noweb-ref el-example
 #+begin_src emacs-lisp  
-(setq debug-on-error t)
-(er317/target-func :x 100)
+  (er317/target-func :x 100)
 #+end_src
 
 #+RESULTS:
@@ -510,6 +567,49 @@ whose values are non-nil."
 #+RESULTS:
 : er317/org-babel-info-as-plist
 
+#+begin_src emacs-lisp
+  (pp (symbol-function 'er317/org-babel-info-as-plist))
+#+end_src
+
+#+RESULTS:
+#+begin_example
+#[(&rest --cl-rest--)
+  ((let*
+       ((no-eval (car (cdr (plist-member --cl-rest-- ':no-eval))))
+	(datum (car (cdr (plist-member --cl-rest-- ':datum)))))
+     (progn
+       (let ((--cl-keys-- --cl-rest--))
+	 (while --cl-keys--
+	   (cond
+	    ((memq (car --cl-keys--)
+		   '(:no-eval :datum :allow-other-keys))
+	     (unless (cdr --cl-keys--)
+	       (error "Missing argument for %s" (car --cl-keys--)))
+	     (setq --cl-keys-- (cdr (cdr --cl-keys--))))
+	    ((car (cdr (memq ':allow-other-keys --cl-rest--)))
+	     (setq --cl-keys-- nil))
+	    (t
+	     (error "Keyword argument %s not one of (:no-eval :datum)"
+		    (car --cl-keys--))))))
+       (cl-block er317/org-babel-info-as-plist
+	 (let*
+	     ((result-raw
+	       (apply 'org-babel-get-src-block-info
+		      (list no-eval datum)))
+	      (result
+	       (funcall
+		(lambda (result-list)
+		  (er317/zip-to-plist :key-list
+				      '(:lang :body :header-args
+					      :switches :name :start
+					      :coderef)
+				      :value-list result-list))
+		result-raw)))
+	   result)))))
+  nil nil
+  "Refactored wrapper around `'org-babel-get-src-block-info`, accepting keyword args (:no-eval :datum).\n\n(fn &key NO-EVAL DATUM)"]
+#+end_example
+
 #+header: :noweb-ref el-example
 #+header: :var name="json-foo"
 #+header: :results raw
@@ -527,6 +627,20 @@ whose values are non-nil."
     "key" : "X"
 }
 #+end_src
+
+***** block-names
+
+#+header: :noweb-ref el-babel-block-names
+#+begin_src emacs-lisp
+  (cl-defun er317/babel-filter-block-names
+      (&key regex file)
+    "Filter the source block names using REGEX in FILE."
+    (let ((block-names (reverse (org-babel-src-block-names file))))
+      (cl-remove-if-not (lambda (block) (string-match-p regex block)) block-names)))
+#+end_src
+
+#+RESULTS:
+: er317/filter-block-names
 
 ***** comment
 
@@ -568,6 +682,7 @@ whose values are non-nil."
      		  (format "\\(%s\\)" (string-join ref-list "\\|"))))
        (tail-re "$")
        (regex (concat head-re middle-re tail-re))
+       ;; buffer
        element-parse-option-list
        (babel-info-option-list '(:no-eval t))
        babel-info-key
@@ -594,8 +709,8 @@ whose values are non-nil."
        ```"
     (let ((results '()))
       (org-element-map (apply #'org-element-parse-buffer element-parse-option-list) 'src-block
-        (lambda (src)
-          (let* ((begin (org-element-property :begin src))
+        (lambda (elem)
+          (let* ((begin (org-element-property :begin elem))
     	       (info-plist (save-excursion
              		     (goto-char begin)
              		     (apply #'er317/org-babel-info-as-plist babel-info-option-list)))
@@ -604,9 +719,8 @@ whose values are non-nil."
     	       (ref (when param-pair (cdr param-pair))))
      	  (progn
               (when (and param-pair (string-match-p regex ref))
-    	      (push (apply func info-plist arg-list) results))
-    	    (nreverse results)))))))
-  ;;  	    (apply fold-func (nreverse results) fold-arg-list)))))))
+    	      (push (apply func info-plist arg-list) results))))))
+    	    (nreverse results)))
 #+end_src
 
 #+RESULTS:
@@ -615,30 +729,41 @@ whose values are non-nil."
 #+header: :noweb-ref el-example
 #+header: :results raw
 #+begin_src emacs-lisp
-(cl-subseq (er317/noweb-ref-filter
-   :regex "^sh-\\(hello\\|ahoy\\)$") 0 1)
+  (er317/noweb-ref-filter
+  	    :regex "^sh-\\(world\\|ahoy\\)$")
 #+end_src
 
 #+RESULTS:
-(((:lang sh :body 'Ahoy, planet!' :header-args ((:results . replace) (:exports . code) (:noweb-ref . sh-ahoy) (:tangle . no) (:hlines . no) (:noweb . no) (:cache . no) (:session . none)) :switches  :name nil :start 35707 :coderef (ref:%s)) (:lang sh :body 'Hello, world!' :header-args ((:results . replace) (:exports . code) (:noweb-ref . sh-hello) (:tangle . no) (:hlines . no) (:noweb . no) (:cache . no) (:session . none)) :switches  :name nil :start 35800 :coderef (ref:%s)) (:lang sh :body 'Hello, debugger!' :header-args ((:results . replace) (:exports . code) (:noweb-ref . sh-hello) (:tangle . no) (:hlines . no) (:noweb . no) (:cache . no) (:session . none)) :switches  :name nil :start 35874 :coderef (ref:%s))))
+((:lang sh :body 'Ahoy, planet!' :header-args ((:results . replace) (:exports . code) (:noweb-ref . sh-ahoy) (:tangle . no) (:hlines . no) (:noweb . no) (:cache . no) (:session . none)) :switches  :name nil :start 40410 :coderef (ref:%s)) (:lang sh :body 'Hello, world!' :header-args ((:results . replace) (:exports . code) (:noweb-ref . sh-hello) (:tangle . no) (:hlines . no) (:noweb . no) (:cache . no) (:session . none)) :switches  :name nil :start 40503 :coderef (ref:%s)) (:lang sh :body 'Hello, debugger!' :header-args ((:results . replace) (:exports . code) (:noweb-ref . sh-hello) (:tangle . no) (:hlines . no) (:noweb . no) (:cache . no) (:session . none)) :switches  :name nil :start 40577 :coderef (ref:%s)))
 
 #+header: :noweb-ref el-example
 #+header: :results raw
-#+begin_src emacs-lisp
-  (string-join (er317/noweb-ref-filter
-  	      :regex "^sh-\\(hello\\|ahoy\\)$"
-  	      :each-key :body))
+#+begin_src emacs-lisp :wrap src sh
+    (string-join
+     (er317/noweb-ref-filter
+      :regex "^sh-\\(cat\\|world\\|ahoy\\|eof\\)$"
+      :babel-info-key :body)
+     "\n")
 #+end_src
 
-****** recurse
+#+RESULTS:
+#+begin_src sh
+cat << EOF 
+'Ahoy, planet!'
+EOF
+#+end_src
+
+****** iterate-fold
 
 #+header: :noweb-ref el-noweb
 #+begin_src emacs-lisp
-  (cl-defun er317/noweb-ref-recurse
+  (cl-defun er317/noweb-ref-iterate-fold
       (&key
        (filter-arglist-base '(:babel-info-key :body))
-       (filter-arglist-list '())
-       (filter-result-cumul-list '())
+       filter-arglist-singleton
+       (filter-arglist-list (when filter-arglist-singleton
+                              (list filter-arglist-singleton)))
+       (filter-result-list '())
        (func
         (cond
          ((eq (plist-get filter-arglist-base :babel-info-key) :body)
@@ -646,39 +771,38 @@ whose values are non-nil."
          (t #'identity)))
        arg-list
        (stop (= (length filter-arglist-list) 0)))
-    "Recursively filter and accumulate results from noweb-ref-matching source blocks.
+    "Recursively filter results from noweb-ref-matching source blocks.
 
-    Execution flow:
-    - RESULT <- '()
-    - For each ARGLIST in FILTER-ARGLIST-LIST:
-        - FULL-ARGLIST <- append FILTER-ARGLIST-BASE ARGLIST
-        - FILTERED <- (apply er317/noweb-ref-filter FULL-ARGLIST)
-        - RESULT <- (append RESULT FILTERED)
-    - FINAL <- (apply FUNC RESULT ARG-LIST)
-    - FINAL
+      Execution flow:
+      - RESULT <- '()
+      - For each ARGLIST in FILTER-ARGLIST-LIST:
+          - FULL-ARGLIST <- append FILTER-ARGLIST-BASE ARGLIST
+          - FILTERED <- (apply er317/noweb-ref-filter FULL-ARGLIST)
+          - RESULT <- (append RESULT FILTERED)
+      - FINAL <- (apply FUNC RESULT ARG-LIST)
+      - FINAL
 
-    Examples:
-    - (er317/noweb-ref-recurse
-      :filter-arg-list-base '(
-        :regex \"^sh-\\(cat\\|hello\\|ahoy\\|eof\\)$\"))
-      ;; assumes cat and eof are placed in that order in the buffer
+      Examples:
+      - (er317/noweb-ref-iterate-fold
+        :filter-arg-list-base '(
+          :regex \"^sh-\\(cat\\|world\\|ahoy\\|eof\\)$\"))
+        ;; assumes cat and eof are placed in that order in the buffer
 
-    - (er317/noweb-ref-recurse
-      :filter-arg-list-base '(:header-re \"^sh-\")
-      :filter-arg-list-list '(
-         (:middle-re \"cat\")
-         (:middle-re \"\\(hello\\|ahoy$\\)\")
-         (:middle-re \"eof\")))
-      ;; makes no assumption about cat and eof's order in the buffer"
+      - (er317/noweb-ref-iterate-fold
+        :filter-arg-list-base '(:header-re \"^sh-\")
+        :filter-arg-list-list '(
+           (:middle-re \"cat\")
+           (:middle-re \"\\(world\\|ahoy$\\)\")
+           (:middle-re \"eof\")))
+        ;; the order of cat and eof in the buffer is irrelevant"
     (if stop
-        (apply func filter-result-cumul-list arg-list)
+        (apply func filter-result-list arg-list)
       (let* ((full-arglist (append filter-arglist-base (car filter-arglist-list)))
              (tail-list (apply #'er317/noweb-ref-filter full-arglist)))
         (er317/noweb-ref-recurse
          :filter-arglist-base filter-arglist-base
          :filter-arglist-list (cdr filter-arglist-list)
-         :filter-result-cumul-list
-         (append filter-result-cumul-list tail-list)
+         :filter-result-list (nconc filter-result-list tail-list)
          :func func
          :arg-list arg-list))))
 #+end_src
@@ -775,16 +899,16 @@ whose values are non-nil."
 ******** other
 
 #+begin_src emacs-lisp
-    (er317/func-doc
-     :key ':plain
-     :fn (lambda (body)
-           (let* ((lang (plist-get (er317/org-babel-info-as-plist info) :lang)
-    	      (header-args (er317/org-babel-info-as-plist :info info :header-args))
-    	      (noweb-ref (plist-get header-args :noweb-ref)))
-           
-           )
-     :doc "Fetches info's body"
-     :read t)
+  (er317/func-doc
+   :key ':plain
+   :fn (lambda (body)
+         (let* ((lang (plist-get (er317/org-babel-info-as-plist info) :lang)
+  		    (header-args (er317/org-babel-info-as-plist :info info :header-args))
+  		    (noweb-ref (plist-get header-args :noweb-ref)))
+  	      
+  	      )
+  	 :doc "Fetches info's body"
+  	 :read t)
 #+end_src
 
 ***** example
@@ -847,17 +971,6 @@ whose values are non-nil."
 **** org
 ***** module
 ****** element
-
-#+header: :noweb-ref el-org-beta
-#+begin_src emacs-lisp
-  (defun er317/filter-block-names (regex &optional file)
-    "Filter the source block names using REGEX in FILE."
-    (let ((block-names (reverse (org-babel-src-block-names file))))
-      (cl-remove-if-not (lambda (block) (string-match-p regex block)) block-names)))
-#+end_src
-
-#+RESULTS:
-: er317/filter-block-names
 
 #+begin_src emacs-lisp
   (defun er317/element-headers-as-properties (element) "Element properties retrievable using plist-get"
@@ -1275,7 +1388,7 @@ Where applicable, keep both the name and noweb-ref.
   #!/usr/bin/env bash
 #+end_src
 
-#+header: :noweb-ref sh-cat-eof
+#+header: :noweb-ref sh-cat
 #+begin_src sh
   cat << EOF 
 #+end_src
@@ -1284,12 +1397,12 @@ Where applicable, keep both the name and noweb-ref.
   'Ahoy, planet!'
 #+end_src
 
-#+header: :noweb-ref sh-hello
+#+header: :noweb-ref sh-world
 #+begin_src sh
   'Hello, world!'
 #+end_src
 
-#+header: :noweb-ref sh-hello
+#+header: :noweb-ref sh-world
 #+begin_src sh
   'Hello, debugger!'
 #+end_src
@@ -1362,106 +1475,6 @@ Where applicable, keep both the name and noweb-ref.
   <<el-shell>>
 #+end_src
 * trash
-** global-alist
-*** backend
-
-#+header: :noweb-ref el-keyval
-#+begin_src emacs-lisp
-  (defvar er317/global-alist nil "A global alist.")
-#+end_src
-
-#+header: :noweb-ref el-noweb-ref
-#+begin_src emacs-lisp
-  (cl-defun er317/global-alist-put-backend (&key group method ((:value plist)))
-    "Store PLIST under (GROUP . METHOD)."
-    (let ((key (cons group method))
-  	(existing (assoc (cons group method) er317/global-alist)))
-      (if existing
-  	(setcdr existing plist)
-        (push (cons key plist) er317/global-alist))))
-#+end_src
-
-#+RESULTS:
-: er317/global-alist-put-backend
-
-#+header: :noweb-ref el-example
-#+begin_src emacs-lisp
-  (er317/global-alist-put-backend :group "test"  :method "foo" :value '(:func (lambda () (message "hello"))))
-#+end_src
-
-#+RESULTS:
-| (test . foo) | :func | (lambda nil (message hello)) |
-
-#+header: :noweb-ref el-noweb-ref
-#+begin_src emacs-lisp
-(cl-defun er317/global-alist-get-backend (&key group method key)
-  "Retrieve a plist value for (GROUP . METHOD) using keys in ARGS.
-ARGS must contain exactly one key from the known keys."
-  (let* ((lookup-key (cons group method))
-         (prop-list (cdr (assoc lookup-key er317/global-alist))))
-    (plist-get prop-list key)))
-#+end_src
-
-#+RESULTS:
-: er317/global-alist-get-backend
-
-#+header: :noweb-ref el-example
-#+begin_src emacs-lisp
-  (er317/global-alist-get-backend :group "test" :method "foo" :key :func)
-#+end_src
-
-#+RESULTS:
-| lambda | nil | (message hello) |
-
-*** define
-
-#+RESULTS:
-: er317/global-alist
-
-#+header: :noweb-ref el-noweb-ref
-#+begin_src emacs-lisp
-  (cl-defmacro er317/global-alist-define (&key group msg-type (symb-list '(func doc)))
-    "Define put/get frontend functions for GROUP, delegating to shared backends."
-    (condition-case err
-        (let* ((group-symb (if (and (consp group) (eq (car group) 'quote))
-                               (cadr group)
-                             group))
-               (group-name (symbol-name group-symb))
-               (keyval-and-keys
-                (cl-loop for symb in symb-list
-                         for key = (intern (format ":%s" (symbol-name symb)))
-                         append (list key symb) into keyval-list
-                         collect key into key-list
-                         finally return (list keyval-list key-list)))
-               (keyval-list (car keyval-and-keys))
-               (key-list (cadr keyval-and-keys))
-               (put-name (intern (format "er317/noweb-ref-%s-put" group-name)))
-               (get-name (intern (format "er317/noweb-ref-%s-get" group-name))))
-          `(progn
-             (cl-defun ,put-name (&key method ,@symb-list)
-               ,(format "Frontend put for group `%s` storing keys: %s"
-                        group-name (mapconcat #'symbol-name key-list ", "))
-               (er317/global-alist-put-backend
-                :group ',group-symb
-                :method method
-                :value (list ,@(cl-loop for symb in symb-list
-                        for key = (intern (format ":%s" (symbol-name symb)))
-                        collect key
-                        collect symb))))
-
-             (cl-defun ,get-name (&rest rest)
-               ,(format "Frontend get for group `%s`, forwarding keys %s to backend"
-                        group-name (mapconcat #'symbol-name key-list ", "))
-               (apply #'er317/global-alist-get-backend
-                      :group ',group-symb rest))))
-      (er317/raise
-       :type msg-type
-       :message (error-message-string err))))
-#+end_src
-
-#+RESULTS:
-: er317/global-alist-define
-
 ** compose
 
 #+header: :noweb-ref el-trash
@@ -1844,70 +1857,74 @@ EOF
 #+begin_src emacs-lisp
 (er317/func-default :func 'er317/debug :key :foo)
 #+end_src
-*** generic
-**** meta
 
+*** inline
+
+#+header: :noweb-ref el-inline-me
 #+begin_src emacs-lisp
-    (cl-defmacro er317/generic-meta (&key symb-list rest-list)
-      "Define a forwarding macro that wraps `er317/generic-keyval-put`.
-
-        SYMB-LIST determines the prefix for the :key.
-        REST-LIST is a list of expected keyword arguments to forward."
-      (let* ((symb (er317/symb-combo-list
-                    :start-symb 'er317/generic
-                    :symb-list symb-list
-                    :key-p nil))
-    	 macroput macro
-  	 -get))
-      (dolist (suffix '(put get))
-        (progn
-          (setq (intern (string-join (symbol-name symb) suffix "-"))    	 
-      	    (symb-put (er317/symb-combo-list
-                           :start-symb symb
-                           :symb-list (list ,(intern suffix))
-                           :key-p nil)))))
-      (arglist (append '(&key key) (mapcar (lambda (k) (intern (format "%s" k))) rest-list)))
-      (body `(er317/generic-keyval-put
-      	  :symb-list (append ',symb-list (list key))
-      	  ,@(apply #'append
-      		   (mapcar (lambda (k)
-      			     (let ((sym (intern (format "%s" k))))
-      			       (list (intern (format ":%s" k)) sym)))
-      			   rest-list)))))
-    `(cl-defmacro ,macro-put ,arglist
-       ,(format "Auto-generated macro forwarding to `er317/generic-keyval-put` with prefix `%s`." symb-list)
-       ,body)))
+  (defmacro inline-me-square (x)
+    "Square of X."
+    `(* ,x ,x))
 #+end_src
 
-**** frontend
+#+RESULTS:
+: inline-me-square
 
+#+header: :noweb-ref el-func-routine
 #+begin_src emacs-lisp
-  (cl-defmacro er317/generic-info (&key key func doc) ""
-  	     :group 'info
-  	     :key key
-  	     :func func
-  	     :doc doc)
+  (+ (inline-me-square a)
+     (inline-me-square b))
 #+end_src
 
-**** instance
-***** requirement
-
+#+header: :noweb-ref el-example-forward
+#+header: :var body-el=(er317/noweb-ref-fold :filter-arg-list )
 #+begin_src emacs-lisp
-  (er317/generic-put
-   :group :group
-   :key :arg-name
-   :func nil
-   :semantic
-   :doc "Declaring :arg-name as a group")
+  (defun example-compute (a b) body-el )
 #+end_src
 
+#+header: :noweb-ref el-example-macroexp
 #+begin_src emacs-lisp
-  (er317/generic-put
-   :group :arg-name
-   :key :babel-info
-   :func (lambda (func) (help-function-arglist func)
-        	 (equal '(info) '(info)))
-   :doc "Checks argument name")
+  ,(macroexpand-all
+    'to-inline
+  )
+#+end_src
+
+~Ctrl-c Ctrl-c~
+#+header: :noweb yes
+#+header: :var body-elisp=(org)
+#+begin_src emacs-lisp
+  <<el-inline-me>>
+#+end_src
+
+#+RESULTS:
+: inline-me-square
+
+#+header: :noweb yes
+#+begin_src emacs-lisp
+  <<el-example-forward>>
+#+end_src
+
+#+RESULTS:
+: example-compute
+
+#+begin_src emacs-lisp
+  (pp (symbol-function 'example-compute))
+#+end_src
+
+#+RESULTS:
+: #[(a b) ((+ (inline-me-square a) (inline-me-square b))) nil]
+
+*** backquote
+
+#+header: :results raw code
+#+begin_src emacs-lisp
+(let ((b-list '(ba bb bc)))
+    (macroexpand '(quasiquote (a (unquote b-list) c))))
+#+end_src
+
+#+RESULTS:
+#+begin_src emacs-lisp
+(quasiquote (a (unquote b-list) c))
 #+end_src
 
 ** sh
