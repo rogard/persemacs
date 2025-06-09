@@ -1,17 +1,17 @@
-#+title: persemacs-extension
+#+title: persemacs-dev
 #+author: Erwann Rogard
 #+property: header-args :tangle no
 
 #+name: doc-lead
 #+begin_src org
-  This is a standalone Emacs Org file containing emacs-lisp functionality.
+  This is a standalone Emacs Org file containing emacs-lisp development.
 #+end_src
 
 * license
 
 #+name: el-license
 #+begin_src emacs-lisp
-  ;;  persemacs-extension — Emacs Lisp functionality
+  ;;  persemacs-dev — Emacs Lisp development
   ;;  Copyright (C) 2024—2025 — Erwann Rogard
   ;;  Released under GPL 3.0
   ;;  See https://www.gnu.org/licenses/gpl-3.0.en.html
@@ -29,7 +29,7 @@ Evaluate (~C-c C-c~)
     :title "Customize Properties")
 #+end_src
 
-**** noweb-ref                                                    :tangle:
+**** src-block                                                    :tangle:
 ***** wrap
 
  #+name: el-wrap
@@ -39,43 +39,6 @@ Evaluate (~C-c C-c~)
  #+begin_src emacs-lisp
    (concat "#+header: :noweb-ref " ref "\n" "#+begin_src " lang "\n" body "\n" "#+end_src")
  #+end_src
-
-***** collect
-
-#+name: el-collect
-#+header: :var head="^sh-"
-#+header: :var ref-list='()
-#+header: :var tail="$"
-#+header: :var order=':buffer
-#+header: :results raw
-#+begin_src emacs-lisp
-  (string-join
-   (er317/noweb-ref-collect :head head :ref-list ref-list :tail tail :order order) "\n")
-#+end_src
-
-#+RESULTS:
-: er317/noweb-ref-collect
-
-***** assemble
-
-#+name: el-assemble
-#+header: :var head="^json-"
-#+header: :var ref-list='()
-#+header: :var tail="$"
-#+header: :var key-list='()
-#+header: :var parse-fn='json-read-from-string
-#+header: :var encode-fn='json-encode
-#+header: :var order=':buffer
-#+begin_src emacs-lisp
-  (er317/noweb-ref-assemble
-   :head head
-   :ref-list ref-list
-   :tail tail
-   :order order
-   :key-list key-list
-   :parse-fn parse-fn
-   :encode-fn encode-fn)
-#+end_src
 
 ***** json-pp
 
@@ -255,6 +218,42 @@ Evaluate (~C-c C-c~)
 }
 #+end_src
 
+****** transpose
+
+#+begin_src emacs-lisp
+  (cl-defun er317/plist-transpose (&key plist)
+    "Transpose a PLIST of keys and list-values into a list of row-wise plists.
+
+    Input:
+      '(:key1 (v1 v2) :key2 (w1 w2))
+    Output:
+      ((:key1 v1 :key2 w1)
+       (:key1 v2 :key2 w2))"
+    (let* ((keys (cl-loop for (k _) on plist by #'cddr collect k))
+           (columns (cl-loop for (_ v) on plist by #'cddr collect v))
+           (rows (apply #'cl-mapcar #'list columns)))
+      (mapcar (lambda (vals)
+                (cl-loop for k in keys
+                         for v in vals
+                         nconc (list k v)))
+              rows)))
+#+end_src
+
+#+RESULTS:
+: er317/plist-transpose
+
+#+header: :noweb-ref el-example
+#+begin_src emacs-lisp
+  (let ((input '(:key1 (1 2 3)
+  		     :key2 ("a" "b" "c"))))
+    (er317/plist-transpose :plist input))
+#+end_src
+
+#+RESULTS:
+| :key1 | 1 | :key2 | a |
+| :key1 | 2 | :key2 | b |
+| :key1 | 3 | :key2 | c |
+
 ****** plist-if
 
 #+header: :noweb-ref el-plist-if
@@ -281,7 +280,7 @@ whose values are non-nil."
 
 #+header: :noweb-ref el-plist-if
 #+begin_src emacs-lisp
-  (cl-defmacro er317/inline-plist-if (&rest keyval-list)
+  (cl-defun er317/plist-if (&rest keyval-list)
     "Return a plist of only key-value pairs whose values are non-nil."
     (let ((result nil))
       (while keyval-list
@@ -294,7 +293,7 @@ whose values are non-nil."
 #+end_src
 
 #+RESULTS:
-: er317/inline-plist-if
+: er317/plist-if
 
 #+header: :results raw verbatim
 #+begin_src emacs-lisp
@@ -728,87 +727,124 @@ whose values are non-nil."
 
 #+header: :noweb-ref el-example
 #+header: :results raw
+#+header: :var regex="^sh-\\(cat\\|world\\|ahoy\\|eof\\)$"
 #+begin_src emacs-lisp
-  (er317/noweb-ref-filter
-  	    :regex "^sh-\\(world\\|ahoy\\)$")
+  (er317/noweb-ref-filter :regex regex)
 #+end_src
 
 #+RESULTS:
-((:lang sh :body 'Ahoy, planet!' :header-args ((:results . replace) (:exports . code) (:noweb-ref . sh-ahoy) (:tangle . no) (:hlines . no) (:noweb . no) (:cache . no) (:session . none)) :switches  :name nil :start 40410 :coderef (ref:%s)) (:lang sh :body 'Hello, world!' :header-args ((:results . replace) (:exports . code) (:noweb-ref . sh-hello) (:tangle . no) (:hlines . no) (:noweb . no) (:cache . no) (:session . none)) :switches  :name nil :start 40503 :coderef (ref:%s)) (:lang sh :body 'Hello, debugger!' :header-args ((:results . replace) (:exports . code) (:noweb-ref . sh-hello) (:tangle . no) (:hlines . no) (:noweb . no) (:cache . no) (:session . none)) :switches  :name nil :start 40577 :coderef (ref:%s)))
+((:lang sh :body cat << EOF  :header-args ((:results . replace) (:exports . code) (:noweb-ref . sh-cat) (:tangle . no) (:hlines . no) (:noweb . no) (:cache . no) (:session . none)) :switches  :name nil :start 38724 :coderef (ref:%s)) (:lang sh :body 'Ahoy, planet!' :header-args ((:results . replace) (:exports . code) (:noweb-ref . sh-ahoy) (:tangle . no) (:hlines . no) (:noweb . no) (:cache . no) (:session . none)) :switches  :name nil :start 38764 :coderef (ref:%s)) (:lang sh :body 'Hello, world!' :header-args ((:results . replace) (:exports . code) (:noweb-ref . sh-world) (:tangle . no) (:hlines . no) (:noweb . no) (:cache . no) (:session . none)) :switches  :name nil :start 38857 :coderef (ref:%s)) (:lang sh :body 'Hello, debugger!' :header-args ((:results . replace) (:exports . code) (:noweb-ref . sh-world) (:tangle . no) (:hlines . no) (:noweb . no) (:cache . no) (:session . none)) :switches  :name nil :start 38931 :coderef (ref:%s)) (:lang sh :body EOF :header-args ((:results . replace) (:exports . code) (:noweb-ref . sh-eof) (:tangle . no) (:hlines . no) (:noweb . no) (:cache . no) (:session . none)) :switches  :name nil :start 39006 :coderef (ref:%s)))
 
 #+header: :noweb-ref el-example
 #+header: :results raw
+#+header: :var regex="^sh-\\(cat\\|world\\|ahoy\\|eof\\)$"
 #+begin_src emacs-lisp :wrap src sh
-    (string-join
-     (er317/noweb-ref-filter
-      :regex "^sh-\\(cat\\|world\\|ahoy\\|eof\\)$"
-      :babel-info-key :body)
-     "\n")
+  (string-join
+   (er317/noweb-ref-filter
+    :regex regex
+    :babel-info-key :body)
+   "\n")
 #+end_src
 
 #+RESULTS:
 #+begin_src sh
 cat << EOF 
 'Ahoy, planet!'
+'Hello, world!'
+'Hello, debugger!'
 EOF
 #+end_src
 
-****** iterate-fold
+****** assemble
 
 #+header: :noweb-ref el-noweb
 #+begin_src emacs-lisp
-  (cl-defun er317/noweb-ref-iterate-fold
+  (cl-defun er317/noweb-ref-assemble
       (&key
        (filter-arglist-base '(:babel-info-key :body))
-       filter-arglist-singleton
-       (filter-arglist-list (when filter-arglist-singleton
-                              (list filter-arglist-singleton)))
-       (filter-result-list '())
+       (filter-arglist-rest-map ((:ignore '())))
+       (filter-arglist-rest-list
+        (cl-loop for (key values) on filter-arglist-rest-map by #'cddr
+  	       append (mapcar (lambda (val) (list (intern (format ":%s" key)) val))
+  			      values)))
+       (filter-arglist-full-list (cl-loop for arglist in filter-arglist-rest-list collect (append filter-arglist-base arglist)))
        (func
         (cond
          ((eq (plist-get filter-arglist-base :babel-info-key) :body)
-          (lambda (body-list) (string-join body-list "\n")))
+  	(lambda (body-list) (string-join body-list "\n")))
          (t #'identity)))
        arg-list
-       (stop (= (length filter-arglist-list) 0)))
+       (filter-result-list '())
+       (recurse-stop (= (length filter-arglist-full-list) 0)))
     "Recursively filter results from noweb-ref-matching source blocks.
 
-      Execution flow:
-      - RESULT <- '()
-      - For each ARGLIST in FILTER-ARGLIST-LIST:
-          - FULL-ARGLIST <- append FILTER-ARGLIST-BASE ARGLIST
-          - FILTERED <- (apply er317/noweb-ref-filter FULL-ARGLIST)
-          - RESULT <- (append RESULT FILTERED)
-      - FINAL <- (apply FUNC RESULT ARG-LIST)
-      - FINAL
+          Execution flow:
+          - RESULT <- FILTER-RESULT-LIST
+          - For each ARGLIST in FILTER-ARGLIST-FULL-LIST:
+              - FULL-ARGLIST <- append FILTER-ARGLISTHEAD ARGLIST
+              - CURRENT <- (apply er317/noweb-ref-filter FULL-ARGLIST)
+              - RESULT <- (append RESULT CURRENT)
+          - RESULT <- (apply FUNC RESULT ARG-LIST)
+          - RESULT
 
-      Examples:
-      - (er317/noweb-ref-iterate-fold
-        :filter-arg-list-base '(
-          :regex \"^sh-\\(cat\\|world\\|ahoy\\|eof\\)$\"))
-        ;; assumes cat and eof are placed in that order in the buffer
-
-      - (er317/noweb-ref-iterate-fold
-        :filter-arg-list-base '(:header-re \"^sh-\")
-        :filter-arg-list-list '(
-           (:middle-re \"cat\")
-           (:middle-re \"\\(world\\|ahoy$\\)\")
-           (:middle-re \"eof\")))
-        ;; the order of cat and eof in the buffer is irrelevant"
-    (if stop
+          Examples:
+          -  (let ((regex=\"^sh-\\(cat\\|world\\|ahoy\\|eof\\)$\"))
+               (er317/noweb-ref-assemble
+               :filter-arglist-rest-map
+               `(:regex (list regex))))
+          ;; expands meaninful code because cat precedes eof in the buffer
+          - (er317/noweb-ref-assemble
+              :filter-arg-list-base '(:babel-info-key :body :header-re \"^sh-\" :tail-re \"$\")
+              :filter-arg--list '(
+              (:middle-re \"cat\")
+              (:middle-re \"\\(world\\|ahoy\\)\")
+              (:middle-re \"eof\")))
+              ;; the order of cat and eof in the buffer is irrelevant"
+    (message "DEBUG filter-arglist-base: %S" filter-arglist-base)
+    (if recurse-stop
         (apply func filter-result-list arg-list)
-      (let* ((full-arglist (append filter-arglist-base (car filter-arglist-list)))
-             (tail-list (apply #'er317/noweb-ref-filter full-arglist)))
-        (er317/noweb-ref-recurse
+      (let* ((filter-arglist (car filter-arglist-full-list))
+      	   (result-tail-list (apply #'er317/noweb-ref-filter filter-arglist)))
+        (er317/noweb-ref-assemble
          :filter-arglist-base filter-arglist-base
-         :filter-arglist-list (cdr filter-arglist-list)
-         :filter-result-list (nconc filter-result-list tail-list)
+         :filter-arglist-full-list (cdr filter-arglist-full-list)
+         :filter-result-list (nconc filter-result-list result-tail-list)
          :func func
          :arg-list arg-list))))
 #+end_src
 
 #+RESULTS:
 : er317/noweb-ref-assemble
+
+#+header: :noweb-ref el-example
+#+header: :results raw
+#+header: :var regex="^sh-\\(cat\\|world\\|ahoy\\|eof\\)$"
+#+begin_src emacs-lisp :wrap src sh
+  (er317/noweb-ref-assemble
+   :filter-arglist-rest-list
+   `((:regex ,regex)))
+#+end_src
+
+#+RESULTS:
+#+begin_src sh
+cat << EOF 
+'Ahoy, planet!'
+'Hello, world!'
+'Hello, debugger!'
+EOF
+#+end_src
+
+#+header: :noweb-ref el-example
+#+begin_src emacs-lisp
+  (er317/noweb-ref-assemble
+   :filter-arg-list-base '(:babel-info-key :body
+  					 :header-re \"^sh-\"
+  					 :tail-re \"$\")
+   :filter-arg-list-list '(
+  			 (:middle-re \"cat\")
+  			 (:middle-re \"\\(world\\|ahoy\\)\")
+  			 (:middle-re \"eof\")))
+#+end_src
 
 ****** org
 
@@ -1926,6 +1962,25 @@ EOF
 #+begin_src emacs-lisp
 (quasiquote (a (unquote b-list) c))
 #+end_src
+
+*** allow-other-key
+
+#+begin_src emacs-lisp
+  (cl-defun toy-filter (&key foo bar &allow-other-keys)
+  (message "foo: %S, bar: %S" foo bar))
+#+end_src
+
+#+RESULTS:
+: toy-filter
+
+#+begin_src emacs-lisp
+  (toy-filter :foo 1 :bar 2)                       ;; => "foo: 1, bar: 2"
+  (toy-filter :foo "hello" :baz "ignored")         ;; => "foo: \"hello\", bar: nil"
+  (toy-filter :foo 10 :bar 20 :ignore 'whatever)   ;; => "foo: 10, bar: 20"
+#+end_src
+
+#+RESULTS:
+: foo: 10, bar: 20
 
 ** sh
 
