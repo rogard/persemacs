@@ -412,29 +412,30 @@ Evaluate (~C-c C-c~)
 | :x | 100 | :y | 101 |
 
 **** filesys
-***** unique-file
-****** directory
+****** config
 :PROPERTIES:
 :customize: true
 :END:
 
 #+header: :noweb-ref el-filesys-beta
 #+begin_src emacs-lisp
-  (defconst er317/filesys-unique-directory
-    (file-name-as-directory "~/unique")
+  (defconst er317/filesys-unique-config
+    (list
+     :directory (file-name-as-directory "~/unique"))
     "Directory for storing unique files")
 #+end_src
 
 #+RESULTS:
-: er317/filesys-unique-directory
+: er317/filesys-unique-config
 
-****** make
+****** unique
 
 #+header: :noweb-ref el-filesys-beta
 #+begin_src emacs-lisp
-  (cl-defun er317/filesys-unique-make
+  (cl-defun er317/filesys-unique
       (&key ((:ext ext-string))
-            ((:directory directory-string) er317/filesys-unique-directory)
+            ((:directory directory-string)
+  	   (plist-get er317/filesys-unique-config :directory))
   	  &allow-other-keys)
     "Create a uniquely named file in the given DIRECTORY with extension EXT"
     (let* ((prefix (file-name-as-directory directory-string))
@@ -445,31 +446,31 @@ Evaluate (~C-c C-c~)
 #+end_src
 
 #+RESULTS:
-: er317/filesys-unique-make
+: er317/filesys-unique
 
 #+header: :noweb-ref el-example
 #+header: :var ext="org"
 #+begin_src emacs-lisp
-  (er317/filesys-unique-make :ext ext)
+  (er317/filesys-unique :ext ext)
 #+end_src
 
 #+RESULTS:
-: /home/erwann/unique/IOjIUJ.org
+: /home/erwann/unique/bwcWiB.org
 
 #+header: :noweb-ref el-example
 #+header: :var ext="org"
 #+begin_src emacs-lisp
-  (er317/filesys-unique-make :ignore)
+  (er317/filesys-unique :ignore)
 #+end_src
 
 #+RESULTS:
-: /home/erwann/unique/i4zVMa
+: /home/erwann/unique/WkytZC
 
 ****** clone
 
 #+header: :noweb-ref el-filesys-beta
 #+begin_src emacs-lisp
-  (cl-defun er317/filesys-unique-clone
+  (cl-defun er317/filesys-clone
       (&key
        (demo-flag nil)
 
@@ -482,16 +483,16 @@ Evaluate (~C-c C-c~)
               (write-region (point-min) (point-max) temp-file))
             temp-file)))
 
-       ((source-file)
+       (source-file
         (cond
-         (demo-flag _temp-file)
-         (t (error ":source cannot be nil"))))
+         (demo-flag (progn (message "DEBUG:%S" _temp-file) _temp-file))
+         (t (error "source-file cannot be nil"))))
 
-       (make-ext (file-name-extension source-file))
+       (unique-ext (file-name-extension source-file))
 
-       (make-arglist
-        (if make-ext
-            (list :ext make-ext)
+       (unique-arglist
+        (if unique-ext
+            (list :ext unique-ext)
           '(:ignore)))
 
        (trash-flag t)
@@ -505,102 +506,68 @@ Evaluate (~C-c C-c~)
        
        (snapshot-func
         (when snapshot-flag
-        	`(lambda (target-file)
-             (list
+          `(lambda (target-file)
+             (list  
   	    :demo-flag ,demo-flag
-  	    :make-arglist ,make-arglist
-  	    :source-content ,source-content
+  	    :snapshot-flag snapshot-flag
+  	    :source-content ,_source-content
   	    :source-exists (file-exists-p ,source-file)
   	    :source-file ,source-file
   	    :target-content (with-temp-buffer (insert-file-contents target-file)(buffer-string))
   	    :target-exists (file-exists-p target-file)
   	    :target-file target-file
   	    :trash-flag ,trash-flag
-    	    ))))
+  	    :unique-arglist ',unique-arglist))))
        
        (_cleanup-lisp
-        `(when (and ,temp-file (file-exists-p ,temp-file))
-        	 (delete-file ,temp-file)))
+        `(when (and ,_temp-file (file-exists-p ,_temp-file))
+           (delete-file ,_temp-file)))
+       
        &allow-other-keys)
 
     "Clone SOURCE-FILE uniquely.
 
-                  Execution flow:
-                  - Generate TARGET-FILE using MAKE-ARGLIST-FULL.
-                  - Copy SOURCE-FILE to TARGET-FILE.
-                  - If TRASH, trash SOURCE-FILE.
-                  - Return TARGET-FILE."
+    Execution flow:
+    - Generate TARGET-FILE using UNIQUE-ARGLIST-FULL.
+    - Copy SOURCE-FILE to TARGET-FILE.
+    - If TRASH, trash SOURCE-FILE.
+    - Return TARGET-FILE."
     (unwind-protect
         (let ((target-file
-               (apply #'er317/filesys-unique-make make-arglist)))
-        	(with-temp-buffer
+               (apply #'er317/filesys-unique unique-arglist)))
+          (with-temp-buffer
             (insert-file-contents source-file)
             (write-region (point-min) (point-max) target-file))
-        	(message "Cloned source file (%s) to unique file: %s" source-file target-file)
-        	(when trash-flag
+          (message "Cloned source file (%s) to unique file: %s" source-file target-file)
+          (when trash-flag
             (move-file-to-trash source-file)
             (message "Moved source file to trash: %s" source-file))
-        	(when snapshot-flag
+          (when snapshot-flag
             (message "Snapshot for %s:\n%s"
-                     'er317/filesys-unique-clone
+                     'er317/filesys-clone
                      (pp-to-string (funcall snapshot-func target-file))))
-        	target-file)
-      (eval _cleanup-lisp))
+          target-file)
+      (eval _cleanup-lisp)))
 #+end_src
 
 #+RESULTS:
-: er317/filesys-unique-clone
+: er317/filesys-clone
 
 #+header: :noweb-ref el-example
-#+header: :var ext="trash"
 #+header: :results raw
 #+begin_src emacs-lisp
-  (let* ((temp-file (make-temp-file nil nil (concat "." ext)))
-         (text "This file is for demo only, trash it")
-         target-file result)
-
-    (unwind-protect
-        (progn
-          ;; Write content to temp file
-          (with-temp-buffer
-            (insert text)
-            (write-region (point-min) (point-max) temp-file))
-
-          ;; Clone it
-          (setq target-file (er317/filesys-unique-clone :source temp-file))
-
-          (message "TEMP:   %s\nTARGET: %s" temp-file target-file)
-  	(setq result
-  	      (list
-  	       :temp-exists (file-exists-p temp-file)
-  	       :target-exists (file-exists-p target-file)
-  	       :target-file target-file
-  	       :target-content (with-temp-buffer
-  				 (insert-file-contents target-file)
-  				 (buffer-string)))))
-
-
-  	;; Cleanup both files regardless of success
-  	(when (and temp-file (file-exists-p temp-file))
-            (delete-file temp-file))
-  	(when (and target-file (file-exists-p target-file))
-            (delete-file target-file)))
-
-      result)
+  (er317/filesys-clone :demo-flag t :snapshot-flag t)
 #+end_src
-
-****** interactive
-******* code
 
 #+header: :noweb-ref el-filesys-beta
 #+begin_src emacs-lisp
-  (cl-defun er317/filesys-unique-clone-interactive
+  (cl-defun er317/filesys-clone-interactive
       (source-file &key (clone-arglist '(:ignore)))
     "Interactively clone SOURCE-FILE to a uniquely named one.
     Copies the new file path to the kill ring.
 
     Optional keyword:
-      :clone-arglist – passed to `er317/filesys-unique-clone`."
+      :clone-arglist – passed to `er317/filesys-clone`."
     (interactive "fEnter source file")
     ;; Warn if the source file is open in any buffer
     (catch 'found
@@ -610,51 +577,16 @@ Evaluate (~C-c C-c~)
   	(warn "About to clone the file opened in buffer: %s" (buffer-name buf))
   	(throw 'found t))))
     ;; Prepare arguments and call the cloning function
-    (let* ((arglist (append (list :source source-file) clone-arglist))
-           (target-file (apply #'er317/filesys-unique-clone arglist)))
+    (let* ((arglist (append (list :source-file source-file) clone-arglist))
+           (target-file (apply #'er317/filesys-clone arglist)))
       (kill-new target-file)
       (message "Cloned %s to: %s (path copied to clipboard)" source-file target-file)))
 #+end_src
 
 #+RESULTS:
-: er317/filesys-unique-clone-interactive
-
-****** 
-
-#+begin_src emacs-lisp
-
-
-  (unwind-protect
-      (progn
-        ;; Write content to temp file
-        (with-temp-buffer
-          (insert text)
-          (write-region (point-min) (point-max) temp-file))
-
-        ;; Clone it
-        (setq target-file (er317/filesys-unique-clone :source temp-file))
-
-        (message "TEMP:   %s\nTARGET: %s" temp-file target-file)
-  	(setq result
-  	      (list
-  	       :temp-exists (file-exists-p temp-file)
-  	       :target-exists (file-exists-p target-file)
-  	       :target-file target-file
-  	       :target-content (with-temp-buffer
-  				 (insert-file-contents target-file)
-  				 (buffer-string)))))
-
-
-  	;; Cleanup both files regardless of success
-  	(when (and temp-file (file-exists-p temp-file))
-          (delete-file temp-file))
-  	(when (and target-file (file-exists-p target-file))
-          (delete-file target-file)))
-
-    result)
-#+end_src
-** babel
-***** info
+: er317/filesys-clone-interactive
+**** babel
+****** info
 
 #+header: :noweb-ref el-babel-info
 #+begin_src emacs-lisp
@@ -729,7 +661,7 @@ Evaluate (~C-c C-c~)
 }
 #+end_src
 
-***** block-names
+****** block-names
 
 #+header: :noweb-ref el-babel-block-names
 #+begin_src emacs-lisp
@@ -743,7 +675,7 @@ Evaluate (~C-c C-c~)
 #+RESULTS:
 : er317/filter-block-names
 
-***** comment
+****** comment
 
 #+header: :noweb-ref el-babel-comment
 #+begin_src emacs-lisp
@@ -765,13 +697,13 @@ Evaluate (~C-c C-c~)
               (format "%s %%s %s" (string-trim start) (string-trim end))))))))
 #+end_src
 
-**** noweb-ref
+***** noweb-ref
 :PROPERTIES:
 :CUSTOM_ID: source-el-noweb-ref
 :END:
 
-***** function
-****** filter
+****** function
+******* filter
 
 #+header: :noweb-ref el-noweb
 #+begin_src emacs-lisp
@@ -858,7 +790,7 @@ cat << EOF
 EOF
 #+end_src
 
-****** assemble
+******* assemble
 
 #+header: :noweb-ref el-noweb
 #+begin_src emacs-lisp
@@ -935,7 +867,7 @@ EOF
   			 (:middle-re \"eof\")))
 #+end_src
 
-****** org
+******* org
 
 #+header: :noweb-ref el-noweb-org
 #+begin_src emacs-lisp
@@ -973,10 +905,10 @@ EOF
         (delete-file local-file))))
 #+end_src
 
-****** func-doc
-******* define
-******** info
-********* json
+******* func-doc
+******** define
+********* info
+********** json
 
 #+begin_src emacs-lisp
   (er317/nowef-ref-register
@@ -986,8 +918,8 @@ EOF
    :group :read-info)
 #+end_src
 
-******** encode
-********* json
+********* encode
+********** json
 
 #+begin_src emacs-lisp
   (er317/func-doc
@@ -997,7 +929,7 @@ EOF
    :group :encode)
 #+end_src
 
-********* join
+********** join
 
 #+begin_src emacs-lisp
   (er317/func-doc
@@ -1007,7 +939,7 @@ EOF
    :group :encode)
 #+end_src
 
-********* tag
+********** tag
 
 #+begin_src emacs-lisp
   (er317/func-doc
@@ -1021,7 +953,7 @@ EOF
   	 :read t)
 #+end_src
 
-******** other
+********* other
 
 #+begin_src emacs-lisp
   (er317/func-doc
@@ -1036,7 +968,7 @@ EOF
   	 :read t)
 #+end_src
 
-***** example
+****** example
 
 #+name: json-object
 #+call: el-assemble[:results raw](ref-list='("foo" "bar" "qux"), key-list='("foo" "bar" "qux"))
@@ -1073,12 +1005,12 @@ EOF
 {"foo":{"key":"X"},"bar":{"key":"Y"},"qux":[{"key":"W"},{"key":"Z"}]}
 #+end_src
 
-**** regex
+***** regex
 
 These are encoded reminders.
 
-***** function
-****** union
+****** function
+******* union
 
 #+header: :noweb-ref el-regex
 #+begin_src emacs-lisp
@@ -1087,7 +1019,7 @@ These are encoded reminders.
     (format "\\(%s\\)" (string-join string-list "\\|")))
 #+end_src
 
-****** group
+******* group
 
 #+header: :noweb-ref el-regex
 #+begin_src emacs-lisp
@@ -1096,16 +1028,16 @@ These are encoded reminders.
     (format "\\(%s\\)" string)
 #+end_src
 
-**** org
-***** module
-****** element
+***** org
+****** module
+******* element
 
 #+begin_src emacs-lisp
   (defun er317/element-headers-as-properties (element) "Element properties retrievable using plist-get"
          (flatten-list  (mapcar (lambda (string) (org-babel-parse-header-arguments string)) (org-element-property element))))
 #+end_src
 
-****** src-block
+******* src-block
 
 #+header: :noweb-ref el-src-block-beta
 #+begin_src emacs-lisp
@@ -1120,8 +1052,8 @@ These are encoded reminders.
               props)))
 #+end_src
 
-****** subtree
-******* TODO paste
+******* subtree
+******** TODO paste
 :PROPERTIES:
 :created_on: <2025-05-30 Fri 09:10>
 :uname:    @elitebook
@@ -1157,7 +1089,7 @@ These are encoded reminders.
 #+RESULTS:
 : er317/org-subtree--paste
 
-******* promote
+******** promote
 
 #+header: :noweb-ref org-subtree-beta
 #+begin_src emacs-lisp
@@ -1198,9 +1130,9 @@ then promote the rest of the subtree."
 #+RESULTS:
 : er317/org-subtree-promote
 
-**** shell
-***** function
-****** jq
+***** shell
+****** function
+******* jq
 
 #+header: :noweb-ref el-shell
 #+begin_src emacs-lisp
@@ -1215,7 +1147,7 @@ then promote the rest of the subtree."
 #+RESULTS:
 : er317/jq-file
 
-****** string
+******* string
 
 #+header: :noweb-ref el-shell
 #+begin_src emacs-lisp
@@ -1246,7 +1178,7 @@ then promote the rest of the subtree."
 {"key":"X"}
 #+end_src
 
-**** read
+***** read
 
 #+header: :noweb-ref el-read
 #+begin_src emacs-lisp
