@@ -48,7 +48,7 @@ Evaluate (~C-c C-c~)
   (with-temp-buffer (insert json) (json-pretty-print (point-min) (point-max)) (buffer-string))
 #+end_src
 
-*** topic
+*** module
 **** resolve
 
 #+header: :noweb-ref el-resolve
@@ -68,18 +68,20 @@ Evaluate (~C-c C-c~)
 #+end_src
 
 **** exception
-***** module
+***** raise
 :PROPERTIES:
 :created_on: <2025-06-05 Thu>
 :uname:    @elitebook
 :is-public: false
 :END:
 :LOGBOOK:
+- Note taken on [2025-06-09 Mon 07:21] \\
+  I should have said integration inside functions cumbersome, rather than buggy.
 - Note taken on [2025-06-05 Thu 11:44] \\
   Appears to be buggy.
 :END:
 
-#+header: :noweb-ref el-raise
+#+header: :noweb-ref el-exception-beta
 #+begin_src emacs-lisp
   (cl-defmacro er317/raise (&key type (message "ARGS: %S") (arg-list nil) (type-if-nil (if type type 'error)))
     "Raise an error or warning with file and line info.
@@ -109,7 +111,7 @@ Evaluate (~C-c C-c~)
 #+end_src
 
 **** mangle
-***** module
+***** function
 ****** define
 
 #+header: :noweb-ref el-mangle
@@ -156,14 +158,14 @@ Evaluate (~C-c C-c~)
 #+end_src
   	 
 **** list
-***** module
+***** function
 ****** zip-to-list
 
 #+header: :noweb-ref el-list
 #+begin_src emacs-lisp
   (cl-defun er317/zip-to-plist
-      (&key key-list value-list result (discard nil) msg-type)
-    "Recursively zip KEY-LIST and VALUE-LIST into a plist. Optionally discard extra values.
+      (&key key-list value-list result (discard nil) &allow-other-keys)
+    "Recursively zip KEY-LIST and VALUE-LIST into a plist; append to RESULT. Optionally discard extra values.
 
     Syntax:
     - KEY-LIST (quote (KEYWORD...))"
@@ -188,8 +190,7 @@ Evaluate (~C-c C-c~)
                :key-list (cdr key-list)
                :value-list (cdr value-list)
                :result (append result (list key (car value-list)))
-               :discard discard
-               :msg-type msg-type)))))))
+               :discard discard)))))))
 ;;      (condition-case err
 ;;
 ;;      (error
@@ -255,43 +256,30 @@ Evaluate (~C-c C-c~)
 | :key1 | 2 | :key2 | b |
 | :key1 | 3 | :key2 | c |
 
-****** plist-list-extend
+****** list-map-append
 
-#+header: :noweb-ref el-list
+#+header: :noweb-ref el-list 
 #+begin_src emacs-lisp
-  (cl-defun er317/plist-extend-each (&key base plist-list)
-  "Append BASE plist to each plist in PLIST-LIST.
-
-Returns a list of plists where each element of PLIST-LIST is extended
-with BASE, preserving order."
-  (cl-loop for plist in plist-list
-           collect (append base plist)))
-#+end_src
-
-****** plist-if
-
-#+header: :noweb-ref el-list
-#+header: :noweb-ref el-plist-if
-#+begin_src emacs-lisp
-  (cl-defun er317/plist-if (&rest keyval-list)
-    "Return a plist containing only the key-value pairs from KEYVAL-LIST
-whose values are non-nil."
-    (let ((result nil))
-      (while keyval-list
-        (let ((key (pop keyval-list))
-              (value (pop keyval-list)))
-          (when value
-            (setq result (append result (list key value))))))
-      result))
+  (cl-defun er317/list-map-append (&key before-list middle-list-list after-list)
+    "Append BEFORE-LIST and AFTER-LIST to each LIST in MIDDLE-LIST"
+    (cl-loop for list in middle-list-list
+             collect (append before-list list after-list)))
 #+end_src
 
 #+RESULTS:
-: er317/plist-if
+: er317/list-map-append
 
-#+header: :results raw verbatim
+#+header: :noweb-ref el-example
+#+header: :results raw replace
 #+begin_src emacs-lisp
-  (plist-get (er317/plist-if :foo "foo" :bar nil :qux "qux") :qux)
+  (er317/list-map-append 
+   :before-list '(:a 1)
+   :middle-list-list '((:b 2) (:b 3))
+   :after-list '(:c 4))
 #+end_src
+
+#+RESULTS:
+((:a 1 :b 2 :c 4) (:a 1 :b 3 :c 4))
 
 **** refactor
 
@@ -424,16 +412,8 @@ whose values are non-nil."
 | :x | 100 | :y | 101 |
 
 **** filesys
-***** preamble
-
-#+header: :noweb-ref el-filesys-beta
-#+begin_src emacs-lisp
-  (load-file "../el/list.el")
-#+end_src
-
-***** module
-****** unique-file
-******* directory
+***** unique-file
+****** directory
 :PROPERTIES:
 :customize: true
 :END:
@@ -448,7 +428,7 @@ whose values are non-nil."
 #+RESULTS:
 : er317/filesys-unique-directory
 
-******* make
+****** make
 
 #+header: :noweb-ref el-filesys-beta
 #+begin_src emacs-lisp
@@ -456,19 +436,12 @@ whose values are non-nil."
       (&key ((:ext ext-string))
             ((:directory directory-string) er317/filesys-unique-directory)
   	  &allow-other-keys)
-    ;; TODO: delete        
-    ;;              ((:only-name only-name-bool))
-    ;;  	    )
     "Create a uniquely named file in the given DIRECTORY with extension EXT"
     (let* ((prefix (file-name-as-directory directory-string))
            (suffix (when ext-string (concat "." ext-string)))
            (dir-flag nil)
            (full-path (make-temp-file prefix dir-flag suffix)))
       full-path))
-  ;; TODO delete
-  ;;    (if only-name-bool
-  ;;        (file-name-nondirectory full-path)
-  ;;      full-path)))
 #+end_src
 
 #+RESULTS:
@@ -481,44 +454,102 @@ whose values are non-nil."
 #+end_src
 
 #+RESULTS:
-: /home/erwann/unique/GfUTSF.org
+: /home/erwann/unique/IOjIUJ.org
 
-******* clone
+#+header: :noweb-ref el-example
+#+header: :var ext="org"
+#+begin_src emacs-lisp
+  (er317/filesys-unique-make :ignore)
+#+end_src
+
+#+RESULTS:
+: /home/erwann/unique/i4zVMa
+
+****** clone
 
 #+header: :noweb-ref el-filesys-beta
 #+begin_src emacs-lisp
-    (cl-defun er317/filesys-unique-clone
-        (&key
-         ((:source source-file))
-         (make-ext (file-name-extension source-file))
-         (make-arglist-rest '(:ignore))
-         (make-arglist-full (append make-arglist-rest (list :ext ext)))
-         ((:trash trash-bool) t)
-         &allow-other-keys)
-      "Clone SOURCE-FILE.
+  (cl-defun er317/filesys-unique-clone
+      (&key
+       (demo-flag nil)
 
-       Execution flow:
-       - Generate TARGET-FILE using MAKE-ARGLIST-FULL.
-       - Copy SOURCE-FILE to TARGET-FILE.
-       - If TRASH is non-nil, move SOURCE-FILE to trash.
-       - Return TARGET-FILE."
-      (let ((target-file
-             (apply #'er317/filesys-unique-make make-arglist-full)))
-        (with-temp-buffer
-          (insert-file-contents source-file)
-          (write-region (point-min) (point-max) target-file))
-        (message "Cloned source file (%s) to unique file: %s" source-file target-file)
-        (when trash-bool
-          (move-file-to-trash source-file)
-          (message "Moved source file to trash: %s" source-file))
-        target-file))
+       (_temp-file
+        (when demo-flag
+          (let* ((temp-file (make-temp-file nil nil (concat "." "trash")))
+                 (text "This file is for demo only; it can be trashed"))
+            (with-temp-buffer
+              (insert text)
+              (write-region (point-min) (point-max) temp-file))
+            temp-file)))
+
+       ((source-file)
+        (cond
+         (demo-flag _temp-file)
+         (t (error ":source cannot be nil"))))
+
+       (make-ext (file-name-extension source-file))
+
+       (make-arglist
+        (if make-ext
+            (list :ext make-ext)
+          '(:ignore)))
+
+       (trash-flag t)
+
+       (snapshot-flag nil)
+
+       (_source-content (when snapshot-flag
+                          (with-temp-buffer
+                            (insert-file-contents source-file)
+                            (buffer-string))))
+       
+       (snapshot-func
+        (when snapshot-flag
+        	`(lambda (target-file)
+             (list
+  	    :demo-flag ,demo-flag
+  	    :make-arglist ,make-arglist
+  	    :source-content ,source-content
+  	    :source-exists (file-exists-p ,source-file)
+  	    :source-file ,source-file
+  	    :target-content (with-temp-buffer (insert-file-contents target-file)(buffer-string))
+  	    :target-exists (file-exists-p target-file)
+  	    :target-file target-file
+  	    :trash-flag ,trash-flag
+    	    ))))
+       
+       (_cleanup-lisp
+        `(when (and ,temp-file (file-exists-p ,temp-file))
+        	 (delete-file ,temp-file)))
+       &allow-other-keys)
+
+    "Clone SOURCE-FILE uniquely.
+
+                  Execution flow:
+                  - Generate TARGET-FILE using MAKE-ARGLIST-FULL.
+                  - Copy SOURCE-FILE to TARGET-FILE.
+                  - If TRASH, trash SOURCE-FILE.
+                  - Return TARGET-FILE."
+    (unwind-protect
+        (let ((target-file
+               (apply #'er317/filesys-unique-make make-arglist)))
+        	(with-temp-buffer
+            (insert-file-contents source-file)
+            (write-region (point-min) (point-max) target-file))
+        	(message "Cloned source file (%s) to unique file: %s" source-file target-file)
+        	(when trash-flag
+            (move-file-to-trash source-file)
+            (message "Moved source file to trash: %s" source-file))
+        	(when snapshot-flag
+            (message "Snapshot for %s:\n%s"
+                     'er317/filesys-unique-clone
+                     (pp-to-string (funcall snapshot-func target-file))))
+        	target-file)
+      (eval _cleanup-lisp))
 #+end_src
 
 #+RESULTS:
 : er317/filesys-unique-clone
-
-TODO
-- ext
 
 #+header: :noweb-ref el-example
 #+header: :var ext="trash"
@@ -538,7 +569,6 @@ TODO
           ;; Clone it
           (setq target-file (er317/filesys-unique-clone :source temp-file))
 
-          ;; Show and collect result
           (message "TEMP:   %s\nTARGET: %s" temp-file target-file)
   	(setq result
   	      (list
@@ -559,30 +589,28 @@ TODO
       result)
 #+end_src
 
-#+RESULTS:
-(:temp-exists nil :target-exists t :target-file /home/erwann/unique/aC0U93 :target-content This file is for demo only, trash it)
-
-
-******* interactive
-******** code
+****** interactive
+******* code
 
 #+header: :noweb-ref el-filesys-beta
 #+begin_src emacs-lisp
   (cl-defun er317/filesys-unique-clone-interactive
       (source-file &key (clone-arglist '(:ignore)))
     "Interactively clone SOURCE-FILE to a uniquely named one.
-  Copies the new file path to the kill ring.
+    Copies the new file path to the kill ring.
 
-  Optional keyword:
-    :clone-arglist – passed to `er317/filesys-unique-clone`."
+    Optional keyword:
+      :clone-arglist – passed to `er317/filesys-unique-clone`."
     (interactive "fEnter source file")
     ;; Warn if the source file is open in any buffer
-    (dolist (buf (buffer-list))
-      (when (and (buffer-file-name buf)
-                 (file-equal-p source-file (buffer-file-name buf)))
-        (warn "About to clone the file opened in buffer: %s" (buffer-name buf))))
+    (catch 'found
+      (dolist (buf (buffer-list))
+        (when (and (buffer-file-name buf)
+  		 (file-equal-p source-file (buffer-file-name buf)))
+  	(warn "About to clone the file opened in buffer: %s" (buffer-name buf))
+  	(throw 'found t))))
     ;; Prepare arguments and call the cloning function
-    (let* ((arglist (append clone-arglist (list :source source-file)))
+    (let* ((arglist (append (list :source source-file) clone-arglist))
            (target-file (apply #'er317/filesys-unique-clone arglist)))
       (kill-new target-file)
       (message "Cloned %s to: %s (path copied to clipboard)" source-file target-file)))
@@ -591,7 +619,41 @@ TODO
 #+RESULTS:
 : er317/filesys-unique-clone-interactive
 
-**** babel
+****** 
+
+#+begin_src emacs-lisp
+
+
+  (unwind-protect
+      (progn
+        ;; Write content to temp file
+        (with-temp-buffer
+          (insert text)
+          (write-region (point-min) (point-max) temp-file))
+
+        ;; Clone it
+        (setq target-file (er317/filesys-unique-clone :source temp-file))
+
+        (message "TEMP:   %s\nTARGET: %s" temp-file target-file)
+  	(setq result
+  	      (list
+  	       :temp-exists (file-exists-p temp-file)
+  	       :target-exists (file-exists-p target-file)
+  	       :target-file target-file
+  	       :target-content (with-temp-buffer
+  				 (insert-file-contents target-file)
+  				 (buffer-string)))))
+
+
+  	;; Cleanup both files regardless of success
+  	(when (and temp-file (file-exists-p temp-file))
+          (delete-file temp-file))
+  	(when (and target-file (file-exists-p target-file))
+          (delete-file target-file)))
+
+    result)
+#+end_src
+** babel
 ***** info
 
 #+header: :noweb-ref el-babel-info
@@ -708,7 +770,7 @@ TODO
 :CUSTOM_ID: source-el-noweb-ref
 :END:
 
-***** module
+***** function
 ****** filter
 
 #+header: :noweb-ref el-noweb
@@ -725,19 +787,19 @@ TODO
          element-parse-option-list
          (babel-info-option-list '(:no-eval t))
          babel-info-key
-         (func (cond
+         (each-func (cond
                 (babel-info-key (lambda (info-plist) (plist-get info-plist  babel-info-key)))
                 (t #'identity)))
-         arg-list
+         each-arglist
          &allow-other-keys)
       "Filters source block info by matching noweb-ref on REGEX.
 
          Execution flow:
          - RESULT <- '()
          - For each SOURCE-BLOCK in the buffer
-             - INFO-PLIST <- BABEL-INFO as a plist
+             - INFO-PLIST <- BABEL-INFO to plist
              - When :noweb-ref matches REGEX
-                - VALUE <- (FUNC INFO-PLIST ARG-LIST)
+                - VALUE <- (EACH-FUNC INFO-PLIST EACH-ARGLIST)
                 - RESULT <- (append RESULT (list VALUE))
          - RESULT
 
@@ -759,7 +821,7 @@ TODO
       	       (ref (when param-pair (cdr param-pair))))
        	  (progn
                 (when (and param-pair (string-match-p regex ref))
-      	      (push (apply func info-plist arg-list) results))))))
+      	      (push (apply each-func info-plist each-arglist) results))))))
         (nreverse results)))
 #+end_src
 
@@ -802,50 +864,42 @@ EOF
 #+begin_src emacs-lisp
   (cl-defun er317/noweb-ref-assemble
       (&key
-       (filter-arglist-base '(:babel-info-key :body))
-       (filter-arglist-rest-map ((:ignore '())))
-       (filter-arglist-rest-list (er317/plist-transpose :plist filter-arglist-rest-map))
-       (filter-arglist-full-list (cl-loop for arglist in filter-arglist-rest-list collect (append filter-arglist-base arglist)))
-       (func
-        (cond
-         ((eq (plist-get filter-arglist-base :babel-info-key) :body)
-    	(lambda (body-list) (string-join body-list "\n")))
-         (t #'identity)))
-       arg-list
+       (filter-arglist-shared '(:babel-info-key :body))
+       (filter-arglist-by-key-unshared ((:ignore '())))
+       (filter-arglist-by-iter-unshared (er317/plist-transpose :plist filter-arglist-by-key-unshared))
+       (filter-arglist-by-iter (er317/list-map-append :before-list filter-arglist-shared :middle-list-list filter-arglist-by-iter-unshared))
+       (_filter-babel-info-key (plist-get filter-arglist-shared :babel-info-key))
+       (_filter-recurse-stop (= (length filter-arglist-by-iter) 0))
        (filter-result-list '())
-       (recurse-stop (= (length filter-arglist-full-list) 0)))
+       (_func-if-body (lambda (body-list) (string-join body-list "\n")))
+       (combine-func
+        (cond
+         ((eq _filter-babel-info-key :body) _func-if-body)
+         (t #'identity)))
+       combine-arglist
+       &allow-other-keys)
     "Iteratively filter results from noweb-ref-matching source blocks, and assembles them.
 
-            Execution flow:
-            - RESULT <- FILTER-RESULT-LIST
-            - For each ARGLIST in FILTER-ARGLIST-FULL-LIST:
-                - FULL-ARGLIST <- append FILTER-ARGLISTHEAD ARGLIST
-                - CURRENT <- (apply er317/noweb-ref-filter FULL-ARGLIST)
-                - RESULT <- (append RESULT CURRENT)
-            - RESULT <- (apply FUNC RESULT ARG-LIST)
-            - RESULT
+      Execution flow:
+      - RESULT <- FILTER-RESULT-LIST
+      - For each ARGLIST in FILTER-ARGLIST-BY-ITER:
+          - TAIL <- (apply er317/noweb-ref-filter ARGLIST)
+          - RESULT <- (append RESULT TAIL)
+      - RESULT <- (apply COMBINE-FUNC RESULT COMBINE-ARGLIST)
+      - RESULT
 
-            Examples:
-            -  (let ((regex=\"^sh-\\(cat\\|world\\|ahoy\\|eof\\)$\"))
-                 (er317/noweb-ref-assemble
-                 :filter-arglist-rest-map
-                 `(:regex (list regex))))
-            ;; expands meaningful code because cat precedes eof in the buffer
-            - (er317/noweb-ref-assemble
-                :filter-arg-list-base '(:babel-info-key :body :header-re \"^sh-\" :tail-re \"$\")
-                :filter-arglist-map '(:middle-re '(\"cat\" \"\\(world\\|ahoy\\)\" \"eof\")))
-                ;; the order of cat and eof in the buffer is irrelevant"
-    (message "DEBUG filter-arglist-base: %S" filter-arglist-base)
-    (if recurse-stop
-        (apply func filter-result-list arg-list)
-      (let* ((filter-arglist (car filter-arglist-full-list))
-        	   (result-tail-list (apply #'er317/noweb-ref-filter filter-arglist)))
+      Examples:
+      ;; expands meaningful code because cat precedes eof in the buffer
+      ;; the order of cat and eof in the buffer is irrelevant"
+    (if _filter-recurse-stop
+        (apply combine-func filter-result-list combine-arglist)
+      (let* ((arglist (car filter-arglist-by-iter))
+             (tail-list (apply #'er317/noweb-ref-filter arglist)))
         (er317/noweb-ref-assemble
-         :filter-arglist-base filter-arglist-base
-         :filter-arglist-full-list (cdr filter-arglist-full-list)
-         :filter-result-list (nconc filter-result-list result-tail-list)
-         :func func
-         :arg-list arg-list))))
+         :filter-arglist-by-iter (cdr filter-arglist-by-iter)
+         :filter-result-list (nconc filter-result-list tail-list)
+         :combine-func combine-func
+         :combine-arglist arglist))))
 #+end_src
 
 #+RESULTS:
@@ -856,7 +910,7 @@ EOF
 #+header: :var regex="^sh-\\(cat\\|world\\|ahoy\\|eof\\)$"
 #+begin_src emacs-lisp :wrap src sh
   (er317/noweb-ref-assemble
-   :filter-arglist-rest-list
+   :filter-arglist-each-list
    `((:regex ,regex)))
 #+end_src
 
@@ -1020,7 +1074,10 @@ EOF
 #+end_src
 
 **** regex
-***** module
+
+These are encoded reminders.
+
+***** function
 ****** union
 
 #+header: :noweb-ref el-regex
@@ -1142,7 +1199,7 @@ then promote the rest of the subtree."
 : er317/org-subtree-promote
 
 **** shell
-***** module
+***** function
 ****** jq
 
 #+header: :noweb-ref el-shell
@@ -1188,115 +1245,6 @@ then promote the rest of the subtree."
 #+begin_src json
 {"key":"X"}
 #+end_src
-
-**** symb
-***** combo
-
-#+header: :noweb-ref el-symb-beta
-#+begin_src emacs-lisp
-  (cl-defun er317/symb-combo-next (&key (start-symb nil) (next-symb nil) (msg-type 'error) (key-p t))
-    "Return a new interned symbol by appending NEXT-SYMB to START-SYMB using a separator."
-    (condition-case err
-        (cond
-         ((null start-symb) start-symb)
-         ((null next-symb) start-symb)
-         ((not (symbolp next-symb))
-          (error "NEXT-SYMB is not a symbol: %S" next-symb))
-         ((and key-p (not (keywordp start-symb)))
-          (error "START-SYMB is not a keyword: %S" start-symb))
-         (t
-          (let* ((sep "-")
-                 (string-list (mapcar #'symbol-name (list start-symb next-symb)))
-                 (symb-string (string-join string-list sep)))
-            (intern (format "%s" symb-string)))))
-      (error
-       (er317/raise
-        :type msg-type
-        :message (error-message-string err)
-        :arg-list (list :start-symb ,start-symb :next-symb ,next-symb))
-       )))
-#+end_src
-
-#+RESULTS:
-: er317/symb-combo-next
-
-
-#+header: :noweb-ref el-example
-#+begin_src emacs-lisp
-  (er317/symb-combo-next :start-symb ':foo :next-symb 'bar)
-#+end_src
-
-#+RESULTS:
-: :foo-bar
-
-#+header: :noweb-ref el-example
-#+begin_src emacs-lisp
-(mapcar (lambda (args)
-          (apply #'er317/symb-combo-next args))
-        (list nil
-          (list :start-symb :foo)
-          (list :start-symb :foo :next-symb 'bar)))
-#+end_src
-
-#+RESULTS:
-| nil | :foo | :foo-bar |
-
-#+header: :noweb-ref el-symb
-#+begin_src emacs-lisp
-  (cl-defun er317/symb-combo-list (&key (start-symb nil) (symb-list '()) (msg-type 'error) (key-p t))
-    "Recursively builds a keyword by combining START-SYMB with each symbol in SYMB-LIST."
-    (condition-case err
-        (cond
-         ((not (listp symb-list))
-  	(error "SYMB-LIST is not a list: %S" symb-list))
-
-         ((null symb-list)
-  	(er317/symb-combo-next :start-symb start-symb :key-p key-p))
-         (t
-  	(let* ((next-symb (car symb-list))
-                 (rest-symbs (cdr symb-list))
-  	       ;; BUG:
-                 (next-key (er317/symb-combo-next
-  			  :start-symb start-symb
-  			  :next-symb next-symb
-  			  :msg-type msg-type))
-  	       )
-  	  (er317/symb-combo-list
-  	   :start-symb next-key
-  	   :symb-list rest-symbs
-  	   :msg-type msg-type
-  	   :key-p key-p))))
-      (error
-       (er317/raise
-        :type msg-type
-        :message (error-message-string err)))))
-#+end_src
-
-#+RESULTS:
-: er317/symb-combo-list
-
-
-#+begin_src emacs-lisp
-  (er317/symb-combo-list :start-symb :foo :symb-list '(bar))
-#+end_src
-
-#+RESULTS:
-: :foo-bar
-
-#+header: :noweb-ref el-example
-#+begin_src emacs-lisp
-  (mapcar
-   (lambda (args)
-     (apply #'er317/symb-combo-list args))
-   (list
-    nil
-    (list :start-symb :foo)
-    (list :start-symb :foo :symb-list '(bar))
-    (list :start-symb :foo :symb-list '(bar baz))))
-#+end_src
-
-#+RESULTS:
-| nil | :foo | :foo-bar | :foo-bar-baz |
 
 **** read
 
@@ -1546,6 +1494,116 @@ Where applicable, keep both the name and noweb-ref.
   <<el-shell>>
 #+end_src
 * trash
+** symb
+*** combo
+
+#+header: :noweb-ref el-symb-trash
+#+begin_src emacs-lisp
+  (cl-defun er317/symb-combo-next (&key (start-symb nil) (next-symb nil) (msg-type 'error) (key-p t))
+    "Return a new interned symbol by appending NEXT-SYMB to START-SYMB using a separator."
+    (condition-case err
+        (cond
+         ((null start-symb) start-symb)
+         ((null next-symb) start-symb)
+         ((not (symbolp next-symb))
+          (error "NEXT-SYMB is not a symbol: %S" next-symb))
+         ((and key-p (not (keywordp start-symb)))
+          (error "START-SYMB is not a keyword: %S" start-symb))
+         (t
+          (let* ((sep "-")
+                 (string-list (mapcar #'symbol-name (list start-symb next-symb)))
+                 (symb-string (string-join string-list sep)))
+            (intern (format "%s" symb-string)))))
+      (error
+       (er317/raise
+        :type msg-type
+        :message (error-message-string err)
+        :arg-list (list :start-symb ,start-symb :next-symb ,next-symb))
+       )))
+#+end_src
+
+#+RESULTS:
+: er317/symb-combo-next
+
+
+#+header: :noweb-ref el-example
+#+begin_src emacs-lisp
+  (er317/symb-combo-next :start-symb ':foo :next-symb 'bar)
+#+end_src
+
+#+RESULTS:
+: :foo-bar
+
+#+header: :noweb-ref el-example
+#+begin_src emacs-lisp
+(mapcar (lambda (args)
+          (apply #'er317/symb-combo-next args))
+        (list nil
+          (list :start-symb :foo)
+          (list :start-symb :foo :next-symb 'bar)))
+#+end_src
+
+#+RESULTS:
+| nil | :foo | :foo-bar |
+
+#+header: :noweb-ref el-symb
+#+begin_src emacs-lisp
+  (cl-defun er317/symb-combo-list (&key (start-symb nil) (symb-list '()) (msg-type 'error) (key-p t))
+    "Recursively builds a keyword by combining START-SYMB with each symbol in SYMB-LIST."
+    (condition-case err
+        (cond
+         ((not (listp symb-list))
+  	(error "SYMB-LIST is not a list: %S" symb-list))
+
+         ((null symb-list)
+  	(er317/symb-combo-next :start-symb start-symb :key-p key-p))
+         (t
+  	(let* ((next-symb (car symb-list))
+                 (rest-symbs (cdr symb-list))
+  	       ;; BUG:
+                 (next-key (er317/symb-combo-next
+  			  :start-symb start-symb
+  			  :next-symb next-symb
+  			  :msg-type msg-type))
+  	       )
+  	  (er317/symb-combo-list
+  	   :start-symb next-key
+  	   :symb-list rest-symbs
+  	   :msg-type msg-type
+  	   :key-p key-p))))
+      (error
+       (er317/raise
+        :type msg-type
+        :message (error-message-string err)))))
+#+end_src
+
+#+RESULTS:
+: er317/symb-combo-list
+
+
+#+begin_src emacs-lisp
+  (er317/symb-combo-list :start-symb :foo :symb-list '(bar))
+#+end_src
+
+#+RESULTS:
+: :foo-bar
+
+#+header: :noweb-ref el-example
+#+begin_src emacs-lisp
+  (mapcar
+   (lambda (args)
+     (apply #'er317/symb-combo-list args))
+   (list
+    nil
+    (list :start-symb :foo)
+    (list :start-symb :foo :symb-list '(bar))
+    (list :start-symb :foo :symb-list '(bar baz))))
+#+end_src
+
+#+RESULTS:
+| nil | :foo | :foo-bar | :foo-bar-baz |
+
+
 ** compose
 
 #+header: :noweb-ref el-trash
