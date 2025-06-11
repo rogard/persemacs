@@ -114,7 +114,7 @@ Evaluate (~C-c C-c~)
 ***** function
 ****** define
 
-#+header: :noweb-ref el-mangle
+#+header: :noweb-ref el-mangle-beta
 #+begin_src emacs-lisp
     (cl-defmacro er317/mangle-config-define
         (&key
@@ -158,8 +158,7 @@ Evaluate (~C-c C-c~)
 #+end_src
   	 
 **** list
-***** function
-****** zip-to-list
+***** zip-to-list
 
 #+header: :noweb-ref el-list
 #+begin_src emacs-lisp
@@ -219,7 +218,7 @@ Evaluate (~C-c C-c~)
 }
 #+end_src
 
-****** plist-transpose
+***** plist-transpose
 
 #+header: :noweb-ref el-list
 #+begin_src emacs-lisp
@@ -256,13 +255,14 @@ Evaluate (~C-c C-c~)
 | :key1 | 2 | :key2 | b |
 | :key1 | 3 | :key2 | c |
 
-****** list-map-append
+***** list-map-append
 
 #+header: :noweb-ref el-list 
 #+begin_src emacs-lisp
-  (cl-defun er317/list-map-append (&key before-list middle-list-list after-list)
-    "Append BEFORE-LIST and AFTER-LIST to each LIST in MIDDLE-LIST"
-    (cl-loop for list in middle-list-list
+  (cl-defun er317/list-map-append
+      (&key before-list after-list (middle-list-seq (error "*-seq is nil")) &allow-other-keys)
+    "Append BEFORE-LIST and AFTER-LIST to each LIST in MIDDLE-LIST-SEQ"
+    (cl-loop for list in middle-list-seq
              collect (append before-list list after-list)))
 #+end_src
 
@@ -273,13 +273,15 @@ Evaluate (~C-c C-c~)
 #+header: :results raw replace
 #+begin_src emacs-lisp
   (er317/list-map-append 
+   :middle-list-seq '((:b 2) (:b 3))
    :before-list '(:a 1)
-   :middle-list-list '((:b 2) (:b 3))
    :after-list '(:c 4))
 #+end_src
 
 #+RESULTS:
 ((:a 1 :b 2 :c 4) (:a 1 :b 3 :c 4))
+((:a 1 :b 2 :c 4) (:a 1 :b 3 :c 4))
+nil
 
 **** refactor
 
@@ -494,7 +496,7 @@ Evaluate (~C-c C-c~)
   (cl-defun er317/file-clone
       (&key
 
-       (source-file (error "source-file cannot be nil"))
+       (source-file (error "source-file is nil"))
 
        (unique-ext (file-name-extension source-file))
 
@@ -556,6 +558,7 @@ Evaluate (~C-c C-c~)
 #+end_src
 
 #+RESULTS:
+/home/erwann/unique/cx25GD.trash
 /home/erwann/unique/AqzgAy.trash
 
 #+header: :noweb-ref el-file
@@ -694,64 +697,100 @@ Cloned /tmp/HmssZC.trash to: /home/erwann/unique/EsrgZW.trash (path copied to cl
               (format "%s %%s %s" (string-trim start) (string-trim end))))))))
 #+end_src
 
-***** noweb-ref
+**** noweb-ref
 :PROPERTIES:
 :CUSTOM_ID: source-el-noweb-ref
 :END:
 
-****** function
-******* filter
+***** function
+****** filter
 
 #+header: :noweb-ref el-noweb
 #+begin_src emacs-lisp
-    (cl-defun er317/noweb-ref-filter
-        (&key
-         ref-list
-         (head-re "^")
-         (middle-re (when ref-list
-       		  (format "\\(%s\\)" (string-join ref-list "\\|"))))
-         (tail-re "$")
-         (regex (concat head-re middle-re tail-re))
-         ;; buffer
-         element-parse-option-list
-         (babel-info-option-list '(:no-eval t))
-         babel-info-key
-         (each-func (cond
-                (babel-info-key (lambda (info-plist) (plist-get info-plist  babel-info-key)))
-                (t #'identity)))
-         each-arglist
-         &allow-other-keys)
-      "Filters source block info by matching noweb-ref on REGEX.
+  (cl-defun er317/noweb-ref-filter
+      (&key
+       ref-list
+       (head-re "^")
+       middle-re
+       (tail-re "$")
+       regex
+       ;; buffer
+       element-parse-option-list
+       (babel-info-option-list '(:no-eval t))
+       babel-info-key
+       each-func
+       each-arglist
+       &aux
+       (__regex-flag
+        (cond
+         ((and regex (or middle-re ref-list))
+          (error "Inconsistent input: `regex` and either of `middle-re` and `ref-list`"))
+         ((and middle-re ref-list)
+          (error "Inconsistent input: both `middle-re` and `ref-list`"))
+         (regex :regex)
+         (middle-re :middle-re)
+         (ref-list :ref-list)
+         (t (error "neither of `regex`, `middle-re`, or `ref-list` are provided"))))
 
-         Execution flow:
-         - RESULT <- '()
-         - For each SOURCE-BLOCK in the buffer
-             - INFO-PLIST <- BABEL-INFO to plist
-             - When :noweb-ref matches REGEX
-                - VALUE <- (EACH-FUNC INFO-PLIST EACH-ARGLIST)
-                - RESULT <- (append RESULT (list VALUE))
-         - RESULT
+       (__middle-re
+        (cond
+         ((eq __regex-flag :middle-re) middle-re)
+         ((eq __regex-flag :ref-list)
+      	(format "\\(%s\\)" (string-join ref-list "\\|")))))
 
-         Example:
-         ```
-         (er317/noweb-ref-filter
-          :regex \"^\\(foo\\|bar\\)$\"
-          :babel-info-key :body)
-         ```"
-      (let ((results '()))
-        (org-element-map (apply #'org-element-parse-buffer element-parse-option-list) 'src-block
-          (lambda (elem)
-            (let* ((begin (org-element-property :begin elem))
-      	       (info-plist (save-excursion
-               		     (goto-char begin)
-               		     (apply #'er317/org-babel-info-as-plist babel-info-option-list)))
-      	       (params (plist-get info-plist :header-args))
-      	       (param-pair (assoc :noweb-ref params))
-      	       (ref (when param-pair (cdr param-pair))))
-       	  (progn
-                (when (and param-pair (string-match-p regex ref))
-      	      (push (apply each-func info-plist each-arglist) results))))))
-        (nreverse results)))
+       (__regex
+        (cond
+         ((eq __regex-flag :regex) regex)
+         ((memq __regex-flag '(:middle-re :ref-list))
+      	(concat head-re __middle-re tail-re))))
+
+       (__each-func-flag
+        (cond
+         ((and each-func babel-info-key)
+  	(error "Both :each-func and :babel-info-key are provided"))
+         (each-func :each-func)
+         (babel-info-key :babel-info-key)
+         (t :identity)))
+
+       (__each-func
+        (cond
+         ((eq __each-func-flag :each-func) each-func)
+         ((eq __each-func-flag :babel-info-key)
+  	(lambda (info-plist) (plist-get info-plist babel-info-key)))
+         (t #'identity)))
+       &allow-other-keys)
+    "Filters source block info by matching noweb-ref on REGEX.
+
+     Execution flow:
+     - RESULT <- '()
+     - For each SOURCE-BLOCK in the buffer
+         - INFO-PLIST <- BABEL-INFO to plist
+         - When :noweb-ref matches REGEX
+            - VALUE <- (EACH-FUNC INFO-PLIST EACH-ARGLIST)
+            - RESULT <- (append RESULT (list VALUE))
+     - RESULT
+
+     Example:
+     ```
+     (er317/noweb-ref-filter
+      :regex \"^\\(foo\\|bar\\)$\"
+      :babel-info-key :body)
+     ```"
+    (let ((results '()))
+      (org-element-map (apply #'org-element-parse-buffer element-parse-option-list) 'src-block
+        (lambda (elem)
+          (let* ((begin (org-element-property :begin elem))
+        	       (info-plist
+      		(save-excursion
+                 	  (goto-char begin)
+                 	  (apply #'er317/org-babel-info-as-plist babel-info-option-list)))
+        	       (params (plist-get info-plist :header-args))
+        	       (param-pair (assoc :noweb-ref params))
+        	       (ref (when param-pair (cdr param-pair))))
+         	  (progn
+              (when (and param-pair (string-match-p __regex ref))
+        	      (push (apply __each-func info-plist each-arglist) results))))))
+      (nreverse results)))
 #+end_src
 
 #+RESULTS:
@@ -787,48 +826,59 @@ cat << EOF
 EOF
 #+end_src
 
-******* assemble
+****** assemble
 
 #+header: :noweb-ref el-noweb
 #+begin_src emacs-lisp
   (cl-defun er317/noweb-ref-assemble
       (&key
        (filter-arglist-shared '(:babel-info-key :body))
-       (filter-arglist-by-key-unshared ((:ignore '())))
-       (filter-arglist-by-iter-unshared (er317/plist-transpose :plist filter-arglist-by-key-unshared))
-       (filter-arglist-by-iter (er317/list-map-append :before-list filter-arglist-shared :middle-list-list filter-arglist-by-iter-unshared))
-       (_filter-babel-info-key (plist-get filter-arglist-shared :babel-info-key))
-       (_filter-recurse-stop (= (length filter-arglist-by-iter) 0))
-       (filter-result-list '())
-       (_func-if-body (lambda (body-list) (string-join body-list "\n")))
-       (combine-func
-        (cond
-         ((eq _filter-babel-info-key :body) _func-if-body)
-         (t #'identity)))
+       (filter-arglist-by-key-unshared '((:ignore '())))
+       filter-arglist-by-iter
+       combine-func
        combine-arglist
+       (filter-result-list '())
+       &aux
+       (__filter-arglist-by-iter-unshared
+        (unless filter-arglist-by-iter
+   	(er317/plist-transpose :plist filter-arglist-by-key-unshared)))
+       (__filter-arglist-by-iter
+        (or filter-arglist-by-iter
+            (er317/list-map-append
+             :before-list filter-arglist-shared
+             :middle-list-seq __filter-arglist-by-iter-unshared)))
+       (__filter-babel-info-key (plist-get filter-arglist-shared :babel-info-key))
+       (__filter-body-flag (eq __filter-babel-info-key :body))
+       (__combine-func
+        (or combine-func
+            (when __filter-body-flag
+              (lambda (body-list) (string-join body-list "\n")))
+            (error "__combine-func is nil")))
        &allow-other-keys)
-    "Iteratively filter results from noweb-ref-matching source blocks, and assembles them.
 
-      Execution flow:
-      - RESULT <- FILTER-RESULT-LIST
-      - For each ARGLIST in FILTER-ARGLIST-BY-ITER:
-          - TAIL <- (apply er317/noweb-ref-filter ARGLIST)
-          - RESULT <- (append RESULT TAIL)
-      - RESULT <- (apply COMBINE-FUNC RESULT COMBINE-ARGLIST)
-      - RESULT
+    "Iteratively filter from noweb-ref-matching source blocks and assemble.
 
-      Examples:
-      ;; expands meaningful code because cat precedes eof in the buffer
-      ;; the order of cat and eof in the buffer is irrelevant"
-    (if _filter-recurse-stop
-        (apply combine-func filter-result-list combine-arglist)
-      (let* ((arglist (car filter-arglist-by-iter))
-             (tail-list (apply #'er317/noweb-ref-filter arglist)))
-        (er317/noweb-ref-assemble
-         :filter-arglist-by-iter (cdr filter-arglist-by-iter)
-         :filter-result-list (nconc filter-result-list tail-list)
-         :combine-func combine-func
-         :combine-arglist arglist))))
+   Execution flow:
+   - RESULT ← FILTER-RESULT-LIST
+   - For each ARGLIST in __FILTER-ARGLIST-BY-ITER:
+       - TAIL ← (apply `er317/noweb-ref-filter` ARGLIST)
+       - RESULT ← (append RESULT TAIL)
+   - Return (apply COMBINE-FUNC RESULT COMBINE-ARGLIST)
+
+   Example:
+   - (let ((regex=\"^sh-\\(cat\\|world\\|ahoy\\|eof\\)$\"))
+      (er317/noweb-ref-assemble
+       :filter-arglist-each-list
+       `((:regex ,regex))))
+     ;; cat/eof must bracked word/ahoy in buffer
+   - (er317/noweb-ref-assemble
+       :filter-arglist-shared '(:head-re \"sh-\")
+       :filter-arglist-by-key-unshared '(:middle-re '(\"cat\" \"ahoy\" \"hello\" \"eof\")))
+     ;; order of regex matches in buffer irrelevant"
+    (dolist (arglist __filter-arglist-by-iter)
+      (let ((tail-list (apply #'er317/noweb-ref-filter arglist)))
+        (setq filter-result-list (append filter-result-list tail-list))))
+    (apply __combine-func filter-result-list combine-arglist))
 #+end_src
 
 #+RESULTS:
@@ -855,16 +905,14 @@ EOF
 #+header: :noweb-ref el-example
 #+begin_src emacs-lisp
   (er317/noweb-ref-assemble
-   :filter-arg-list-base '(:babel-info-key :body
-  					 :header-re \"^sh-\"
-  					 :tail-re \"$\")
+   :filter-arglist-shares '(:babel-info-key :body :header-re \"^sh-\" :tail-re \"$\")
    :filter-arg-list-list '(
   			 (:middle-re \"cat\")
   			 (:middle-re \"\\(world\\|ahoy\\)\")
   			 (:middle-re \"eof\")))
 #+end_src
 
-******* org
+****** org
 
 #+header: :noweb-ref el-noweb-org
 #+begin_src emacs-lisp
@@ -902,10 +950,10 @@ EOF
         (delete-file local-file))))
 #+end_src
 
-******* func-doc
-******** define
-********* info
-********** json
+****** func-doc
+******* define
+******** info
+********* json
 
 #+begin_src emacs-lisp
   (er317/nowef-ref-register
@@ -915,8 +963,8 @@ EOF
    :group :read-info)
 #+end_src
 
-********* encode
-********** json
+******** encode
+********* json
 
 #+begin_src emacs-lisp
   (er317/func-doc
@@ -926,7 +974,7 @@ EOF
    :group :encode)
 #+end_src
 
-********** join
+********* join
 
 #+begin_src emacs-lisp
   (er317/func-doc
@@ -936,7 +984,7 @@ EOF
    :group :encode)
 #+end_src
 
-********** tag
+********* tag
 
 #+begin_src emacs-lisp
   (er317/func-doc
@@ -950,7 +998,7 @@ EOF
   	 :read t)
 #+end_src
 
-********* other
+******** other
 
 #+begin_src emacs-lisp
   (er317/func-doc
@@ -965,7 +1013,7 @@ EOF
   	 :read t)
 #+end_src
 
-****** example
+***** example
 
 #+name: json-object
 #+call: el-assemble[:results raw](ref-list='("foo" "bar" "qux"), key-list='("foo" "bar" "qux"))
@@ -1002,12 +1050,12 @@ EOF
 {"foo":{"key":"X"},"bar":{"key":"Y"},"qux":[{"key":"W"},{"key":"Z"}]}
 #+end_src
 
-***** regex
+**** regex
 
 These are encoded reminders.
 
-****** function
-******* union
+***** function
+****** union
 
 #+header: :noweb-ref el-regex
 #+begin_src emacs-lisp
@@ -1016,7 +1064,7 @@ These are encoded reminders.
     (format "\\(%s\\)" (string-join string-list "\\|")))
 #+end_src
 
-******* group
+****** group
 
 #+header: :noweb-ref el-regex
 #+begin_src emacs-lisp
@@ -1025,16 +1073,16 @@ These are encoded reminders.
     (format "\\(%s\\)" string)
 #+end_src
 
-***** org
-****** module
-******* element
+**** org
+***** module
+****** element
 
 #+begin_src emacs-lisp
   (defun er317/element-headers-as-properties (element) "Element properties retrievable using plist-get"
          (flatten-list  (mapcar (lambda (string) (org-babel-parse-header-arguments string)) (org-element-property element))))
 #+end_src
 
-******* src-block
+****** src-block
 
 #+header: :noweb-ref el-src-block-beta
 #+begin_src emacs-lisp
@@ -1049,8 +1097,8 @@ These are encoded reminders.
               props)))
 #+end_src
 
-******* subtree
-******** TODO paste
+****** subtree
+******* TODO paste
 :PROPERTIES:
 :created_on: <2025-05-30 Fri 09:10>
 :uname:    @elitebook
@@ -1086,7 +1134,7 @@ These are encoded reminders.
 #+RESULTS:
 : er317/org-subtree--paste
 
-******** promote
+******* promote
 
 #+header: :noweb-ref org-subtree-beta
 #+begin_src emacs-lisp
@@ -1127,9 +1175,9 @@ then promote the rest of the subtree."
 #+RESULTS:
 : er317/org-subtree-promote
 
-***** shell
-****** function
-******* jq
+**** shell
+***** function
+****** jq
 
 #+header: :noweb-ref el-shell
 #+begin_src emacs-lisp
@@ -1144,7 +1192,7 @@ then promote the rest of the subtree."
 #+RESULTS:
 : er317/jq-file
 
-******* string
+****** string
 
 #+header: :noweb-ref el-shell
 #+begin_src emacs-lisp
@@ -1175,7 +1223,7 @@ then promote the rest of the subtree."
 {"key":"X"}
 #+end_src
 
-***** read
+**** read
 
 #+header: :noweb-ref el-read
 #+begin_src emacs-lisp
@@ -1909,19 +1957,26 @@ EOF
 
 #+header: :noweb-ref el-func-beta
 #+begin_src emacs-lisp
-  (cl-defun er317/debug-func (&rest rest &allow-other-keys &key key) (message "DEBUG %S" key))
+  (cl-defun er317/debug-func
+      (&key key &rest rest &allow-other-keys) (message "DEBUG %S" key))
 #+end_src
 
 #+RESULTS:
 : er317/debug-func
 
-#+header: :noweb-ref el-example
+#+header: :noweb-ref el-func-beta
 #+begin_src emacs-lisp
-  (er317/debug-func :foo :key 'bar)
+  (cl-defun my-func (&rest rest &key key1 key2)
+    (message "rest: %S key1: %S key2: %S" rest key1 key2))
 #+end_src
 
 #+RESULTS:
-: DEBUG nil
+: my-func
+
+#+header: :noweb-ref el-example
+#+begin_src emacs-lisp
+  (my-func 1 2 :key1 'foo :key2 'bar)
+#+end_src
 
 #+header: :results raw
 #+header: :noweb-ref el-example
