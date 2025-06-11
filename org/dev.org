@@ -411,31 +411,52 @@ Evaluate (~C-c C-c~)
 #+RESULTS:
 | :x | 100 | :y | 101 |
 
-**** filesys
-****** config
+**** file
+***** demo
+
+#+header: :noweb-ref el-file
+#+begin_src emacs-lisp
+  (cl-defmacro er317/file-demo
+      (&body body-lisp &key (text "This file is for demo only; it can be trashed")
+  	   (ext "trash") &allow-other-keys)
+    `(let ((temp-file (make-temp-file nil nil (concat "." ,ext))))
+       (with-temp-buffer
+         (insert ,text)
+         (write-region (point-min) (point-max) temp-file))
+       (unwind-protect
+           (let ((demo-file temp-file))
+             ,@body-lisp)
+         (when (and temp-file (file-exists-p temp-file))
+           (delete-file temp-file)))))
+#+end_src
+
+#+RESULTS:
+: er317/file-demo
+
+***** config
 :PROPERTIES:
 :customize: true
 :END:
 
-#+header: :noweb-ref el-filesys-beta
+#+header: :noweb-ref el-file
 #+begin_src emacs-lisp
-  (defconst er317/filesys-unique-config
+  (defconst er317/file-unique-config
     (list
      :directory (file-name-as-directory "~/unique"))
     "Directory for storing unique files")
 #+end_src
 
 #+RESULTS:
-: er317/filesys-unique-config
+: er317/file-unique-config
 
-****** unique
+***** unique
 
-#+header: :noweb-ref el-filesys-beta
+#+header: :noweb-ref el-file
 #+begin_src emacs-lisp
-  (cl-defun er317/filesys-unique
+  (cl-defun er317/file-unique
       (&key ((:ext ext-string))
             ((:directory directory-string)
-  	   (plist-get er317/filesys-unique-config :directory))
+  	   (plist-get er317/file-unique-config :directory))
   	  &allow-other-keys)
     "Create a uniquely named file in the given DIRECTORY with extension EXT"
     (let* ((prefix (file-name-as-directory directory-string))
@@ -446,12 +467,12 @@ Evaluate (~C-c C-c~)
 #+end_src
 
 #+RESULTS:
-: er317/filesys-unique
+: er317/file-unique
 
 #+header: :noweb-ref el-example
 #+header: :var ext="org"
 #+begin_src emacs-lisp
-  (er317/filesys-unique :ext ext)
+  (er317/file-unique :ext ext)
 #+end_src
 
 #+RESULTS:
@@ -460,33 +481,20 @@ Evaluate (~C-c C-c~)
 #+header: :noweb-ref el-example
 #+header: :var ext="org"
 #+begin_src emacs-lisp
-  (er317/filesys-unique :ignore)
+  (er317/file-unique :ignore)
 #+end_src
 
 #+RESULTS:
 : /home/erwann/unique/WkytZC
 
-****** clone
+***** clone
 
-#+header: :noweb-ref el-filesys-beta
+#+header: :noweb-ref el-file
 #+begin_src emacs-lisp
-  (cl-defun er317/filesys-clone
+  (cl-defun er317/file-clone
       (&key
-       (demo-flag nil)
 
-       (_temp-file
-        (when demo-flag
-          (let* ((temp-file (make-temp-file nil nil (concat "." "trash")))
-                 (text "This file is for demo only; it can be trashed"))
-            (with-temp-buffer
-              (insert text)
-              (write-region (point-min) (point-max) temp-file))
-            temp-file)))
-
-       (source-file
-        (cond
-         (demo-flag (progn (message "DEBUG:%S" _temp-file) _temp-file))
-         (t (error "source-file cannot be nil"))))
+       (source-file (error "source-file cannot be nil"))
 
        (unique-ext (file-name-extension source-file))
 
@@ -499,18 +507,11 @@ Evaluate (~C-c C-c~)
 
        (snapshot-flag nil)
 
-       (_source-content (when snapshot-flag
-                          (with-temp-buffer
-                            (insert-file-contents source-file)
-                            (buffer-string))))
-       
        (snapshot-func
         (when snapshot-flag
           `(lambda (target-file)
              (list  
-  	    :demo-flag ,demo-flag
   	    :snapshot-flag snapshot-flag
-  	    :source-content ,_source-content
   	    :source-exists (file-exists-p ,source-file)
   	    :source-file ,source-file
   	    :target-content (with-temp-buffer (insert-file-contents target-file)(buffer-string))
@@ -518,10 +519,6 @@ Evaluate (~C-c C-c~)
   	    :target-file target-file
   	    :trash-flag ,trash-flag
   	    :unique-arglist ',unique-arglist))))
-       
-       (_cleanup-lisp
-        `(when (and ,_temp-file (file-exists-p ,_temp-file))
-           (delete-file ,_temp-file)))
        
        &allow-other-keys)
 
@@ -532,59 +529,73 @@ Evaluate (~C-c C-c~)
     - Copy SOURCE-FILE to TARGET-FILE.
     - If TRASH, trash SOURCE-FILE.
     - Return TARGET-FILE."
-    (unwind-protect
-        (let ((target-file
-               (apply #'er317/filesys-unique unique-arglist)))
-          (with-temp-buffer
-            (insert-file-contents source-file)
-            (write-region (point-min) (point-max) target-file))
-          (message "Cloned source file (%s) to unique file: %s" source-file target-file)
-          (when trash-flag
-            (move-file-to-trash source-file)
-            (message "Moved source file to trash: %s" source-file))
-          (when snapshot-flag
-            (message "Snapshot for %s:\n%s"
-                     'er317/filesys-clone
-                     (pp-to-string (funcall snapshot-func target-file))))
-          target-file)
-      (eval _cleanup-lisp)))
+    (let ((target-file
+           (apply #'er317/file-unique unique-arglist)))
+      (with-temp-buffer
+        (insert-file-contents source-file)
+        (write-region (point-min) (point-max) target-file))
+      (message "Cloned source file (%s) to unique file: %s" source-file target-file)
+      (when trash-flag
+        (move-file-to-trash source-file)
+        (message "Moved source file to trash: %s" source-file))
+      (when snapshot-flag
+        (message "Snapshot for %s:\n%s"
+                 'er317/file-clone
+                 (pp-to-string (funcall snapshot-func target-file))))
+      target-file))
 #+end_src
 
 #+RESULTS:
-: er317/filesys-clone
+: er317/file-clone
 
 #+header: :noweb-ref el-example
 #+header: :results raw
 #+begin_src emacs-lisp
-  (er317/filesys-clone :demo-flag t :snapshot-flag t)
+  (er317/file-demo
+   (er317/file-clone :source-file temp-file :snapshot-flag t))
 #+end_src
 
-#+header: :noweb-ref el-filesys-beta
+#+RESULTS:
+/home/erwann/unique/AqzgAy.trash
+
+#+header: :noweb-ref el-file
 #+begin_src emacs-lisp
-  (cl-defun er317/filesys-clone-interactive
+  (cl-defun er317/file-clone-interactive
       (source-file &key (clone-arglist '(:ignore)))
     "Interactively clone SOURCE-FILE to a uniquely named one.
-    Copies the new file path to the kill ring.
+      Copies the new file path to the kill ring. 
 
-    Optional keyword:
-      :clone-arglist – passed to `er317/filesys-clone`."
+      Optional keyword:
+      - CLONE-ARGLIST Forwarded to the implementation."
     (interactive "fEnter source file")
-    ;; Warn if the source file is open in any buffer
+    ;; Warn if the source file is open in any buffe
     (catch 'found
       (dolist (buf (buffer-list))
-        (when (and (buffer-file-name buf)
-  		 (file-equal-p source-file (buffer-file-name buf)))
-  	(warn "About to clone the file opened in buffer: %s" (buffer-name buf))
-  	(throw 'found t))))
+        (let ((file-name (buffer-file-name buf)))
+  	(when (and file-name
+                     (file-equal-p source-file file-name))
+            (warn "About to clone the file opened in buffer: %s" (buffer-name buf))
+            (throw 'found t)))))
     ;; Prepare arguments and call the cloning function
     (let* ((arglist (append (list :source-file source-file) clone-arglist))
-           (target-file (apply #'er317/filesys-clone arglist)))
+           (target-file (apply #'er317/file-clone arglist)))
       (kill-new target-file)
       (message "Cloned %s to: %s (path copied to clipboard)" source-file target-file)))
 #+end_src
 
 #+RESULTS:
-: er317/filesys-clone-interactive
+: er317/file-clone-interactive
+
+#+header: :noweb-ref el-example
+#+header: :results raw
+#+begin_src emacs-lisp
+  (er317/file-demo
+   (er317/file-clone-interactive temp-file :clone-arglist '(:snapshot-flag t)))
+#+end_src
+
+#+RESULTS:
+Cloned /tmp/HmssZC.trash to: /home/erwann/unique/EsrgZW.trash (path copied to clipboard)
+
 **** babel
 ****** info
 
@@ -660,20 +671,6 @@ Evaluate (~C-c C-c~)
     "key" : "X"
 }
 #+end_src
-
-****** block-names
-
-#+header: :noweb-ref el-babel-block-names
-#+begin_src emacs-lisp
-  (cl-defun er317/babel-filter-block-names
-      (&key regex file)
-    "Filter the source block names using REGEX in FILE."
-    (let ((block-names (reverse (org-babel-src-block-names file))))
-      (cl-remove-if-not (lambda (block) (string-match-p regex block)) block-names)))
-#+end_src
-
-#+RESULTS:
-: er317/filter-block-names
 
 ****** comment
 
@@ -1535,6 +1532,19 @@ Where applicable, keep both the name and noweb-ref.
 #+RESULTS:
 | nil | :foo | :foo-bar | :foo-bar-baz |
 
+** block-names
+
+#+header: :noweb-ref el-babel-block-names
+#+begin_src emacs-lisp
+  (cl-defun er317/babel-filter-block-names
+      (&key regex file)
+    "Filter the source block names using REGEX in FILE."
+    (let ((block-names (reverse (org-babel-src-block-names file))))
+      (cl-remove-if-not (lambda (block) (string-match-p regex block)) block-names)))
+#+end_src
+
+#+RESULTS:
+: er317/filter-block-names
 
 ** compose
 
