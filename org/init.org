@@ -120,6 +120,11 @@ This is meta-code for generating Emacs initialization file and ensuring it is lo
 
 #+header: :noweb-ref el-manager
 #+begin_src emacs-lisp
+  (setq straight-use-package-by-default t)
+#+end_src
+
+#+header: :noweb-ref el-manager
+#+begin_src emacs-lisp
   (straight-use-package 'use-package)
 #+end_src
 
@@ -148,8 +153,10 @@ This is meta-code for generating Emacs initialization file and ensuring it is lo
 
 #+header: :noweb-ref el-manager
 #+begin_src emacs-lisp
-  (eval-and-compile
-    (setq use-package-always-ensure t))
+  ;; removed as per
+  ;; https://github.com/radian-software/straight.el?tab=readme-ov-file#getting-started
+  ;;(eval-and-compile
+  ;;  (setq use-package-always-ensure t))
   ;; (setq use-package-always-defer t))
 #+end_src
 
