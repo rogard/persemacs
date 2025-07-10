@@ -73,6 +73,7 @@ This Emacs Org file contains meta-code for an Emacs configuration.
 #+end_src
 
 *** package
+
 **** auctex
 
 #+begin_src emacs-lisp
@@ -81,6 +82,23 @@ This Emacs Org file contains meta-code for an Emacs configuration.
     ;; https://emacs.stackexchange.com/a/81504/41724
     )
 #+end_src
+**** citar
+
+#+begin_src emacs-lisp
+  (use-package citar
+    ;; :no-require
+    :after (org bibtex)
+    :custom
+    (org-cite-global-bibliography '("~/src/bib/academ.bib"))
+    (org-cite-insert-processor 'citar)
+    (org-cite-follow-processor 'citar)
+    (org-cite-activate-processor 'citar)
+    (citar-bibliography org-cite-global-bibliography))
+  ;; optional: org-cite-insert is also bound to C-c C-x C-@
+  ;;    :bind
+  ;;    (:map org-mode-map :package org ("C-c b" . #'org-cite-insert)))
+#+end_src
+
 **** corfu
 
 Reference:
