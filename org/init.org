@@ -2,7 +2,7 @@
 #+author: Erwann Rogard 
 #+property: header-args :tangle no
 
-This is meta-code for generating Emacs initialization file and ensuring it is loaded at startup. The actual configuration is done through =module=s.
+This is meta-code for generating Emacs initialization file and ensuring it is loaded at startup. The actual configuration is done through =module='s.
 
 * doc
 ** workflow
@@ -134,7 +134,6 @@ This is meta-code for generating Emacs initialization file and ensuring it is lo
   (straight-use-package-mode 1)
 #+end_src
 
-
 #+header: :noweb-ref el-manager
 #+begin_src emacs-lisp
   (straight-use-package 'org)
@@ -142,7 +141,6 @@ This is meta-code for generating Emacs initialization file and ensuring it is lo
 
 #+RESULTS:
 : t
-
 
 #+header: :noweb-ref el-leave-out
 #+begin_src emacs-lisp
@@ -187,9 +185,8 @@ This is meta-code for generating Emacs initialization file and ensuring it is lo
 :customize: true
 :END:
 
-#+header: :noweb-ref sh-shebang
 #+name: sh-shebang
-#+begin_src shell
+#+begin_src sh
   #!/usr/bin/env bash
 #+end_src
 
@@ -320,6 +317,7 @@ Execute:
 *** tangle
 :PROPERTIES:
 :custom_id: exec-sh-tangle
+:header-args: :tangle (expand-file-name (er317/init-parameter-value "link-sh"))
 :END:
 
 Execute:
@@ -333,7 +331,6 @@ Execute:
 #+end_src
 
 #+header: :noweb yes
-#+header: :tangle (expand-file-name (er317/init-parameter-value "link-sh"))
 #+header: :var meta_vc_el=(expand-file-name (er317/init-parameter-value "init-vc-el"))
 #+header: :var meta_startup=(expand-file-name (er317/init-parameter-value "init-startup"))
 #+begin_src sh
