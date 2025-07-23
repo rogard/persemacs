@@ -1,6 +1,7 @@
 #+title: persemacs-dev
 #+author: Erwann Rogard
 #+property: header-args :tangle no
+#+property: header-args :emacs-lisp :lexical-binding t
 
 #+name: doc-lead
 #+begin_src org
@@ -152,24 +153,36 @@ Evaluate (~C-c C-c~)
 Warning:
 - Only at runtime can this config be used.
 
-#+header: :noweb-ref el-ref-config
+#+header: :noweb-ref el-config
 #+begin_src emacs-lisp
-  (defvar er317/config-alist "Config indexed by USER-ALIAS")
+  (defvar er317/config-alist "Configuration indexed by USER-ALIAS")
 #+end_src
 
-#+header: :noweb-ref el-ref-config
+#+RESULTS:
+: er317/config-alist
+
+#+header: :noweb-ref el-config
 #+begin_src emacs-lisp
   (cl-defmacro er317/config-new
       (&key (user-alias "er317")
-            (symbol-name-template "USER-ALIAS/INTERNAL")
+            (name-template "USER-ALIAS/INTERNAL")
             &allow-other-keys)
+    "Creates a new configuration (plist) for USER-ALIAS.
+
+  Keys:         |
+  ---------------------------------------------------
+  NAME-TEMPLATE	| Symbol name in terms of placeholders
+  "
     `(push (cons ,user-alias
                  (list :user-alias ,user-alias
-                       :symbol-name-template ,symbol-name-template))
+                       :name-template ,name-template))
            er317/config-alist))
 #+end_src
 
-#+header: :noweb-ref el-ref-config
+#+RESULTS:
+: er317/config-new
+
+#+header: :noweb-ref el-config
 #+begin_src emacs-lisp
   (defun er317/config-get (user-alias key)
     "Get value for KEY from the config plist for USER-ALIAS."
@@ -177,9 +190,9 @@ Warning:
 #+end_src
 
 #+RESULTS:
-: er317/config
+: er317/config-get
 
-#+header: :noweb-ref el-ref-config
+#+header: :noweb-ref el-config
 #+begin_src emacs-lisp
   (defun er317/config-put (user-alias key value)
     "Set KEY to VALUE in the config plist for USER-ALIAS."
@@ -189,7 +202,10 @@ Warning:
       er317/config-alist))
 #+end_src
 
-#+header: :noweb-ref el-ref-config
+#+RESULTS:
+: er317/config-put
+
+#+header: :noweb-ref el-config
 #+begin_src emacs-lisp
   (er317/config-new)
 #+end_src
@@ -199,8 +215,8 @@ Warning:
 
 #+header: :noweb-ref el-ref-file
 #+begin_src emacs-lisp
-  (cl-defmacro er317/file-demo
-      (&body lisp-seq
+  (cl-defmacro er317/file-demo 
+      (&body el-seq
   	   &key
   	   (text "This file is for demo only; it can be trashed")
   	   (ext "trash")
@@ -212,13 +228,13 @@ Warning:
   		(write-region (point-min) (point-max) temp-file))
                 temp-file))
   	   &allow-other-keys)
-    "Binds DEMO-FILE to a compile time temporary file and evaluates LISP-SEQ.
+    "Binds DEMO-FILE to a compile time temporary file and evaluates EL-SEQ.
 
   Requirement:
-  - LISP-SEQ is in terms of DEMO-FILE."  
+  - EL-SEQ is in terms of DEMO-FILE."  
     `(unwind-protect
          (let ((demo-file ,__temp-file))
-           ,@lisp-seq)
+           ,@el-seq)
        (when (and ,__temp-file (file-exists-p ,__temp-file))
          (delete-file ,__temp-file))))
 #+end_src
@@ -242,63 +258,6 @@ Warning:
 #+RESULTS:
 Temporary file path: /tmp/vXQKb9.txt
 File contents: hello, world!
-
-***** unique
-
-#+begin_src emacs-lisp
-  (er317/config-put
-   :user-alias "er317"
-   :key :file-unique
-   :value "~/unique")
-#+end_src
-
-#+header: :noweb-ref el-ref-file
-#+begin_src emacs-lisp
-  (cl-defun er317/file-unique
-      (&key extension
-            directory
-            &allow-other-keys
-            &aux
-            (__directory
-             (cond
-              (directory directory)
-              (t (plist-get er317/config-active :unique-directory))))
-            (__ext-flag (not (null extension)))
-            (__make-prefix (file-name-as-directory __directory))
-            (__make-suffix (when __ext-flag (concat "." extension)))
-            (__make-dir-flag nil))
-    "Create a uniquely named file.
-
-  Optional keywords:
-  DIRECTORY   
-  EXTENSION
-
-  Also see:
-  - er317/config"
-    
-    (make-temp-file __make-prefix __make-dir-flag __make-suffix))
-#+end_src
-
-#+RESULTS:
-: er317/file-unique
-
-#+header: :noweb-ref el-ref-example
-#+header: :var ext="org"
-#+begin_src emacs-lisp
-  (er317/file-unique :extension ext)
-#+end_src
-
-#+RESULTS:
-: /home/erwann/unique/TIEiwF.org
-
-#+header: :noweb-ref el-ref-example
-#+header: :var ext="org"
-#+begin_src emacs-lisp
-  (er317/file-unique :ignore)
-#+end_src
-
-#+RESULTS:
-: /home/erwann/unique/MXAVwv
 
 ***** clone
 
@@ -390,7 +349,7 @@ Cloned /tmp/HmssZC.trash to: /home/erwann/unique/EsrgZW.trash (path copied to cl
 **** fn
 ***** plist-adapt
 
-#+header: :noweb-ref el-ref-fn
+#+header: :noweb-ref el-module-fn
 #+begin_src emacs-lisp
   (cl-defmacro er317/fn-keyword-adapt
       (&key
@@ -539,10 +498,12 @@ TODO
 
 **** header
 
-#+name: el-first-line
+#+name: el-lexical-binding
 #+begin_src emacs-lisp
   ;;; filename --- description  -*- lexical-binding: t; -*-
 #+end_src
+
+#+RESULTS: el-lexical-binding
 
 #+name: el-license
 #+begin_src emacs-lisp
@@ -553,6 +514,34 @@ TODO
 #+end_src
 
 **** helper
+***** keyword
+
+#+header: :noweb-ref el-module-helper
+#+begin_src emacs-lisp
+  (cl-defun er317/unkeyword (&key symb &allow-other-keys)
+    "Convert a keyword like :foo into symbol 'foo."
+    (cond
+     ((not (symbolp symb)) (error "Object %S is not a symbol" symb))
+     ((keywordp symb) (intern (substring (symbol-name symb) 1)))
+     (t (warn "Symbol %S is not a keyword" symb)
+        symb)))
+#+end_src
+
+#+RESULTS:
+: er317/unkeyword
+
+#+header: :noweb-ref el-module-helper
+#+begin_src emacs-lisp
+  (cl-defun er317/keywordize (&key symb &allow-other-keys)
+    (cond
+     ((not (symbolp symb)) (error "Object %S is not a symbol" symb))
+     ((keywordp symb) (warn "Symbol %S is already a keyword" symb))
+     (t (intern (concat ":" (symbol-name symb))))))
+#+end_src
+
+#+RESULTS:
+: er317/keywordize
+
 ***** regex
 Merely reminders.
 ****** union
@@ -573,7 +562,6 @@ Merely reminders.
     (format "\\(%s\\)" string)
 #+end_src
 ***** autobuffer
-
 
 #+begin_src emacs-lisp
   (cl-defun er317/buffer-autobuffer
@@ -596,7 +584,7 @@ Merely reminders.
 
 ***** inspect
 
-#+header: :noweb-ref el-ref-helper
+#+header: :noweb-ref el-module-helper
 #+begin_src emacs-lisp
   (cl-defmacro er317/inspect-head (&key object)
     "Inspect the given Emacs Lisp OBJECT and classify its type.
@@ -640,7 +628,7 @@ Merely reminders.
 
 For now, used as reminders.
 
-#+header: :noweb-ref el-ref-helper
+#+header: :noweb-ref el-module-helper
 #+begin_src emacs-lisp
   (cl-defun er317/resolve-fn (&key object)
     "Return function value of F whether it's a symbol or lambda."
@@ -652,7 +640,7 @@ For now, used as reminders.
 
 ****** symb
 
-#+header: :noweb-ref el-ref-helper
+#+header: :noweb-ref el-module-helper
 #+begin_src emacs-lisp
   (cl-defun er317/resolve-symb (&key object)
     "Resolve OBJECT to a symbol based on its form"
@@ -666,46 +654,73 @@ For now, used as reminders.
 : er317/resolve-symb
 
 **** list
-***** plist->alist
+***** plist-to-alist
 
-#+header: :noweb-ref el-ref-list
+#+header: :noweb-ref el-module-list
 #+begin_src emacs-lisp
   ;; Convert plist to alist
-(cl-defun er317/plist->alist (&key plist &allow-other-keys)
-  "Convert PLIST to an alist."
-  (cl-loop for (k v) on plist by #'cddr
-           collect (cons k v)))
+  (cl-defun er317/plist-to-alist (&key plist unkeyword &allow-other-keys)
+    "Convert PLIST to an alist.
+  
+  If UNKEYWORD :foo becomes foo, etc."
+    (cl-loop for (k v) on plist by #'cddr
+             collect (cons (if (and unkeyword (keywordp k))
+                               (intern (substring (symbol-name k) 1))
+                             k)
+                           v)))
 #+end_src
 
 #+RESULTS:
-: er317/plist->alist
+: er317/plist-to-alist
 
-***** alist->plist
-
-#+header: :noweb-ref el-ref-list
+#+header: :noweb-ref el-example
+#+header: :var plist='(:foo "x" :bar "y")
 #+begin_src emacs-lisp
-;; Convert alist to plist
-(cl-defun er317/alist->plist (&key alist &allow-other-keys)
-  "Convert ALIST to a plist."
-  (cl-loop for (k . v) in alist
-           append (list k v)))
+  (er317/plist-to-alist :plist plist :unkeyword t)
 #+end_src
 
 #+RESULTS:
-: er317/alist->plist
+: ((foo . x) (bar . y))
 
-***** define-*list-fn
+***** alist-to-plist
 
-#+header: :noweb-ref el-ref-list
+#+header: :noweb-ref el-module-list
+#+begin_src emacs-lisp
+    ;; Convert alist to plist
+    (cl-defun er317/alist-to-plist (&key alist keywordize &allow-other-keys)
+      "Convert ALIST to a plist.
+    If KEYWORDIZE is non-nil, convert symbol keys like 'foo to keywords like :foo."
+      (cl-loop for (k . v) in alist
+               append (list (if (and keywordize (symbolp k) (not (keywordp k)))
+                                (intern (concat ":" (symbol-name k)))
+                              k)
+  			  v)))
+#+end_src
+
+#+RESULTS:
+: er317/alist-to-plist
+
+#+header: :noweb-ref el-example
+#+header: :var alist='((foo . "x") (bar . "y"))
+#+begin_src emacs-lisp
+  (er317/alist-to-plist :alist alist :keywordize t)
+#+end_src
+
+#+RESULTS:
+| :foo | x | :bar | y |
+
+***** define-plist-fn
+
+#+header: :noweb-ref el-module-list
 #+begin_src emacs-lisp
   (defvar er317/*plist-fn-arglists* nil
     "Alist mapping function names to their argument lists.")
   #+end_src
 
-  #+RESULTS:
-  : er317/*plist-fn-arglists*
+#+RESULTS:
+: er317/*plist-fn-arglists*
 
-#+header: :noweb-ref el-ref-list
+#+header: :noweb-ref el-module-list
 #+begin_src emacs-lisp
   (cl-defmacro er317/define-plist-fn (&key name-infix arglist doc-string body)
     "Define a `*-plist` function and track its ARGList in `er317/*plist-fn-arglists*`."
@@ -720,7 +735,9 @@ For now, used as reminders.
 #+RESULTS:
 : er317/define-plist-fn
 
-#+header: :noweb-ref el-ref-list
+***** define-alist-fn
+
+#+header: :noweb-ref el-module-list
 #+begin_src emacs-lisp
   (cl-defmacro er317/define-alist-fn (&key name-infix)
   "Define an `*-alist` function that wraps a `*-plist` function and converts its output."
@@ -734,37 +751,37 @@ For now, used as reminders.
         :plist (apply #',plist-fn (list ,@arglist))))))
 #+end_src
 
-***** zip-to-*list
+***** zip-to-plist
 
-#+header: :noweb-ref el-ref-list
+#+header: :noweb-ref el-module-list
 #+begin_src emacs-lisp
-(er317/define-plist-fn
- :name-infix "zip-to"
- :arglist (key-list value-list result (discard nil))
- :doc-string "KEY-LIST and VALUE-LIST into a plist"
- :body
- (cond
-  ((null key-list)
+  (er317/define-plist-fn
+   :name-infix "zip-to"
+   :arglist (key-list value-list result (discard nil))
+   :doc-string "KEY-LIST and VALUE-LIST into a plist"
+   :body
    (cond
-    ((null value-list) result)
-    (discard result)
-    (t (error "Length mismatch: values left over: %S" value-list))))
-
-  (t
-   (let ((key (car key-list)))
+    ((null key-list)
      (cond
-      ((not (keywordp key))
-       (error "Expected keyword, got: %S" key))
+      ((null value-list) result)
+      (discard result)
+      (t (error "Length mismatch: values left over: %S" value-list))))
 
-      ((null value-list)
-       (error "Not enough values for key: %S" key))
+    (t
+     (let ((key (car key-list)))
+       (cond
+        ((not (keywordp key))
+         (error "Expected keyword, got: %S" key))
 
-      (t
-       (er317/zip-to-plist
-        :key-list (cdr key-list)
-        :value-list (cdr value-list)
-        :result (append result (list key (car value-list)))
-        :discard discard)))))))
+        ((null value-list)
+         (error "Not enough values for key: %S" key))
+
+        (t
+         (er317/zip-to-plist
+          :key-list (cdr key-list)
+          :value-list (cdr value-list)
+          :result (append result (list key (car value-list)))
+          :discard discard)))))))
 #+end_src
 
 #+RESULTS:
@@ -778,59 +795,21 @@ For now, used as reminders.
 #+end_src
 
 #+RESULTS:
-#+begin_src org
 | :foo | x | :bar | y |
-#+end_src
-
-#+begin_src emacs-lisp
-  (pp (symbol-function 'er317/zip-to-plist))
-#+end_src
-
-#+RESULTS:
-#+begin_example
-#[(&rest --cl-rest--)
-  ((let*
-       ('(car
-	  (cdr
-	   (or (plist-member --cl-rest-- ':quote)
-	       (list nil (key-list value-list result (discard nil)))))))
-     (cl-block er317/zip-to-plist
-       quote
-       ((cond
-	 ((null key-list)
-	  (cond ((null value-list) result) (discard result)
-		(t
-		 (error "Length mismatch: values left over: %S"
-			value-list))))
-	 (t
-	  (let ((key (car key-list)))
-	    (cond
-	     ((not (keywordp key))
-	      (error "Expected keyword, got: %S" key))
-	     ((null value-list)
-	      (error "Not enough values for key: %S" key))
-	     (t
-	      (er317/zip-to-plist :key-list (cdr key-list) :value-list
-				  (cdr value-list) :result
-				  (append result
-					  (list key (car value-list)))
-				  :discard discard))))))))))
-  nil nil
-  "KEY-LIST and VALUE-LIST into a plist\n\n(fn &key (QUOTE (key-list value-list result (discard nil))) &allow-other-keys)"]
-#+end_example
 
 ***** zip-to-alist
 
+#+header: :noweb-ref el-module-list
 #+begin_src emacs-lisp
   (cl-defun er317/zip-to-alist
     (&key key-list value-list result (discard nil) &allow-other-keys)
     (let ((plist er317/zip-to-plist))
-      (er317/plist->alist :plist plist)))
+      (er317/plist-to-alist :plist plist)))
 #+end_src
 
 ***** plist-transpose
 
-#+header: :noweb-ref el-ref-list
+#+header: :noweb-ref el-module-list
 #+begin_src emacs-lisp
   (cl-defun er317/plist-transpose (&key plist)
     "Transpose a PLIST of keys and list-values into a list of row-wise plists.
@@ -867,7 +846,7 @@ For now, used as reminders.
 
 ***** list-map-append
 
-#+header: :noweb-ref el-ref-list 
+#+header: :noweb-ref el-module-list 
 #+begin_src emacs-lisp
   (cl-defun er317/list-map-append
       (&key before-list after-list (middle-list-seq (error "*-seq is nil")) &allow-other-keys)
@@ -895,6 +874,7 @@ nil
 
 ***** symb-list-to-plist
 
+#+header: :noweb-ref el-module-list
 #+begin_src emacs-lisp
   (cl-defun er317/symb-list-to-plist
       (&key symb-list key-list strip-nil-flag &aux
@@ -928,29 +908,6 @@ nil
 
 #+RESULTS:
 : er317/symb-list-to-plist
-
-**** string
-
-#+begin_src emacs-lisp
-  (cl-defun er317/template-resolve
-      (&key binding-alist ;; ((PLACEHOLDER . VALUE)...)
-            binding-plist ;; (KEY VALUE...)
-            template
-            &aux
-            (__plh-list (when binding-plist (...)))
-            (__val-list (when binding-plist (...)))  	  
-            (__binding-alist
-             (cond
-              (binding-alist binding-alist)
-              (binding-plist (
-  			    ;; zip __plh-list and __val-list
-    			    ))
-              (t error)))                  
-            )
-    (
-;; recursively do PLH<-VALUE inside TEMPLATE
-     ))
-#+end_src
 
 **** noweb-ref
 :PROPERTIES:
@@ -1280,9 +1237,9 @@ EOF
 :END:
 :LOGBOOK:
 - Note taken on [2025-06-12 Thu 09:46] \\
-  Not seeing any issues so marking as DONE. Probably a corrupt file, it was.
+  The solution: Do ~M-x org-indent-indent-buffer~.
 - Note taken on [2025-05-30 Fri 09:11] \\
-  Though pastes in the right spot, indentation is messed up. Need to close/reopen file.
+  Though pastes in the right spot, indentation is messed up. 
 :END:
 
 #+header: :noweb-ref el-ref-org
@@ -1452,7 +1409,7 @@ then promote the rest of the subtree."
 ***** dependency
 
 #+begin_src emacs-lisp
-  (cl-defmacro er317/dependency (&body lisp-seq)
+  (cl-defmacro er317/dependency (&body el-seq)
 
     )
 #+end_src
@@ -1504,40 +1461,191 @@ then promote the rest of the subtree."
 {"key":"X"}
 #+end_src
 
-*** collect
+**** string
 
-#+name: el-config
+#+begin_src emacs-lisp
+  (cl-defun er317/template-resolve
+      (&key binding-alist ;; ((PLACEHOLDER . VALUE)...)
+            binding-plist ;; (KEY VALUE...)
+            template
+            &aux
+            (__plh-list (when binding-plist (...)))
+            (__val-list (when binding-plist (...)))  	  
+            (__binding-alist
+             (cond
+              (binding-alist binding-alist)
+              (binding-plist (
+  			    ;; zip __plh-list and __val-list
+    			    ))
+              (t error)))                  
+            )
+    (
+;; recursively do PLH<-VALUE inside TEMPLATE
+     ))
+#+end_src
+
+**** unit-test
+
+#+header: :noweb-ref el-module-ut
+#+begin_src emacs-lisp
+  (use-package buttercup
+    :straight t
+    :demand t)
+#+end_src
+
+#+header: :noweb-ref el-module-ut
+#+begin_src emacs-lisp
+  (cl-defun er317/buttercup-run (&key name)
+    "Run the Buttercup suite named NAME."
+    (let ((suite (cl-find name buttercup-suites
+                          :key #'buttercup-suite-description
+                          :test #'string=)))
+      (if suite
+          (buttercup--run-suite suite)
+        (message "No suite found with name: %s" name))))
+#+end_src
+
+#+header: :noweb-ref el-scratchpad
+#+begin_src emacs-lisp
+  (let ((captured nil))
+    (cl-letf (((symbol-function 'display-warning)
+               (lambda (&rest args)
+                 (setq captured args))))
+      (display-warning 'test "Oops!" :warning)
+      captured))
+#+end_src
+
+#+RESULTS:
+| test | Oops! | :warning |
+
+#+header: :noweb-ref el-module-ut
+#+begin_src emacs-lisp
+(cl-defmacro er317/buttercup-warning (&key body-el expected-msg)
+  `(let ((captured nil))
+     (cl-letf (((symbol-function 'display-warning)
+                (lambda (&rest args)
+                  (setq captured args))))
+       (eval ,body-el) ;; ← force evaluation inside the override
+       (message "[debug] captured = %S" captured) ;; ← temporary check
+       (expect captured :not :to-be nil)
+       ,(when expected-msg
+          `(expect (nth 1 captured) :to-equal ,expected-msg)))))
+#+end_src
+
+#+RESULTS:
+: er317/buttercup-warning
+
+*** collect
+**** ut
+
 #+header: :noweb yes
 #+begin_src emacs-lisp
-  <<el-ref-config>>
+  <<el-module-ut>>
 #+end_src
+
+#+RESULTS:
+: er317/buttercup-warning
+
+#+begin_src emacs-lisp :lexical t
+  (er317/buttercup-warning
+   :body-el '(display-warning 'test "Oops!" :warning)
+   :expected-msg "Oops!")
+#+end_src
+
+#+RESULTS:
+
+#+header: :noweb-ref el-example
+#+begin_src emacs-lisp :lexical t
+  (describe "warnings"
+    (it "intercepts via macro"
+      (er317/buttercup-warning
+       :body-el '(display-warning 'test "Oops!" :warning)
+       :expected-msg "Oops!")))
+#+end_src
+
+#+RESULTS:
+: #s(buttercup-suite "warnings" nil passed nil nil nil nil (#s(buttercup-spec "intercepts via macro" #0 passed nil nil nil nil #[nil ((buttercup-with-converted-ert-signals (er317/buttercup-warning :body-el '(display-warning 'test "Oops!" :warning) :expected-msg "Oops!"))) (t)])) nil nil nil nil)
+
+#+begin_src emacs-lisp
+  (buttercup-run "warnings")
+#+end_src
+
+#+RESULTS:
+
+**** config
+
+#+name: el-config-module
+#+header: :noweb yes
+#+begin_src emacs-lisp
+  <<el-module-config>>
+#+end_src
+
+#+RESULTS: el-config-module
 
 #+RESULTS: el-config
-: ((er317 :user-alias er317 :symbol-name-template USER-ALIAS/INTERNAL) . Config indexed by USER-ALIAS)
+: ((er317 :user-alias er317 :name-template USER-ALIAS/INTERNAL) . Config indexed by USER-ALIAS)
 
-#+name: el-helper
+**** helper
+
+#+name: el-helper-module
 #+header: :noweb yes
 #+begin_src emacs-lisp
-  <<el-ref-helper>>
+  <<el-module-helper>>
 #+end_src
 
-#+RESULTS: el-helper
+#+RESULTS: el-helper-module
 : er317/resolve-symb
 
-#+name: el-list
+#+header: :noweb-ref el-example
+#+header: :var symb='foo
+#+begin_src emacs-lisp
+  (er317/ut-warning (er317/keywordize :symb :symb))
+#+end_src
+
+#+RESULTS:
+: t
+
+**** list
+
+#+name: el-list-module
 #+header: :noweb yes
 #+begin_src emacs-lisp
-  <<el-list>>
+  <<el-module-list>>
 #+end_src
 
 #+RESULTS:
 : er317/list-map-append
 
+**** el-fn
+
 #+name: el-fn
 #+header: :noweb yes
 #+begin_src emacs-lisp
-  <<el-fn>>
+  <<el-module-fn>>
 #+end_src
+
+*** test
+**** setup
+
+#+begin_src emacs-lisp
+  (use-package ert
+  :straight (:type built-in)
+  :commands (ert ert-run-tests-interactively))
+#+end_src
+
+#+RESULTS:
+
+**** module
+***** helper
+
+#+header: :noweb-ref el-unit-test
+#+header: :var symb=':foo
+#+begin_src emacs-lisp
+  (should (eq (er317/unkeyword :symb symb) 'foo))
+#+end_src
+
+#+RESULTS:
+: t
 
 ** json
 *** test-cases
@@ -1718,16 +1826,6 @@ Where applicable, keep both the name and noweb-ref.
 * trash
 ** mangle
 
-
-
-(straight-use-package
-'(package
-:type git
-:host github
-:repo repo
-:local-repo local-repo
-commit "2e4cf4ffb512773a3fb2b0a7b9417b5801c4f153"))
-
 *** config
 **** meta
 
@@ -1817,7 +1915,7 @@ commit "2e4cf4ffb512773a3fb2b0a7b9417b5801c4f153"))
 
 #+header: :noweb-ref el-ref-exception-beta
 #+begin_src emacs-lisp
-  (cl-defmacro er317/raise (&key type (message "ARGS: %S") (arg-list nil) (type-if-nil (if type type 'error)))
+  (cl-defmacro er317/raise (&key type message &aux &allow-other-keys)
     "Raise an error or warning with file and line info.
   TYPE is a function symbol like 'error or 'warn.
   MESSAGE is a format string.
@@ -1826,8 +1924,7 @@ commit "2e4cf4ffb512773a3fb2b0a7b9417b5801c4f153"))
           (line (line-number-at-pos)))
       `(funcall ,type-if-nil
                 (format "[%s:%d] %s"
-                        ,file ,line
-                        (apply #'format ,message ,arg-list)))))
+                        ,file ,line, message))))
 #+end_src
 
 #+RESULTS:
@@ -2430,11 +2527,11 @@ EOF
 
 #+header: :noweb-ref el-ref-example-defun
 #+begin_src emacs-lisp
-  `(defun example-compute (a b) ,lisp-seq)
+  `(defun example-compute (a b) ,el-seq)
 #+end_src
 
 #+header: :noweb yes
-#+header: :var lisp-seq=
+#+header: :var el-seq=
 #+begin_src emacs-lisp
   <<el-example-defun>>
 #+end_src
