@@ -39,26 +39,45 @@ Evaluate (~C-c C-c~)
   (with-temp-buffer (insert json) (json-pretty-print (point-min) (point-max)) (buffer-string))
 #+end_src
 
+*** header
+
+#+name: el-lexical-binding
+#+begin_src emacs-lisp
+  ;;; filename --- description  -*- lexical-binding: t; -*-
+#+end_src
+
+#+RESULTS: el-lexical-binding
+
+#+name: el-license
+#+begin_src emacs-lisp
+  ;;  er317-dev — Emacs Lisp development
+  ;;  Copyright (C) 2024—2025 — Erwann Rogard
+  ;;  Released under GPL 3.0
+  ;;  See https://www.gnu.org/licenses/gpl-3.0.en.html
+#+end_src
+
 *** meta
 
 Description:
 - Code generating code
-
-Criterion:
-- Macro
-
-**** adapt
+**** module
+***** adapt
 
 #+name: fn-keyword-adapt
 #+header: :noweb-ref el-meta-adapt
 #+begin_src emacs-lisp
+  ;; <dependency: er317/adapt-keyword>
+  ;; - er317/inspect-head
+  ;; - er317/zip-to-plist
+  ;; </dependency>
   (cl-defmacro er317/adapt-keyword
       (&key
        source-fn
        target-key-list
        result-key-list
        target-fn
-       (result-call-type :funcall)  ;; NEW flag, default funcall
+       (result-call-type :funcall)
+       &allow-other-keys
        &aux
        ;; --- Resolution Flags ---
        (__target-fn-flag
@@ -102,8 +121,7 @@ Criterion:
           (:symbol          :symbol)
           (:quoted-symbol   :quoted-symbol)
           (_ (error "`__result-fn` must resolve to a function"))))
-
-       &allow-other-keys)
+       )
 
     "Define TARGET-FN as a keyword-based wrapper around SOURCE-FN.
   Optionally transforms the result using RESULT-KEY-LIST and TARGET-KEY-LIST.
@@ -123,6 +141,9 @@ Criterion:
                            ',result-call-type)))))
          result)))
 #+end_src
+
+#+RESULTS: fn-keyword-adapt
+: er317/adapt-keyword
 
 #+RESULTS:
 : er317/adapt-keyword
@@ -193,21 +214,30 @@ Criterion:
 #+RESULTS:
 | :x | 100 | :y | 101 |
 
-**** capture
+***** capture
 
 #+name: el-capture-warnings
 #+header: :noweb-ref el-meta-capture
 #+begin_src emacs-lisp
+  ;; <dependency: er317/capture-warnings>
+  ;; </dependency>
   (cl-defmacro er317/capture-warnings (&key el-list)
-    "Capture calls to `display-warning` during EL-LIST and return a list of captured warnings."
+    "Returns calls to `display-warning` while evaluating EL-LIST.
+
+  Example:
+    ```
+  (er317/capture-warnings
+   :el-list
+   ((display-warning 'my-test "This is a test warning.")))
+  ```"
+    ;;    (unless (listp el-list)
+    ;;    (error (format "%S is not a list" el-list)))
     `(let ((captured-warnings '()))
        (cl-letf (((symbol-function 'display-warning)
                   (lambda (type message &optional level buffer-name)
                     (push (list type message level buffer-name) captured-warnings))))
          ,@el-list
          captured-warnings)))
-;    (unless (listp el-list)
-;    (error (format "%S is not a list" el-list)))
 #+end_src
 
 #+header: :noweb-ref el-example
@@ -220,33 +250,12 @@ Criterion:
 #+RESULTS:
 | my-test | This is a test warning. | nil | nil |
 
-**** config
+***** inspect
 
-#+header: :noweb-ref el-meta-config
+#+header: :noweb-ref el-meta-inspect
 #+begin_src emacs-lisp
-  (cl-defmacro er317/config-new
-      (&key (user-alias "er317")
-            (name-template "USER-ALIAS/INTERNAL")
-            &allow-other-keys)
-    "Creates a new configuration (plist) for USER-ALIAS.
-
-  Keys:         |
-  ---------------------------------------------------
-  NAME-TEMPLATE	| Symbol name in terms of placeholders
-  "
-    `(push (cons ,user-alias
-                 (list :user-alias ,user-alias
-                       :name-template ,name-template))
-           er317/config-alist))
-#+end_src
-
-#+RESULTS:
-: er317/config-new
-
-**** inspect
-
-#+header: :noweb-ref el-module-helper
-#+begin_src emacs-lisp
+  ;; <dependency: er317/inspect-head>
+  ;; </dependency>
   (cl-defmacro er317/inspect-head (&key object)
     "Inspect the given Emacs Lisp OBJECT and classify its type.
 
@@ -284,11 +293,15 @@ Criterion:
 #+RESULTS:
 : er317/inspect-head
   
-**** list 
-***** alist-fn
+***** list 
+****** alist-fn
 
 #+header: :noweb-ref el-module-list
 #+begin_src emacs-lisp
+  ;; <dependency: er317/plist-to-alist>
+  ;; - er317/*plist-fn-arglists*
+  ;; - er317/plist-to-alist
+  ;; </dependency>
   (cl-defmacro er317/define-alist-fn (&key name-infix)
   "Define an `*-alist` function that wraps a `*-plist` function and converts its output."
   (let* ((plist-fn (intern (format "er317/%s-plist" name-infix)))
@@ -301,10 +314,12 @@ Criterion:
         :plist (apply #',plist-fn (list ,@arglist))))))
 #+end_src
 
-***** plist-fn
+****** plist-fn
 
 #+header: :noweb-ref el-module-list
 #+begin_src emacs-lisp
+  ;; <dependency: er317/*plist-fn-arglists*>
+  ;; </dependency>
   (defvar er317/*plist-fn-arglists* nil
     "Alist mapping function names to their argument lists.")
   #+end_src
@@ -314,6 +329,9 @@ Criterion:
 
 #+header: :noweb-ref el-module-list
 #+begin_src emacs-lisp
+  ;; <dependency: er317/define-plist-fn>
+  ;; - er317/*plist-fn-arglists*
+  ;; <dependency>
   (cl-defmacro er317/define-plist-fn (&key name-infix arglist doc-string body)
     "Define a `*-plist` function and track its ARGList in `er317/*plist-fn-arglists*`."
     (let* ((fn-name (intern (format "er317/%s-plist" name-infix))))
@@ -327,12 +345,28 @@ Criterion:
 #+RESULTS:
 : er317/define-plist-fn
 
+**** collect
+
+#+name: el-meta
+#+header: :noweb yes
+#+begin_src emacs-lisp
+  <<el-meta-adapt>>
+  <<el-meta-capture>>
+  <<el-meta-config>>
+  <<el-meta-inspect>>
+  <<el-meta-list>>
+#+end_src
+
 *** runtime
 **** babel
 ***** info
 
 #+header: :noweb-ref el-ref-babel
 #+begin_src emacs-lisp
+  ;; <dependency: er317/babel-info-as-plist>
+  ;; <generation: er317/babel-info-as-plist>
+  ;; - er317/adapt-keyword
+  ;; </generation>
   (er317/adapt-keyword
    :source-fn 'org-babel-get-src-block-info
    :target-fn 'er317/babel-info-as-plist
@@ -351,11 +385,11 @@ Criterion:
 #+header: :var name="json-foo"
 #+header: :results raw
 #+begin_src emacs-lisp :wrap src json
-    (let* ((location (org-babel-find-named-block name))
-           (option-list '(:no-eval t)))
-      (save-excursion
-        (goto-char location)
-        (plist-get (apply #'er317/babel-info-as-plist option-list) :body)))
+  (let* ((location (org-babel-find-named-block name))
+         (option-list '(:no-eval t)))
+    (save-excursion
+      (goto-char location)
+      (plist-get (apply #'er317/babel-info-as-plist option-list) :body)))
 #+end_src
 
 #+RESULTS:
@@ -389,9 +423,9 @@ Criterion:
     "Resolve source block's Babel info.
 
   Keywords:
-  at-point|datum|name|position
-  buffer
-  no-eval
+  - at-point|datum|name|position
+  - buffer
+  - no-eval
 
   Implemetation:
   - Forwards to `(er317/babel-info-as-plist
@@ -447,74 +481,47 @@ Criterion:
               (format "%s %%s %s" (string-trim start) (string-trim end))))))))
 #+end_src
 
-**** config
-:PROPERTIES:
-:customize: true
-:END:
-
-Warning:
-- Only at runtime can this config be used.
-
-TODO:
-- What was this for?!
-
-#+header: :noweb-ref el-module-config
-#+begin_src emacs-lisp
-  (defvar er317/config-alist "Configuration indexed by USER-ALIAS")
-#+end_src
-
-#+RESULTS:
-: er317/config-alist
-
-#+header: :noweb-ref el-module-config
-#+begin_src emacs-lisp
-  (cl-defun er317/config-get (user-alias key)
-    "Get value for KEY from the config plist for USER-ALIAS."
-    (plist-get (cdr (assoc user-alias er317/config-alist)) key))
-#+end_src
-
-#+RESULTS:
-: er317/config-get
-
-#+header: :noweb-ref el-module-config
-#+begin_src emacs-lisp
-  (cl-defun er317/config-put (user-alias key value)
-    "Set KEY to VALUE in the config plist for USER-ALIAS."
-    (let* ((entry (assoc user-alias er317/config-alist))
-           (plist (cdr entry)))
-      (setcdr entry (plist-put plist key value))
-      er317/config-alist))
-#+end_src
-
-#+RESULTS:
-: er317/config-put
-
-#+header: :noweb-ref el-module-config
-#+begin_src emacs-lisp
-  (er317/config-new)
-#+end_src
-
 **** fn
+***** keyword-alist
+
+#+header: :noweb-ref el-backend
+#+begin_src emacs-lisp
+  (cl-defun er317/fn-keyword-alist
+      (&key symbol
+  	  &aux
+  	  (__fn (symbol-function symbol))
+  	  (__docstring (and (functionp __fn) (documentation __fn t)))
+  	  (__argstring (when (and __docstring
+  				  (string-match "(fn\\s-+\\(.*\\))" __docstring))
+  			 (match-string 1 __docstring)))
+  	  (__parsed (and __argstring
+  			 (read-from-string (concat "(" __argstring ")"))))
+  	  (__args (car-safe __parsed))
+  	  __result)
+    "Extract keyword symbols and their default values from a cl-defun SYMBOL."
+    (when (and __args (memq '&key __args))
+      (let ((__key-args (cdr (memq '&key __args))))
+        (dolist (__arg __key-args)
+          (cond
+           ((eq __arg '&allow-other-keys) nil)
+           ((symbolp __arg)
+            (push (list __arg) __result))
+           ((and (listp __arg) (symbolp (car __arg)))
+            (push (list (car __arg) (cadr __arg)) __result))))))
+    (nreverse __result))
+#+end_src
+
+#+header: :noweb-ref el-check
+#+header: :results raw
+#+begin_src emacs-lisp
+  (cl-defun er317/fn-keyword-alist (&key (foo "X") bar baz &allow-other-keys))
+  (adjacel-backend-fn-keyword-alist :symbol 'my-fun)
+#+end_src
+
+
 ***** fold
 
 TODO
-
-**** header
-
-#+name: el-lexical-binding
-#+begin_src emacs-lisp
-  ;;; filename --- description  -*- lexical-binding: t; -*-
-#+end_src
-
-#+RESULTS: el-lexical-binding
-
-#+name: el-license
-#+begin_src emacs-lisp
-  ;;  er317-dev — Emacs Lisp development
-  ;;  Copyright (C) 2024—2025 — Erwann Rogard
-  ;;  Released under GPL 3.0
-  ;;  See https://www.gnu.org/licenses/gpl-3.0.en.html
-#+end_src
 
 **** helper
 ***** keyword
@@ -546,12 +553,9 @@ TODO
 : er317/keywordize
 
 ***** regex
-
-Merely reminders.
-
 ****** union
 
-#+header: :noweb-ref el-ref-regex
+#+header: :noweb-ref el-reminder
 #+begin_src emacs-lisp
   (cl-defun er317/union-re (&key string-list)
     "Regexp matching any string in STRING-LIST."
@@ -560,42 +564,19 @@ Merely reminders.
 
 ****** group
 
-#+header: :noweb-ref el-ref-regex
+#+header: :noweb-ref el-reminder
 #+begin_src emacs-lisp
   (cl-defun er317/group-re (&key string)
     "Return a regexp as a group."
     (format "\\(%s\\)" string)
 #+end_src
-***** autobuffer
-
-#+begin_src emacs-lisp
-  (cl-defun er317/autobuffer
-      (&key content file name-prefix
-            &aux
-            (__name-prefix (or prefix (plist-get er317/config :user-alias)))
-  	  (__name-base (file-name-nondirectory (make-temp-name __prefix)))
-            (__name-full (concat "*" base "*"))
-            (__buffer (if file
-                          (find-file-noselect file)
-                        (generate-new-buffer __name-full)))
-            &allow-other-keys)
-    "Return a buffer. Create one from FILE, or an empty temp buffer. Insert STRING if given."
-    (when string
-      (with-current-buffer __buffer
-        (goto-char (point-min))
-        (insert content)))
-    __buffer)
-#+end_src
-
 ***** resolve
 ****** fn
 
-For now, used as reminders.
-
-#+header: :noweb-ref el-module-helper
+#+header: :noweb-ref el-reminder
 #+begin_src emacs-lisp
   (cl-defun er317/resolve-fn (&key object)
-    "Return function value of F whether it's a symbol or lambda."
+    "Return function value of OBJECT whether it's a symbol or lambda."
     (if (symbolp object) (symbol-function object) object))
 #+end_src
 
@@ -618,6 +599,69 @@ For now, used as reminders.
 : er317/resolve-symb
 
 **** list
+***** plist-merge
+
+#+header: :noweb-ref el-backend
+#+begin_src emacs-lisp
+  (cl-defun er317/plist-merge (&key source target)
+    "Merge SOURCE and TARGET property lists, with SOURCE taking precedence."
+    (let* ((keys
+            (cl-loop for (k _) on source by #'cddr collect k))
+           (filtered
+            (cl-loop for (k v) on target by #'cddr
+                     unless (memq k keys)
+                     append (list k v))))
+      (append source filtered)))
+#+end_src
+
+#+RESULTS:
+: er317/plist-merge
+
+#+header: :noweb-ref el-check
+#+begin_src emacs-lisp
+  (er317/plist-merge
+      :source '(:foo 1 :bar 2)
+      :target '(:bar 99 :baz 42))
+#+end_src
+
+#+RESULTS:
+| :foo | 1 | :bar | 2 | :baz | 42 |
+
+***** plist-put
+
+#+header: :noweb-ref el-backend
+#+begin_src emacs-lisp
+  (cl-defun er317/plist-put
+      (&key target-plist source-plist &allow-other-keys)
+    "Generalized `plist-put` function.
+
+  Compute:
+  - TARGET-LIST <- Override or extend TARGET-PLIST with SOURCE-PLIST.
+
+  Return:
+  TARGET-LIST."
+    (if source-plist
+        (cl-destructuring-bind (k v &rest rest) source-plist
+     	(er317/plist-put
+     	 :target-plist (plist-put target-plist k v)
+     	 :source-plist rest))
+      target-plist))
+#+end_src
+
+#+RESULTS:
+: er317/plist-put
+
+#+header: :noweb-ref el-check
+#+header: :results raw
+#+begin_src emacs-lisp
+  (er317/plist-put
+   :target-plist '(:same-p 'eq)
+   :source-plist '(:same-p 'equal :key 'foo))
+#+end_src
+
+#+RESULTS:
+(:same-p 'equal :key 'foo)
+
 ***** plist-to-alist
 
 #+header: :noweb-ref el-module-list
@@ -2446,3 +2490,69 @@ EOF
 
     )
 #+end_src
+
+*** config
+
+#+header: :noweb-ref el-meta-config
+#+begin_src emacs-lisp
+  (cl-defmacro er317/config-new
+      (&key (user-alias "er317")
+            (name-template "USER-ALIAS/INTERNAL")
+            &allow-other-keys)
+    "Creates a new configuration (plist) for USER-ALIAS.
+
+  Keys:         |
+  ---------------------------------------------------
+  NAME-TEMPLATE	| Symbol name in terms of placeholders
+  "
+    `(push (cons ,user-alias
+                 (list :user-alias ,user-alias
+                       :name-template ,name-template))
+           er317/config-alist))
+#+end_src
+
+#+RESULTS:
+: er317/config-new
+
+Warning:
+- Only at runtime can this config be used.
+
+TODO:
+- What was this for?!
+
+#+header: :noweb-ref el-module-config
+#+begin_src emacs-lisp
+  (defvar er317/config-alist "Configuration indexed by USER-ALIAS")
+#+end_src
+
+#+RESULTS:
+: er317/config-alist
+
+#+header: :noweb-ref el-module-config
+#+begin_src emacs-lisp
+  (cl-defun er317/config-get (user-alias key)
+    "Get value for KEY from the config plist for USER-ALIAS."
+    (plist-get (cdr (assoc user-alias er317/config-alist)) key))
+#+end_src
+
+#+RESULTS:
+: er317/config-get
+
+#+header: :noweb-ref el-module-config
+#+begin_src emacs-lisp
+  (cl-defun er317/config-put (user-alias key value)
+    "Set KEY to VALUE in the config plist for USER-ALIAS."
+    (let* ((entry (assoc user-alias er317/config-alist))
+           (plist (cdr entry)))
+      (setcdr entry (plist-put plist key value))
+      er317/config-alist))
+#+end_src
+
+#+RESULTS:
+: er317/config-put
+
+#+header: :noweb-ref el-module-config
+#+begin_src emacs-lisp
+  (er317/config-new)
+#+end_src
+
