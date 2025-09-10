@@ -93,7 +93,8 @@ This Emacs Org file contains meta-code for an Emacs configuration.
     (org-cite-insert-processor 'citar)
     (org-cite-follow-processor 'citar)
     (org-cite-activate-processor 'citar)
-    (citar-bibliography org-cite-global-bibliography))
+    (citar-bibliography org-cite-global-bibliography)
+    (citar-notes-paths '("~/src/org/")))
   ;; optional: org-cite-insert is also bound to C-c C-x C-@
   ;;    :bind
   ;;    (:map org-mode-map :package org ("C-c b" . #'org-cite-insert)))
