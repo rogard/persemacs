@@ -61,194 +61,9 @@ Evaluate (~C-c C-c~)
 Description:
 - Code generating code
 **** module
-***** adapt
-
-#+name: fn-keyword-adapt
-#+header: :noweb-ref el-meta-adapt
-#+begin_src emacs-lisp
-  ;; <dependency: er317/adapt-keyword>
-  ;; - er317/inspect-head
-  ;; - er317/zip-to-plist
-  ;; </dependency>
-  (cl-defmacro er317/adapt-keyword
-      (&key
-       source-fn
-       target-key-list
-       result-key-list
-       target-fn
-       (result-call-type :funcall)
-       &allow-other-keys
-       &aux
-       ;; --- Resolution Flags ---
-       (__target-fn-flag
-        (pcase (er317/inspect-head target-fn)
-          (:symbol         :symbol)
-          (:quoted-symbol  :quoted-symbol)
-          (_ (error "`:target-fn` must be a symbol or quoted symbol"))))
-
-       (__result-wrap-flag
-        (cond
-         ((and target-key-list result-key-list) :wrap)
-         ((and target-key-list (not result-key-list)) :wrap)
-         ((not target-key-list) :identity)
-         (t (error "Invalid combination of :target-key-list and :result-key-list"))))
-
-       ;; --- Derived Internal Variables ---
-
-       (__target-symb
-        (cond
-         ((eq __target-fn-flag :symbol) target-fn)
-         ((eq __target-fn-flag :quoted-symbol) (cadr target-fn))))
-
-       (__target-symb-list
-        (when target-key-list
-          (cl-loop for k in target-key-list
-                   collect (intern (substring (symbol-name k) 1)))))
-
-       (__result-fn
-        (cond
-         ((eq __result-wrap-flag :wrap)
-          `(lambda (result-list)
-             (er317/zip-to-plist
-              :key-list ',result-key-list
-              :value-list result-list)))
-         ((eq __result-wrap-flag :identity) #'identity)))
-
-       (__result-fn-flag
-        (pcase (er317/inspect-head __result-fn)
-          (:lambda          :lambda)
-          (:quoted-lambda   :quoted-lambda)
-          (:symbol          :symbol)
-          (:quoted-symbol   :quoted-symbol)
-          (_ (error "`__result-fn` must resolve to a function"))))
-       )
-
-    "Define TARGET-FN as a keyword-based wrapper around SOURCE-FN.
-  Optionally transforms the result using RESULT-KEY-LIST and TARGET-KEY-LIST.
-
-  Optional argument RESULT-CALL-TYPE controls whether the result function
-  is called via `funcall` (default) or `apply`."
-
-    `(cl-defun ,__target-symb (&key ,@__target-symb-list)
-       ,(format "Refactored wrapper around `%s`, accepting keyword args %s."
-                source-fn target-key-list)
-       (let* ((result-raw (apply ,source-fn (list ,@__target-symb-list)))
-              (result
-               (pcase ',result-call-type
-                 (:funcall (funcall ,__result-fn result-raw))
-                 (:apply   (apply ,__result-fn result-raw))
-                 (_ (error "Invalid :result-call-type `%s`, expected :funcall or :apply"
-                           ',result-call-type)))))
-         result)))
-#+end_src
-
-#+RESULTS: fn-keyword-adapt
-: er317/adapt-keyword
-
-#+RESULTS:
-: er317/adapt-keyword
-
-#+header: :noweb-ref el-ref-example
-#+begin_src emacs-lisp
-  (defun er317/source-fn (x) (list x (+ x 1)))
-#+end_src
-
-#+RESULTS:
-: er317/source-fn
-
-#+header: :noweb-ref el-ref-example
-#+begin_src emacs-lisp  
-  (er317/adapt-keyword
-   :source-fn  (lambda (x) (list x (+ x 1)))
-;;    'er317/source-fn
-   :target-key-list (:x)
-   :result-key-list (:x :y)
-   :target-fn 'er317/target-fn)
-#+end_src
-
-#+RESULTS:
-: er317/target-fn
-
-#+header: :noweb-ref el-ref-example
-#+begin_src emacs-lisp
-  (pp (symbol-function 'er317/target-fn))
-#+end_src
-
-#+RESULTS:
-#+begin_example
-#[(&rest --cl-rest--)
-  ((let* ((x (car (cdr (plist-member --cl-rest-- ':x)))))
-     (progn
-       (let ((--cl-keys-- --cl-rest--))
-	 (while --cl-keys--
-	   (cond
-	    ((memq (car --cl-keys--) '(:x :allow-other-keys))
-	     (unless (cdr --cl-keys--)
-	       (error "Missing argument for %s" (car --cl-keys--)))
-	     (setq --cl-keys-- (cdr (cdr --cl-keys--))))
-	    ((car (cdr (memq ':allow-other-keys --cl-rest--)))
-	     (setq --cl-keys-- nil))
-	    (t
-	     (error "Keyword argument %s not one of (:x)"
-		    (car --cl-keys--))))))
-       (cl-block er317/target-fn
-	 (let*
-	     ((result-raw
-	       (apply (lambda (x) (list x (+ x 1))) (list x)))
-	      (result
-	       (funcall
-		(lambda (result-list)
-		  (er317/zip-to-plist :key-list '(:x :y) :value-list
-				      result-list))
-		result-raw)))
-	   result)))))
-  nil nil
-  "Refactored wrapper around `(lambda (x) (list x (+ x 1)))`, accepting keyword args (:x).\n\n(fn &key X)"]
-#+end_example
-
-#+header: :noweb-ref el-ref-example
-#+begin_src emacs-lisp  
-  (er317/target-fn :x 100)
-#+end_src
-
-#+RESULTS:
-| :x | 100 | :y | 101 |
-
-***** capture
-
-#+name: el-capture-warnings
-#+header: :noweb-ref el-meta-capture
-#+begin_src emacs-lisp
-  ;; <dependency: er317/capture-warnings>
-  ;; </dependency>
-  (cl-defmacro er317/capture-warnings (&key el-list)
-    "Returns calls to `display-warning` while evaluating EL-LIST.
-
-  Example:
-    ```
-  (er317/capture-warnings
-   :el-list
-   ((display-warning 'my-test "This is a test warning.")))
-  ```"
-    ;;    (unless (listp el-list)
-    ;;    (error (format "%S is not a list" el-list)))
-    `(let ((captured-warnings '()))
-       (cl-letf (((symbol-function 'display-warning)
-                  (lambda (type message &optional level buffer-name)
-                    (push (list type message level buffer-name) captured-warnings))))
-         ,@el-list
-         captured-warnings)))
-#+end_src
-
-#+header: :noweb-ref el-example
-#+begin_src emacs-lisp
-  (er317/capture-warnings
-   :el-list
-   ((display-warning 'my-test "This is a test warning.")))
-#+end_src
-
-#+RESULTS:
-| my-test | This is a test warning. | nil | nil |
+:PROPERTIES:
+:header-args: :lexical t
+:END:
 
 ***** inspect
 
@@ -298,52 +113,157 @@ Description:
 
 #+header: :noweb-ref el-module-list
 #+begin_src emacs-lisp
-  ;; <dependency: er317/plist-to-alist>
-  ;; - er317/*plist-fn-arglists*
-  ;; - er317/plist-to-alist
-  ;; </dependency>
   (cl-defmacro er317/define-alist-fn (&key name-infix)
-  "Define an `*-alist` function that wraps a `*-plist` function and converts its output."
-  (let* ((plist-fn (intern (format "er317/%s-plist" name-infix)))
-         (alist-fn (intern (format "er317/%s-alist" name-infix)))
-         (arglist (cdr (assoc plist-fn er317/*plist-fn-arglists*))))
-    (unless arglist
-      (error "No arglist found for %s" plist-fn))
-    `(cl-defun ,alist-fn ,arglist
-       (er317/plist-to-alist
-        :plist (apply #',plist-fn (list ,@arglist))))))
+    "Define an `*-alist` function that wraps a `*-plist` function and converts its output."
+    (let* ((plist-fn (intern (format "er317/%s-plist" name-infix)))
+  	 (alist-fn (intern (format "er317/%s-alist" name-infix)))
+  	 (arglist (cdr (assoc plist-fn er317/*plist-fn-arglists*))))
+      (unless arglist
+        (error "No arglist found for %s" plist-fn))
+      `(cl-defun ,alist-fn ,arglist
+         (er317/plist-to-alist
+  	:plist (apply #',plist-fn (list ,@arglist))))))
 #+end_src
+
+#+RESULTS:
+: er317/define-alist-fn
 
 ****** plist-fn
 
 #+header: :noweb-ref el-module-list
 #+begin_src emacs-lisp
-  ;; <dependency: er317/*plist-fn-arglists*>
-  ;; </dependency>
   (defvar er317/*plist-fn-arglists* nil
     "Alist mapping function names to their argument lists.")
-  #+end_src
+#+end_src
 
 #+RESULTS:
 : er317/*plist-fn-arglists*
 
 #+header: :noweb-ref el-module-list
 #+begin_src emacs-lisp
-  ;; <dependency: er317/define-plist-fn>
-  ;; - er317/*plist-fn-arglists*
-  ;; <dependency>
-  (cl-defmacro er317/define-plist-fn (&key name-infix arglist doc-string body)
+  (cl-defmacro er317/define-plist-fn (&key name-infix arglist aux-list doc-string body)
     "Define a `*-plist` function and track its ARGList in `er317/*plist-fn-arglists*`."
     (let* ((fn-name (intern (format "er317/%s-plist" name-infix))))
       `(progn
-         (push (cons ',fn-name ',arglist) er317/*plist-fn-arglists*)
-         (cl-defun ,fn-name (&key ,@arglist &allow-other-keys)
+;;         (push (cons ',fn-name ',arglist) er317/*plist-fn-arglists*)
+         (cl-defun ,fn-name (&key ,@arglist &allow-other-keys &aux ,@aux-list)
            ,doc-string
            (progn ,body)))))
 #+end_src
 
 #+RESULTS:
 : er317/define-plist-fn
+
+***** adapt
+
+#+name: fn-keyword-adapt
+#+header: :noweb-ref el-meta-adapt
+#+begin_src emacs-lisp
+  (cl-defmacro er317/adapt-keyword
+      (&key
+       source-symb
+       (lambda-fn (symbol-function source-symb))
+       target-key-list
+       result-key-list
+       target-symb
+       (result-call-type :funcall)
+       &allow-other-keys
+       &aux
+       ;; --- Resolution Flags ---
+       (__target-symb target-symb)
+       
+       (__result-wrap-flag
+        (cond
+         ((and target-key-list result-key-list) :wrap)
+         ((and target-key-list (not result-key-list)) :wrap)
+         ((not target-key-list) :identity)
+         (t (error "Invalid combination of :target-key-list and :result-key-list"))))
+
+       ;; --- Derived Internal Variables ---       
+       (__target-symb-list (when target-key-list (cl-loop for k in target-key-list collect (intern (substring (symbol-name k) 1)))))
+       
+       (__result-fn
+        (cond
+         ((eq __result-wrap-flag :wrap) (lambda (result-list) (er317/zip-to-plist :key-list result-key-list :value-list result-list)))
+         ((eq __result-wrap-flag :identity) #'identity)))
+
+       (__source-name (if source-symb (source-name source-symb) "LAMBDA"))
+       
+       )
+    "Define TARGET-FN as a keyword-based wrapper around SOURCE-FN. Optionally transforms the result using RESULT-KEY-LIST and TARGET-KEY-LIST. Optional argument RESULT-CALL-TYPE controls whether the result function is called via funcall (default) or apply.
+
+  Example:
+    (er317/adapt-keyword
+   :lambda-fn (lambda (x) (list (* x x)))
+   :target-symb my-square-fn
+   :target-key-list (:x)
+   :result-key-list (:square))"
+    `(cl-defun ,__target-symb
+         (&key ,@__target-symb-list
+  	     &aux (__result-raw (apply ,lambda-fn (list ,@__target-symb-list)))
+  	     (result
+  	      (pcase
+  	  	  ',result-call-type (:funcall (funcall ,__result-fn __result-raw))
+  	    	  (:apply (apply ,__result-fn __result-raw))
+  	    	  (_ (error "Invalid :result-call-type %s, expected :funcall or :apply" ',result-call-type)))))
+       ,(format "Refactored wrapper around %s, accepting keyword args %s." __source-name target-key-list)
+       result))
+#+end_src
+
+#+RESULTS: fn-keyword-adapt
+: er317/adapt-keyword
+
+#+begin_src emacs-lisp
+  (er317/adapt-keyword
+   :lambda-fn (lambda (x) (list (* x x)))
+   :target-symb my-square-fn
+   :target-key-list (:x)
+   :result-key-list (:square))
+#+end_src
+
+#+RESULTS:
+: my-square-fn
+
+#+begin_src emacs-lisp
+  (my-square-fn :x 2)
+#+end_src
+
+#+RESULTS:
+| :square | 4 |
+
+***** capture
+
+#+name: el-capture-warnings
+#+header: :noweb-ref el-meta-capture
+#+begin_src emacs-lisp
+  (cl-defmacro er317/capture-warnings (&key el-list)
+    "Returns calls to `display-warning` while evaluating EL-LIST.
+
+  Example:
+    ```
+  (er317/capture-warnings
+   :el-list
+   ((display-warning 'my-test "This is a test warning.")))
+  ```"
+    ;;    (unless (listp el-list)
+    ;;    (error (format "%S is not a list" el-list)))
+    `(let ((captured-warnings '()))
+       (cl-letf (((symbol-function 'display-warning)
+                  (lambda (type message &optional level buffer-name)
+                    (push (list type message level buffer-name) captured-warnings))))
+         ,@el-list
+         captured-warnings)))
+#+end_src
+
+#+header: :noweb-ref el-example
+#+begin_src emacs-lisp
+  (er317/capture-warnings
+   :el-list
+   ((display-warning 'my-test "This is a test warning.")))
+#+end_src
+
+#+RESULTS:
+| my-test | This is a test warning. | nil | nil |
 
 **** collect
 
@@ -358,15 +278,86 @@ Description:
 #+end_src
 
 *** runtime
+**** helper
+***** keyword
+
+#+header: :noweb-ref el-module-helper
+#+begin_src emacs-lisp
+  (cl-defun er317/unkeyword (&key symb &allow-other-keys)
+    "Convert a keyword like :foo into symbol 'foo."
+    (cond
+     ((not (symbolp symb)) (error "Object %S is not a symbol" symb))
+     ((keywordp symb) (intern (substring (symbol-name symb) 1)))
+     (t (warn "Symbol %S is not a keyword" symb)
+        symb)))
+#+end_src
+
+#+RESULTS:
+: er317/unkeyword
+
+#+header: :noweb-ref el-module-helper
+#+begin_src emacs-lisp
+  (cl-defun er317/keywordize (&key symb &allow-other-keys)
+    (cond
+     ((not (symbolp symb)) (error "Object %S is not a symbol" symb))
+     ((keywordp symb) (warn "Symbol %S is already a keyword" symb))
+     (t (intern (concat ":" (symbol-name symb))))))
+#+end_src
+
+#+RESULTS:
+: er317/keywordize
+
+***** regex
+****** union
+
+#+header: :noweb-ref el-reminder
+#+begin_src emacs-lisp
+  (cl-defun er317/union-re (&key string-list)
+    "Regexp matching any string in STRING-LIST."
+    (string-join string-list "\\|"))
+#+end_src
+
+****** group
+
+#+header: :noweb-ref el-reminder
+#+begin_src emacs-lisp
+  (cl-defun er317/group-re (&key string)
+    "Return a regexp as a group."
+    (format "\\(%s\\)" string)
+#+end_src
+***** resolve
+****** fn
+
+#+header: :noweb-ref el-reminder
+#+begin_src emacs-lisp
+  (cl-defun er317/resolve-fn (&key object)
+    "Return function value of OBJECT whether it's a symbol or lambda."
+    (if (symbolp object) (symbol-function object) object))
+#+end_src
+
+#+RESULTS:
+: er317/resolve-func
+
+****** symb
+
+#+header: :noweb-ref el-module-helper
+#+begin_src emacs-lisp
+  (cl-defun er317/resolve-symb (&key object)
+    "Resolve OBJECT to a symbol based on its form"
+    (cond
+     ((symbolp object) object)
+     ((and (consp object) (eq (car object) 'quote))
+      (cadr object))))
+#+end_src
+
+#+RESULTS:
+: er317/resolve-symb
+
 **** babel
 ***** info
 
 #+header: :noweb-ref el-ref-babel
 #+begin_src emacs-lisp
-  ;; <dependency: er317/babel-info-as-plist>
-  ;; <generation: er317/babel-info-as-plist>
-  ;; - er317/adapt-keyword
-  ;; </generation>
   (er317/adapt-keyword
    :source-fn 'org-babel-get-src-block-info
    :target-fn 'er317/babel-info-as-plist
@@ -484,7 +475,7 @@ Description:
 **** fn
 ***** keyword-alist
 
-#+header: :noweb-ref el-backend
+#+header: :noweb-ref el-fn
 #+begin_src emacs-lisp
   (cl-defun er317/fn-keyword-alist
       (&key symbol
@@ -511,92 +502,15 @@ Description:
     (nreverse __result))
 #+end_src
 
+#+RESULTS:
+: er317/fn-keyword-alist
+
 #+header: :noweb-ref el-check
 #+header: :results raw
 #+begin_src emacs-lisp
   (cl-defun er317/fn-keyword-alist (&key (foo "X") bar baz &allow-other-keys))
   (adjacel-backend-fn-keyword-alist :symbol 'my-fun)
 #+end_src
-
-
-***** fold
-
-TODO
-
-**** helper
-***** keyword
-
-#+header: :noweb-ref el-module-helper
-#+begin_src emacs-lisp
-  (cl-defun er317/unkeyword (&key symb &allow-other-keys)
-    "Convert a keyword like :foo into symbol 'foo."
-    (cond
-     ((not (symbolp symb)) (error "Object %S is not a symbol" symb))
-     ((keywordp symb) (intern (substring (symbol-name symb) 1)))
-     (t (warn "Symbol %S is not a keyword" symb)
-        symb)))
-#+end_src
-
-#+RESULTS:
-: er317/unkeyword
-
-#+header: :noweb-ref el-module-helper
-#+begin_src emacs-lisp
-  (cl-defun er317/keywordize (&key symb &allow-other-keys)
-    (cond
-     ((not (symbolp symb)) (error "Object %S is not a symbol" symb))
-     ((keywordp symb) (warn "Symbol %S is already a keyword" symb))
-     (t (intern (concat ":" (symbol-name symb))))))
-#+end_src
-
-#+RESULTS:
-: er317/keywordize
-
-***** regex
-****** union
-
-#+header: :noweb-ref el-reminder
-#+begin_src emacs-lisp
-  (cl-defun er317/union-re (&key string-list)
-    "Regexp matching any string in STRING-LIST."
-    (string-join string-list "\\|"))
-#+end_src
-
-****** group
-
-#+header: :noweb-ref el-reminder
-#+begin_src emacs-lisp
-  (cl-defun er317/group-re (&key string)
-    "Return a regexp as a group."
-    (format "\\(%s\\)" string)
-#+end_src
-***** resolve
-****** fn
-
-#+header: :noweb-ref el-reminder
-#+begin_src emacs-lisp
-  (cl-defun er317/resolve-fn (&key object)
-    "Return function value of OBJECT whether it's a symbol or lambda."
-    (if (symbolp object) (symbol-function object) object))
-#+end_src
-
-#+RESULTS:
-: er317/resolve-func
-
-****** symb
-
-#+header: :noweb-ref el-module-helper
-#+begin_src emacs-lisp
-  (cl-defun er317/resolve-symb (&key object)
-    "Resolve OBJECT to a symbol based on its form"
-    (cond
-     ((symbolp object) object)
-     ((and (consp object) (eq (car object) 'quote))
-      (cadr object))))
-#+end_src
-
-#+RESULTS:
-: er317/resolve-symb
 
 **** list
 ***** plist-merge
@@ -731,33 +645,26 @@ TODO
 
 #+header: :noweb-ref el-module-list
 #+begin_src emacs-lisp
-  (er317/define-plist-fn
-   :name-infix "zip-to"
-   :arglist (key-list value-list result (discard nil))
-   :doc-string "KEY-LIST and VALUE-LIST into a plist"
-   :body
-   (cond
-    ((null key-list)
-     (cond
-      ((null value-list) result)
-      (discard result)
-      (t (error "Length mismatch: values left over: %S" value-list))))
-
-    (t
-     (let ((key (car key-list)))
-       (cond
-        ((not (keywordp key))
-         (error "Expected keyword, got: %S" key))
-
-        ((null value-list)
-         (error "Not enough values for key: %S" key))
-
-        (t
-         (er317/zip-to-plist
-          :key-list (cdr key-list)
-          :value-list (cdr value-list)
-          :result (append result (list key (car value-list)))
-          :discard discard)))))))
+  (cl-defun er317/zip-to-plist
+      (&key key-list value-list
+  	  &allow-other-keys
+  	  &aux
+  	  (__key-len (if (listp key-list) (length key-list)
+  		       (error "key-list is not a list: %S" key-list)
+                         ))
+  	  (__value-len (if (listp value-list) (length value-list)
+  			 (error "value-list is not a list: %S" value-list)
+  			 ))
+  	  (__length-check (unless (= __key-len __value-len)
+  			    (error "Length mismatch: keys (%d) vs values (%d)"
+  				   __key-len __value-len)))
+  	  )
+    (apply #'append
+  	 (cl-mapcar (lambda (k v)
+                        (unless (keywordp k)
+  			(error "Expected keyword: %S" k))
+                        (list k v))
+                      key-list value-list)))
 #+end_src
 
 #+RESULTS:
@@ -765,9 +672,11 @@ TODO
 
 #+header: :noweb-ref el-ref-example
 #+header: :var key-list='(:foo :bar)
-#+header: :var val-list='("x" "y")
+#+header: :var value-list='("x" "y")
 #+begin_src emacs-lisp
-  (er317/zip-to-plist :key-list key-list :value-list val-list)
+  (er317/zip-to-plist
+   :key-list '(:foo :bar)
+   :value-list '("x" "y"))
 #+end_src
 
 #+RESULTS:
@@ -775,13 +684,7 @@ TODO
 
 ***** zip-to-alist
 
-#+header: :noweb-ref el-module-list
-#+begin_src emacs-lisp
-  (cl-defun er317/zip-to-alist
-    (&key key-list value-list result (discard nil) &allow-other-keys)
-    (let ((plist er317/zip-to-plist))
-      (er317/plist-to-alist :plist plist)))
-#+end_src
+Use fold instead.
 
 ***** plist-transpose
 
@@ -966,7 +869,7 @@ nil
 
        Execution flow:
        - RESULT <- '()
-       - For each SOURCE-BLOCK in the buffer
+       - For each SOURCE-BLOCK in BUFFER
            - INFO-PLIST <- BABEL-INFO to plist
            - When :noweb-ref matches REGEX
               - VALUE <- (EACH-FUNC INFO-PLIST EACH-ARGLIST)
@@ -1676,6 +1579,10 @@ Where applicable, keep both the name and noweb-ref.
   <<el-license>>
   <<el-shell>>
 #+end_src
+
+* execute
+** buttercup
+
 * trash
 ** mangle
 
