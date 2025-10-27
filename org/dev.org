@@ -233,34 +233,6 @@ Description:
 
 *** runtime
 **** helper
-***** keyword
-
-#+header: :noweb-ref el-module-helper
-#+begin_src emacs-lisp
-  (cl-defun er317/unkeyword (&key symb &allow-other-keys)
-    "Convert a keyword like :foo into symbol 'foo."
-    (cond
-     ((not (symbolp symb)) (error "Object %S is not a symbol" symb))
-     ((keywordp symb) (intern (substring (symbol-name symb) 1)))
-     (t (warn "Symbol %S is not a keyword" symb)
-        symb)))
-#+end_src
-
-#+RESULTS:
-: er317/unkeyword
-
-#+header: :noweb-ref el-module-helper
-#+begin_src emacs-lisp
-  (cl-defun er317/keywordize (&key symb &allow-other-keys)
-    (cond
-     ((not (symbolp symb)) (error "Object %S is not a symbol" symb))
-     ((keywordp symb) (warn "Symbol %S is already a keyword" symb))
-     (t (intern (concat ":" (symbol-name symb))))))
-#+end_src
-
-#+RESULTS:
-: er317/keywordize
-
 ***** regex
 ****** union
 
@@ -1305,15 +1277,6 @@ Convention:
 
 #+RESULTS: el-helper-module
 : er317/resolve-symb
-
-#+header: :noweb-ref el-example
-#+header: :var symb='foo
-#+begin_src emacs-lisp
-  (er317/ut-warning (er317/keywordize :symb :symb))
-#+end_src
-
-#+RESULTS:
-: t
 
 **** list
 
