@@ -108,53 +108,7 @@ Description:
 #+RESULTS:
 : er317/inspect-head
   
-***** list 
-****** alist-fn
-
-#+header: :noweb-ref el-module-list
-#+begin_src emacs-lisp
-  (cl-defmacro er317/define-alist-fn (&key name-infix)
-    "Define an `*-alist` function that wraps a `*-plist` function and converts its output."
-    (let* ((plist-fn (intern (format "er317/%s-plist" name-infix)))
-  	 (alist-fn (intern (format "er317/%s-alist" name-infix)))
-  	 (arglist (cdr (assoc plist-fn er317/*plist-fn-arglists*))))
-      (unless arglist
-        (error "No arglist found for %s" plist-fn))
-      `(cl-defun ,alist-fn ,arglist
-         (er317/plist-to-alist
-  	:plist (apply #',plist-fn (list ,@arglist))))))
-#+end_src
-
-#+RESULTS:
-: er317/define-alist-fn
-
-****** plist-fn
-
-#+header: :noweb-ref el-module-list
-#+begin_src emacs-lisp
-  (defvar er317/*plist-fn-arglists* nil
-    "Alist mapping function names to their argument lists.")
-#+end_src
-
-#+RESULTS:
-: er317/*plist-fn-arglists*
-
-#+header: :noweb-ref el-module-list
-#+begin_src emacs-lisp
-  (cl-defmacro er317/define-plist-fn (&key name-infix arglist aux-list doc-string body)
-    "Define a `*-plist` function and track its ARGList in `er317/*plist-fn-arglists*`."
-    (let* ((fn-name (intern (format "er317/%s-plist" name-infix))))
-      `(progn
-;;         (push (cons ',fn-name ',arglist) er317/*plist-fn-arglists*)
-         (cl-defun ,fn-name (&key ,@arglist &allow-other-keys &aux ,@aux-list)
-           ,doc-string
-           (progn ,body)))))
-#+end_src
-
-#+RESULTS:
-: er317/define-plist-fn
-
-***** adapt
+***** adapt-keyword
 
 #+name: fn-keyword-adapt
 #+header: :noweb-ref el-meta-adapt
