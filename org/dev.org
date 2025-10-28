@@ -108,24 +108,21 @@ Description:
 #+RESULTS:
 : er317/inspect-head
   
-***** adapt-keyword
+***** adapt
+****** keyword
 
 #+name: fn-keyword-adapt
 #+header: :noweb-ref el-meta-adapt
 #+begin_src emacs-lisp
   (cl-defmacro er317/adapt-keyword
       (&key
-       source-symb
-       (lambda-fn (symbol-function source-symb))
+       source-fn
        target-key-list
        result-key-list
        target-symb
        (result-call-type :funcall)
        &allow-other-keys
        &aux
-       ;; --- Resolution Flags ---
-       (__target-symb target-symb)
-       
        (__result-wrap-flag
         (cond
          ((and target-key-list result-key-list) :wrap)
@@ -134,6 +131,8 @@ Description:
          (t (error "Invalid combination of :target-key-list and :result-key-list"))))
 
        ;; --- Derived Internal Variables ---       
+       (__lambda-fn (er317/resolve-fn :object source-fn))
+       (__target-symb target-symb)
        (__target-symb-list (when target-key-list (cl-loop for k in target-key-list collect (intern (substring (symbol-name k) 1)))))
        
        (__result-fn
@@ -141,20 +140,20 @@ Description:
          ((eq __result-wrap-flag :wrap) (lambda (result-list) (er317/zip-to-plist :key-list result-key-list :value-list result-list)))
          ((eq __result-wrap-flag :identity) #'identity)))
 
-       (__source-name (if source-symb (source-name source-symb) "LAMBDA"))
+       (__source-name (if (symbolp source-fn) (symbol-name source-fn) "LAMBDA"))
        
        )
     "Define TARGET-FN as a keyword-based wrapper around SOURCE-FN. Optionally transforms the result using RESULT-KEY-LIST and TARGET-KEY-LIST. Optional argument RESULT-CALL-TYPE controls whether the result function is called via funcall (default) or apply.
 
   Example:
     (er317/adapt-keyword
-   :lambda-fn (lambda (x) (list (* x x)))
+   :source-fn (lambda (x) (list (* x x)))
    :target-symb my-square-fn
    :target-key-list (:x)
    :result-key-list (:square))"
     `(cl-defun ,__target-symb
          (&key ,@__target-symb-list
-  	     &aux (__result-raw (apply ,lambda-fn (list ,@__target-symb-list)))
+  	     &aux (__result-raw (apply ,__lambda-fn (list ,@__target-symb-list)))
   	     (result
   	      (pcase
   	  	  ',result-call-type (:funcall (funcall ,__result-fn __result-raw))
@@ -169,7 +168,7 @@ Description:
 
 #+begin_src emacs-lisp
   (er317/adapt-keyword
-   :lambda-fn (lambda (x) (list (* x x)))
+   :source-fn (lambda (x) (list (* x x)))
    :target-symb my-square-fn
    :target-key-list (:x)
    :result-key-list (:square))
@@ -232,7 +231,10 @@ Description:
 #+end_src
 
 *** runtime
-**** helper
+**** reminder
+
+This code serves as a reminder; not meant to be tangled.
+
 ***** regex
 ****** union
 
@@ -251,10 +253,12 @@ Description:
     "Return a regexp as a group."
     (format "\\(%s\\)" string)
 #+end_src
+
+**** helper
 ***** resolve
 ****** fn
 
-#+header: :noweb-ref el-reminder
+#+header: :noweb-ref el-module-helper
 #+begin_src emacs-lisp
   (cl-defun er317/resolve-fn (&key object)
     "Return function value of OBJECT whether it's a symbol or lambda."
@@ -262,7 +266,7 @@ Description:
 #+end_src
 
 #+RESULTS:
-: er317/resolve-func
+: er317/resolve-fn
 
 ****** symb
 
@@ -278,6 +282,310 @@ Description:
 
 #+RESULTS:
 : er317/resolve-symb
+
+**** list
+***** plist-merge
+
+#+header: :noweb-ref el-backend
+#+begin_src emacs-lisp
+  (cl-defun er317/plist-merge
+      (&key source target override &allow-other-keys)
+    "Merge SOURCE and TARGET property lists, with SOURCE taking precedence unless OVERRIDE is true."
+    (if override
+        ;; Swap to give TARGET precedence
+        (er317/plist-merge :source target :target source)
+      ;; Else: filter TARGET keys that collide with SOURCE
+      (let* ((__keys (cl-loop for (k _) on source by #'cddr collect k))
+             (__filtered (cl-loop for (k v) on target by #'cddr
+                                  unless (memq k __keys)
+                                  append (list k v))))
+        (append source __filtered))))
+#+end_src
+
+#+RESULTS:
+: er317/plist-merge
+
+#+header: :noweb-ref el-check
+#+begin_src emacs-lisp
+  (er317/plist-merge
+      :source '(:foo 1 :bar 2)
+      :target '(:bar 99 :baz 42)
+      :override t)
+#+end_src
+
+#+RESULTS:
+| :bar | 99 | :baz | 42 | :foo | 1 |
+
+#+begin_src emacs-lisp
+  (er317/plist-put
+   :target-plist '(:foo 1 :bar 2)
+   :source-plist '(:bar 99 :baz 42))
+#+end_src
+
+#+RESULTS:
+| :foo | 1 | :bar | 99 | :baz | 42 |
+
+***** plist-to-alist
+
+#+header: :noweb-ref el-module-list
+#+begin_src emacs-lisp
+  (cl-defun er317/plist-to-alist (&key plist unkeyword &allow-other-keys)
+    "Convert PLIST to an alist.
+      
+    Example:
+    ```
+    (er317/plist-to-alist
+        :plist '(:foo \"x\" :bar \"y\")
+        :unkeyword t)
+    ```"
+    (cl-loop for (k v) on plist by #'cddr
+             collect (cons (if (and unkeyword (keywordp k))
+                               (intern (substring (symbol-name k) 1))
+                             k)
+                           v)))
+#+end_src
+
+#+RESULTS:
+: er317/plist-to-alist
+
+#+header: :noweb-ref el-example
+#+header: :var plist='(:foo "x" :bar "y")
+#+begin_src emacs-lisp
+  (er317/plist-to-alist :plist plist :unkeyword t)
+#+end_src
+
+#+RESULTS:
+: ((foo . x) (bar . y))
+
+***** alist-to-plist
+
+#+header: :noweb-ref el-module-list
+#+begin_src emacs-lisp
+  ;; Convert alist to plist
+  (cl-defun er317/alist-to-plist (&key alist keywordize &allow-other-keys)
+    "Convert ALIST to a plist.
+
+    Example
+    ```
+      (er317/alist-to-plist
+    :alist '((foo . "x") (bar . "y"))
+    :keywordize t)
+    ```"
+    (cl-loop for (k . v) in alist
+             append (list (if (and keywordize (symbolp k) (not (keywordp k)))
+                              (intern (concat ":" (symbol-name k)))
+                            k)
+    			v)))
+#+end_src
+
+#+RESULTS:
+: er317/alist-to-plist
+
+#+header: :noweb-ref el-example
+#+header: :var alist='((foo . "x") (bar . "y"))
+#+begin_src emacs-lisp
+  (er317/alist-to-plist :alist alist :keywordize t)
+#+end_src
+
+#+RESULTS:
+| :foo | x | :bar | y |
+
+***** zip-to-plist
+
+#+header: :noweb-ref el-module-list
+#+begin_src emacs-lisp
+  (cl-defun er317/zip-to-plist
+      (&key key-list value-list
+  	  &allow-other-keys
+  	  &aux
+  	  (__key-len (if (listp key-list) (length key-list)
+  		       (error "key-list is not a list: %S" key-list)
+                         ))
+  	  (__value-len (if (listp value-list) (length value-list)
+  			 (error "value-list is not a list: %S" value-list)
+  			 ))
+  	  (__length-check (unless (= __key-len __value-len)
+  			    (error "Length mismatch: keys (%d) vs values (%d)"
+  				   __key-len __value-len)))
+  	  )
+    (apply #'append
+  	 (cl-mapcar (lambda (k v)
+                        (unless (keywordp k)
+  			(error "Expected keyword: %S" k))
+                        (list k v))
+                      key-list value-list)))
+#+end_src
+
+#+RESULTS:
+: er317/zip-to-plist
+
+#+header: :noweb-ref el-ref-example
+#+header: :var key-list='(:foo :bar)
+#+header: :var value-list='("x" "y")
+#+begin_src emacs-lisp
+  (er317/zip-to-plist
+   :key-list '(:foo :bar)
+   :value-list '("x" "y"))
+#+end_src
+
+#+RESULTS:
+| :foo | x | :bar | y |
+
+***** plist-transpose
+
+#+header: :noweb-ref el-module-list
+#+begin_src emacs-lisp
+  (cl-defun er317/plist-transpose (&key plist)
+    "Transpose a PLIST of keys and list-values into a list of row-wise plists.
+
+  Example:
+  ```
+  (er317/plist-transpose
+      :plist '(:key1 (v1 v2) :key2 (w1 w2)))
+  ```"
+    (let* ((keys (cl-loop for (k _) on plist by #'cddr collect k))
+           (columns (cl-loop for (_ v) on plist by #'cddr collect v))
+           (rows (apply #'cl-mapcar #'list columns)))
+      (mapcar (lambda (vals)
+                (cl-loop for k in keys
+                         for v in vals
+                         nconc (list k v)))
+              rows)))
+#+end_src
+
+#+RESULTS:
+: er317/plist-transpose
+
+#+header: :noweb-ref el-ref-example
+#+begin_src emacs-lisp
+  (let ((input '(:key1 (1 2 3)
+  		     :key2 ("a" "b" "c"))))
+    (er317/plist-transpose :plist input))
+#+end_src
+
+#+RESULTS:
+| :key1 | 1 | :key2 | a |
+| :key1 | 2 | :key2 | b |
+| :key1 | 3 | :key2 | c |
+
+***** list-map-append
+
+#+header: :noweb-ref el-module-list 
+#+begin_src emacs-lisp
+  (cl-defun er317/list-map-append
+      (&key before-list after-list (middle-list-seq (error "*-seq is nil")) &allow-other-keys)
+    "Append BEFORE-LIST and AFTER-LIST to each LIST in MIDDLE-LIST-SEQ
+
+  Example:
+  ```
+  (er317/list-map-append 
+     :middle-list-seq '((:b 2) (:b 3))
+     :before-list '(:a 1)
+     :after-list '(:c 4))
+  ```"
+    (cl-loop for list in middle-list-seq
+             collect (append before-list list after-list)))
+#+end_src
+
+#+RESULTS:
+: er317/list-map-append
+
+#+header: :noweb-ref el-ref-example
+#+header: :results raw replace
+#+begin_src emacs-lisp
+  (er317/list-map-append 
+   :middle-list-seq '((:b 2) (:b 3))
+   :before-list '(:a 1)
+   :after-list '(:c 4))
+#+end_src
+
+#+RESULTS:
+((:a 1 :b 2 :c 4) (:a 1 :b 3 :c 4))
+((:a 1 :b 2 :c 4) (:a 1 :b 3 :c 4))
+nil
+
+***** symb-list-to-plist
+
+#+header: :noweb-ref el-module-list
+#+begin_src emacs-lisp
+  (cl-defun er317/symb-list-to-plist
+      (&key symb-list key-list strip-nil-flag &aux
+        	  (__non-nil-args (cl-remove-if-not #'identity (list symb-list key-list))))
+    "Build a property list from SYMB-LIST or KEY-LIST; each must be quoted.
+
+    If STRIP-NIL-FLAG is non-nil, KV pairs with nil values are omitted.
+
+  Example:
+  ```
+  (er317/symb-list-to-plist
+      :symb-list '(foo bar))
+  ```"
+    (unless (= (length __non-nil-args) 1)
+      (error "Invalid input: symb-list=%S key-list=%S"
+             symb-list key-list))
+
+    (cond
+     (key-list
+      (er317/arg-plist
+       :symb-list
+       (mapcar (lambda (key)
+                 (intern (substring (symbol-name key) 1))) ;; strip leading colon
+               key-list)
+       :strip-nil-flag strip-nil-flag))
+
+     (symb-list
+      (cl-loop for symb in symb-list
+               for key = (intern (format ":%s" symb))
+               for val = (symbol-value symb)
+               ;; Respect strip-nil-flag: if true, omit nils; else include nil values
+               when (or strip-nil-flag val)
+               append (list key val)))
+
+     (t nil)))
+#+end_src
+
+#+RESULTS:
+: er317/symb-list-to-plist
+
+**** fn
+***** keyword-alist
+
+#+header: :noweb-ref el-fn
+#+begin_src emacs-lisp
+  (cl-defun er317/fn-keyword-alist
+      (&key symbol
+  	  &aux
+  	  (__fn (symbol-function symbol))
+  	  (__docstring (and (functionp __fn) (documentation __fn t)))
+  	  (__argstring (when (and __docstring
+  				  (string-match "(fn\\s-+\\(.*\\))" __docstring))
+  			 (match-string 1 __docstring)))
+  	  (__parsed (and __argstring
+  			 (read-from-string (concat "(" __argstring ")"))))
+  	  (__args (car-safe __parsed))
+  	  __result)
+    "Extract keyword symbols and their default values from a cl-defun SYMBOL."
+    (when (and __args (memq '&key __args))
+      (let ((__key-args (cdr (memq '&key __args))))
+        (dolist (__arg __key-args)
+          (cond
+           ((eq __arg '&allow-other-keys) nil)
+           ((symbolp __arg)
+            (push (list __arg) __result))
+           ((and (listp __arg) (symbolp (car __arg)))
+            (push (list (car __arg) (cadr __arg)) __result))))))
+    (nreverse __result))
+#+end_src
+
+#+RESULTS:
+: er317/fn-keyword-alist
+
+#+header: :noweb-ref el-check
+#+header: :results raw
+#+begin_src emacs-lisp
+  (cl-defun er317/fn-keyword-alist (&key (foo "X") bar baz &allow-other-keys))
+  (adjacel-backend-fn-keyword-alist :symbol 'my-fun)
+#+end_src
 
 **** babel
 ***** info
@@ -397,336 +705,6 @@ Description:
               ;; Block-style comment format
               (format "%s %%s %s" (string-trim start) (string-trim end))))))))
 #+end_src
-
-**** fn
-***** keyword-alist
-
-#+header: :noweb-ref el-fn
-#+begin_src emacs-lisp
-  (cl-defun er317/fn-keyword-alist
-      (&key symbol
-  	  &aux
-  	  (__fn (symbol-function symbol))
-  	  (__docstring (and (functionp __fn) (documentation __fn t)))
-  	  (__argstring (when (and __docstring
-  				  (string-match "(fn\\s-+\\(.*\\))" __docstring))
-  			 (match-string 1 __docstring)))
-  	  (__parsed (and __argstring
-  			 (read-from-string (concat "(" __argstring ")"))))
-  	  (__args (car-safe __parsed))
-  	  __result)
-    "Extract keyword symbols and their default values from a cl-defun SYMBOL."
-    (when (and __args (memq '&key __args))
-      (let ((__key-args (cdr (memq '&key __args))))
-        (dolist (__arg __key-args)
-          (cond
-           ((eq __arg '&allow-other-keys) nil)
-           ((symbolp __arg)
-            (push (list __arg) __result))
-           ((and (listp __arg) (symbolp (car __arg)))
-            (push (list (car __arg) (cadr __arg)) __result))))))
-    (nreverse __result))
-#+end_src
-
-#+RESULTS:
-: er317/fn-keyword-alist
-
-#+header: :noweb-ref el-check
-#+header: :results raw
-#+begin_src emacs-lisp
-  (cl-defun er317/fn-keyword-alist (&key (foo "X") bar baz &allow-other-keys))
-  (adjacel-backend-fn-keyword-alist :symbol 'my-fun)
-#+end_src
-
-**** list
-***** plist-merge
-
-#+header: :noweb-ref el-backend
-#+begin_src emacs-lisp
-  (cl-defun er317/plist-merge (&key source target)
-    "Merge SOURCE and TARGET property lists, with SOURCE taking precedence."
-    (let* ((keys
-            (cl-loop for (k _) on source by #'cddr collect k))
-           (filtered
-            (cl-loop for (k v) on target by #'cddr
-                     unless (memq k keys)
-                     append (list k v))))
-      (append source filtered)))
-#+end_src
-
-#+RESULTS:
-: er317/plist-merge
-
-#+header: :noweb-ref el-check
-#+begin_src emacs-lisp
-  (er317/plist-merge
-      :source '(:foo 1 :bar 2)
-      :target '(:bar 99 :baz 42))
-#+end_src
-
-#+RESULTS:
-| :foo | 1 | :bar | 2 | :baz | 42 |
-
-***** plist-put
-
-#+header: :noweb-ref el-backend
-#+begin_src emacs-lisp
-  (cl-defun er317/plist-put
-      (&key target-plist source-plist &allow-other-keys)
-    "Generalized `plist-put` function.
-
-  Compute:
-  - TARGET-LIST <- Override or extend TARGET-PLIST with SOURCE-PLIST.
-
-  Return:
-  TARGET-LIST."
-    (if source-plist
-        (cl-destructuring-bind (k v &rest rest) source-plist
-     	(er317/plist-put
-     	 :target-plist (plist-put target-plist k v)
-     	 :source-plist rest))
-      target-plist))
-#+end_src
-
-#+RESULTS:
-: er317/plist-put
-
-#+header: :noweb-ref el-check
-#+header: :results raw
-#+begin_src emacs-lisp
-  (er317/plist-put
-   :target-plist '(:same-p 'eq)
-   :source-plist '(:same-p 'equal :key 'foo))
-#+end_src
-
-#+RESULTS:
-(:same-p 'equal :key 'foo)
-
-***** plist-to-alist
-
-#+header: :noweb-ref el-module-list
-#+begin_src emacs-lisp
-  (cl-defun er317/plist-to-alist (&key plist unkeyword &allow-other-keys)
-    "Convert PLIST to an alist.
-      
-    Example:
-    ```
-    (er317/plist-to-alist
-        :plist '(:foo \"x\" :bar \"y\")
-        :unkeyword t)
-    ```"
-    (cl-loop for (k v) on plist by #'cddr
-             collect (cons (if (and unkeyword (keywordp k))
-                               (intern (substring (symbol-name k) 1))
-                             k)
-                           v)))
-#+end_src
-
-#+RESULTS:
-: er317/plist-to-alist
-
-#+header: :noweb-ref el-example
-#+header: :var plist='(:foo "x" :bar "y")
-#+begin_src emacs-lisp
-  (er317/plist-to-alist :plist plist :unkeyword t)
-#+end_src
-
-#+RESULTS:
-: ((foo . x) (bar . y))
-
-***** alist-to-plist
-
-#+header: :noweb-ref el-module-list
-#+begin_src emacs-lisp
-  ;; Convert alist to plist
-  (cl-defun er317/alist-to-plist (&key alist keywordize &allow-other-keys)
-    "Convert ALIST to a plist.
-
-    Example
-    ```
-      (er317/alist-to-plist
-    :alist '((foo . "x") (bar . "y"))
-    :keywordize t)
-    ```"
-    (cl-loop for (k . v) in alist
-             append (list (if (and keywordize (symbolp k) (not (keywordp k)))
-                              (intern (concat ":" (symbol-name k)))
-                            k)
-    			v)))
-#+end_src
-
-#+RESULTS:
-: er317/alist-to-plist
-
-#+header: :noweb-ref el-example
-#+header: :var alist='((foo . "x") (bar . "y"))
-#+begin_src emacs-lisp
-  (er317/alist-to-plist :alist alist :keywordize t)
-#+end_src
-
-#+RESULTS:
-| :foo | x | :bar | y |
-
-***** zip-to-plist
-
-#+header: :noweb-ref el-module-list
-#+begin_src emacs-lisp
-  (cl-defun er317/zip-to-plist
-      (&key key-list value-list
-  	  &allow-other-keys
-  	  &aux
-  	  (__key-len (if (listp key-list) (length key-list)
-  		       (error "key-list is not a list: %S" key-list)
-                         ))
-  	  (__value-len (if (listp value-list) (length value-list)
-  			 (error "value-list is not a list: %S" value-list)
-  			 ))
-  	  (__length-check (unless (= __key-len __value-len)
-  			    (error "Length mismatch: keys (%d) vs values (%d)"
-  				   __key-len __value-len)))
-  	  )
-    (apply #'append
-  	 (cl-mapcar (lambda (k v)
-                        (unless (keywordp k)
-  			(error "Expected keyword: %S" k))
-                        (list k v))
-                      key-list value-list)))
-#+end_src
-
-#+RESULTS:
-: er317/zip-to-plist
-
-#+header: :noweb-ref el-ref-example
-#+header: :var key-list='(:foo :bar)
-#+header: :var value-list='("x" "y")
-#+begin_src emacs-lisp
-  (er317/zip-to-plist
-   :key-list '(:foo :bar)
-   :value-list '("x" "y"))
-#+end_src
-
-#+RESULTS:
-| :foo | x | :bar | y |
-
-***** zip-to-alist
-
-Use fold instead.
-
-***** plist-transpose
-
-#+header: :noweb-ref el-module-list
-#+begin_src emacs-lisp
-  (cl-defun er317/plist-transpose (&key plist)
-    "Transpose a PLIST of keys and list-values into a list of row-wise plists.
-
-  Example:
-  ```
-  (er317/plist-transpose
-      :plist '(:key1 (v1 v2) :key2 (w1 w2)))
-  ```"
-    (let* ((keys (cl-loop for (k _) on plist by #'cddr collect k))
-           (columns (cl-loop for (_ v) on plist by #'cddr collect v))
-           (rows (apply #'cl-mapcar #'list columns)))
-      (mapcar (lambda (vals)
-                (cl-loop for k in keys
-                         for v in vals
-                         nconc (list k v)))
-              rows)))
-#+end_src
-
-#+RESULTS:
-: er317/plist-transpose
-
-#+header: :noweb-ref el-ref-example
-#+begin_src emacs-lisp
-  (let ((input '(:key1 (1 2 3)
-  		     :key2 ("a" "b" "c"))))
-    (er317/plist-transpose :plist input))
-#+end_src
-
-#+RESULTS:
-| :key1 | 1 | :key2 | a |
-| :key1 | 2 | :key2 | b |
-| :key1 | 3 | :key2 | c |
-
-***** list-map-append
-
-#+header: :noweb-ref el-module-list 
-#+begin_src emacs-lisp
-  (cl-defun er317/list-map-append
-      (&key before-list after-list (middle-list-seq (error "*-seq is nil")) &allow-other-keys)
-    "Append BEFORE-LIST and AFTER-LIST to each LIST in MIDDLE-LIST-SEQ
-
-  Example:
-  ```
-  (er317/list-map-append 
-     :middle-list-seq '((:b 2) (:b 3))
-     :before-list '(:a 1)
-     :after-list '(:c 4))
-  ```"
-    (cl-loop for list in middle-list-seq
-             collect (append before-list list after-list)))
-#+end_src
-
-#+RESULTS:
-: er317/list-map-append
-
-#+header: :noweb-ref el-ref-example
-#+header: :results raw replace
-#+begin_src emacs-lisp
-  (er317/list-map-append 
-   :middle-list-seq '((:b 2) (:b 3))
-   :before-list '(:a 1)
-   :after-list '(:c 4))
-#+end_src
-
-#+RESULTS:
-((:a 1 :b 2 :c 4) (:a 1 :b 3 :c 4))
-((:a 1 :b 2 :c 4) (:a 1 :b 3 :c 4))
-nil
-
-***** symb-list-to-plist
-
-#+header: :noweb-ref el-module-list
-#+begin_src emacs-lisp
-  (cl-defun er317/symb-list-to-plist
-      (&key symb-list key-list strip-nil-flag &aux
-        	  (__non-nil-args (cl-remove-if-not #'identity (list symb-list key-list))))
-    "Build a property list from SYMB-LIST or KEY-LIST; each must be quoted.
-
-    If STRIP-NIL-FLAG is non-nil, KV pairs with nil values are omitted.
-
-  Example:
-  ```
-  (er317/symb-list-to-plist
-      :symb-list '(foo bar))
-  ```"
-    (unless (= (length __non-nil-args) 1)
-      (error "Invalid input: symb-list=%S key-list=%S"
-             symb-list key-list))
-
-    (cond
-     (key-list
-      (er317/arg-plist
-       :symb-list
-       (mapcar (lambda (key)
-                 (intern (substring (symbol-name key) 1))) ;; strip leading colon
-               key-list)
-       :strip-nil-flag strip-nil-flag))
-
-     (symb-list
-      (cl-loop for symb in symb-list
-               for key = (intern (format ":%s" symb))
-               for val = (symbol-value symb)
-               ;; Respect strip-nil-flag: if true, omit nils; else include nil values
-               when (or strip-nil-flag val)
-               append (list key val)))
-
-     (t nil)))
-#+end_src
-
-#+RESULTS:
-: er317/symb-list-to-plist
 
 **** noweb-ref
 :PROPERTIES:
