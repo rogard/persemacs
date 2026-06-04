@@ -24,13 +24,14 @@ This Emacs Org file contains meta-code for an Emacs configuration.
 :uname:    %(eval er317/config-owner)
 :END:
 #+end_src
+
 ** el
 *** comment
 
 #+header: :noweb-ref el-shared
 #+begin_src emacs-lisp
   ;;  persemacs-config — Emacs config file
-  ;;  Copyright (C) 2024—2025 — Erwann Rogard
+  ;;  Copyright (C) 2024—2026 — Erwann Rogard
   ;;  Released under GPL 3.0
   ;;  See https://www.gnu.org/licenses/gpl-3.0.en.html
 #+end_src
@@ -71,6 +72,64 @@ This Emacs Org file contains meta-code for an Emacs configuration.
     (list er317/config-capture-target) 
     "agenda files")
 #+end_src
+
+*** func
+
+#+begin_src emacs-lisp
+  ;; Make this into er317/lang-banner
+  (defun er317/latex-banner (text)
+    "Insert a fixed-width 80-char LaTeX banner line."
+    (interactive "sText: ")
+    (let* ((prefix "% ── ")
+           (content (concat text " "))
+           (total-width 80)
+           (fill (max 0 (- total-width (length prefix) (length content))))
+           (line (concat prefix content (make-string fill ?─))))
+      (insert line "\n")))
+#+end_src
+
+#+RESULTS:
+: er317/latex-banner
+
+#+begin_src emacs-lisp
+(defun er317/code-banner (text leader &optional depth)
+  "Insert a fixed-width 80-character banner comment.
+
+0 = top-level
+1 = major section
+2 = subsection
+3 = ordinary note"
+
+  (interactive
+   (list
+    (read-string "Text: ")
+    (read-string "Leader: " "%")
+    (read-number "Depth (0-3): " 3)))
+
+  (let* ((depth (max 0 (min 3 (or depth 3))))
+         (char (pcase depth
+                 (0 ?█)
+                 (1 ?▬)
+                 (2 ?═)
+                 (_ ?─)))
+         (text (if (= depth 0)
+                   (upcase text)
+                 text))
+         (prefix (format "%s %c%c " leader char char))
+         (content (concat text " "))
+         (total-width 80)
+         (fill (max 0
+                    (- total-width
+                       (length prefix)
+                       (length content))))
+         (line (concat prefix
+                       content
+                       (make-string fill char))))
+    (insert line "\n")))
+#+end_src
+
+#+RESULTS:
+: er317/code-banner
 
 *** package
 
@@ -334,20 +393,21 @@ Reference:
 - [[https://github.com/bash-lsp/bash-language-server][bash-lsp/bash-language-server]]
 
 #+begin_src emacs-lisp
-(use-package lsp-mode
-  :commands lsp
-  :hook ((python-mode
-          json-mode
-          tex-mode) . lsp-deferred)
-  :config
-  (setq lsp-auto-guess-root t)
+  (use-package lsp-mode
+    :commands lsp
+    :hook ((python-mode
+            json-mode
+  	  java-mode
+            tex-mode) . lsp-deferred)
+    :config
+    (setq lsp-auto-guess-root t)
 
-  ;; Add sh-mode hook with npm check and graceful fallback
-  (add-hook 'sh-mode-hook
-            (lambda ()
-              (if (executable-find "npm")
-                  (lsp-deferred)
-                (message "npm not found — skipping LSP for sh-mode")))))
+    ;; Add sh-mode hook with npm check and graceful fallback
+    (add-hook 'sh-mode-hook
+              (lambda ()
+                (if (executable-find "npm")
+                    (lsp-deferred)
+                  (message "npm not found — skipping LSP for sh-mode")))))
 #+end_src
 
 Commands:
@@ -435,8 +495,6 @@ Resource:
 
 ***** hook
 
-
-
 #+begin_src emacs-lisp
   (use-package org
 ;;    :straight t
@@ -455,6 +513,7 @@ Resource:
      '((emacs-lisp . t)
        (latex . t)
        (org . t)
+       (java . t)
        (python . t)
        (shell . t)
        (lua . t)
