@@ -16,17 +16,20 @@
       (goto-char (point-max))
       (eval-print-last-sexp)))
   (load bootstrap-file nil 'nomessage))
+(setq straight-use-package-by-default t)
 (straight-use-package 'use-package)
 (straight-use-package 'org)
-(eval-and-compile
-  (setq use-package-always-ensure t))
+;; removed as per
+;; https://github.com/radian-software/straight.el?tab=readme-ov-file#getting-started
+;;(eval-and-compile
+;;  (setq use-package-always-ensure t))
 ;; (setq use-package-always-defer t))
 
 (let ((meta-delegate-list '((:file "../org/config.org" :lang "emacs-lisp"))))
-  (let ((dir-name (file-name-directory
-		   (or (file-truename load-file-name) buffer-file-name))))
-    (dolist (pair meta-delegate-list)
-      (let ((source-file (plist-get pair :file))
+(let ((dir-name (file-name-directory
+		 (or (file-truename load-file-name) buffer-file-name))))
+  (dolist (pair meta-delegate-list)
+    (let ((source-file (plist-get pair :file))
 	  (source-lang (plist-get pair :lang)))
       (with-current-buffer (find-file-noselect (expand-file-name source-file dir-name))
 	(message "Visiting buffer %s" (buffer-name))
@@ -34,3 +37,4 @@
 	  (dolist (target-file target-list)
 	    (load-file target-file)))))))
 )
+(put 'downcase-region 'disabled nil)
