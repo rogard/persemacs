@@ -21,78 +21,52 @@ This Emacs Org file contains meta-code for an Emacs configuration.
 ,* %^{heading}
 :PROPERTIES:
 :created_on: %^T
-:uname:    %(eval er317/config-owner)
+:uname:    %(eval (plist-get erwr/config-variable :owner))
 :END:
 #+end_src
 
 ** el
-*** comment
+*** header
 
-#+header: :noweb-ref el-shared
 #+begin_src emacs-lisp
-  ;;  persemacs-config — Emacs config file
-  ;;  Copyright (C) 2024—2026 — Erwann Rogard
-  ;;  Released under GPL 3.0
-  ;;  See https://www.gnu.org/licenses/gpl-3.0.en.html
+    ;;; erwr's config.el --- Emacs configuration -*- lexical-binding: t; -*-
 #+end_src
 
-#+header: :noweb-ref el-shared
+#+begin_src emacs-lisp
+  ;;;  Copyright (C) 2024—2026 — Erwann Rogard
+  ;;;  Released under GPL 3.0
+  ;;;  See https://www.gnu.org/licenses/gpl-3.0.en.html
+#+end_src
+
 #+begin_src emacs-lisp
   ;; Initially adapted from:
   ;; - https://github.com/ianyepan/yay-evil-emacs
 #+end_src
 
-*** const
-**** owner
+*** variable
 
 #+begin_src emacs-lisp
-  (defconst er317/config-owner (concat (getenv "OWNER") "@" (system-name)))
-#+end_src
-
-**** trash-directory
-
-#+begin_src emacs-lisp
-  (defconst er317/trash-directory "/home/erwann/.local/share/Trash" "Trash directory")
-#+end_src
-
-**** capture
-
-#+begin_src emacs-lisp
-  (defconst er317/config-capture-target "/home/erwann/src/org/capture.org" "capture target location")
+  ;;; ══ variable ════════════════════════════════════════════════════════════════
 #+end_src
 
 #+begin_src emacs-lisp
-  (defconst er317/config-capture-template "/home/erwann/src/txt/capture_core_tpl" "capture template location")
-#+end_src
-
-**** agenda-files
-
-#+begin_src emacs-lisp
-  (defconst er317/config-agenda-files 
-    (list er317/config-capture-target) 
-    "agenda files")
+  (let* ((shared "/home/erwann/src/org/capture.org"))
+    (defconst erwr/config-variable
+      `(:config-owner ,(concat (getenv "OWNER") "@" (system-name))
+  		    :trash-directory "/home/erwann/.local/share/Trash"
+  		    :capture-target ,shared
+  		    :capture-template "/home/erwann/src/txt/capture_core_tpl"
+  		    :agenda-files ,shared)))
 #+end_src
 
 *** func
 
 #+begin_src emacs-lisp
-  ;; Make this into er317/lang-banner
-  (defun er317/latex-banner (text)
-    "Insert a fixed-width 80-char LaTeX banner line."
-    (interactive "sText: ")
-    (let* ((prefix "% ── ")
-           (content (concat text " "))
-           (total-width 80)
-           (fill (max 0 (- total-width (length prefix) (length content))))
-           (line (concat prefix content (make-string fill ?─))))
-      (insert line "\n")))
+  ;;; ══ function ════════════════════════════════════════════════════════════════
 #+end_src
 
-#+RESULTS:
-: er317/latex-banner
-
 #+begin_src emacs-lisp
-(defun er317/code-banner (text leader &optional depth)
+(defun erwr/code-banner (text leader &optional depth)
   "Insert a fixed-width 80-character banner comment.
 
 0 = top-level
@@ -129,9 +103,13 @@ This Emacs Org file contains meta-code for an Emacs configuration.
 #+end_src
 
 #+RESULTS:
-: er317/code-banner
+: erwr/code-banner
 
 *** package
+
+#+begin_src emacs-lisp
+  ;;; ══ package ═════════════════════════════════════════════════════════════════
+#+end_src
 
 **** auctex
 
@@ -141,6 +119,7 @@ This Emacs Org file contains meta-code for an Emacs configuration.
     ;; https://emacs.stackexchange.com/a/81504/41724
     )
 #+end_src
+
 **** citar
 
 #+begin_src emacs-lisp
@@ -168,58 +147,6 @@ Reference:
 
 #+begin_src emacs-lisp
   (use-package corfu
-;;    :straight t
-    ;; Optional customizations
-    :custom
-    ;; (corfu-cycle t)                ;; Enable cycling for `corfu-next/previous'
-    (corfu-auto t)                 ;; Enable auto completion
-    ;; (corfu-separator ?\s)          ;; Orderless field separator
-    ;; (corfu-quit-at-boundary nil)   ;; Never quit at completion boundary
-    ;; (corfu-quit-no-match nil)      ;; Never quit, even if there is no match
-    ;; (corfu-preview-current nil)    ;; Disable current candidate preview
-    ;; (corfu-preselect 'prompt)      ;; Preselect the prompt
-    ;; (corfu-on-exact-match nil)     ;; Configure handling of exact matches
-    ;; (corfu-scroll-margin 5)        ;; Use scroll margin
-
-    ;; Enable Corfu only for certain modes.
-    ;; :hook ((prog-mode . corfu-mode)
-    ;;        (shell-mode . corfu-mode)
-    ;;        (eshell-mode . corfu-mode))
-
-    ;; Recommended: Enable Corfu globally.  This is recommended since Dabbrev can
-    ;; be used globally (M-/).  See also the customization variable
-    ;; `global-corfu-modes' to exclude certain modes.
-    :init
-    (global-corfu-mode))
-
-  ;; A few more useful configurations...
-  (use-package emacs
-;;    :straight t
-    :init
-    ;; TAB cycle if there are only few candidates
-    ;; (setq completion-cycle-threshold 3)
-
-    ;; Enable indentation+completion using the TAB key.
-    ;; `completion-at-point' is often bound to M-TAB.
-    (setq tab-always-indent 'complete)
-
-    ;; Emacs 30 and newer: Disable Ispell completion function. As an alternative,
-    ;; try `cape-dict'.
-    (setq text-mode-ispell-word-completion nil)
-
-    ;; Emacs 28 and newer: Hide commands in M-x which do not apply to the current
-    ;; mode.  Corfu commands are hidden, since they are not used via M-x. This
-    ;; setting is useful beyond Corfu.
-    (setq read-extended-command-predicate #'command-completion-default-include-p))
-#+end_src
-
-
-
-#+begin_src emacs-lisp
-  (use-package corfu
-;;    :straight t
-    :ensure
-    :demand
     :custom
     (corfu-auto t)
     (corfu-quit-at-boundary 'separator)
@@ -227,10 +154,21 @@ Reference:
     (corfu-scroll-margin 0)
     (corfu-separator ?\s)
     (corfu-popupinfo-delay '(0.5 . 0.2))
-    :config
+
+    :init
     (global-corfu-mode)
     (corfu-popupinfo-mode +1))
 #+end_src
+
+#+begin_src emacs-lisp
+  (use-package emacs
+    :init
+    (setq tab-always-indent 'complete
+          text-mode-ispell-word-completion nil
+          read-extended-command-predicate
+          #'command-completion-default-include-p))
+#+end_src
+
 **** dash
 
 #+header: :tangle no
@@ -334,7 +272,7 @@ Reference:
 :END:
 
 TODO:
-- Is this warranged with =straight.el=?
+- Is this warranted with =straight.el=?
 
 #+header: :tangle no
 #+begin_src emacs-lisp
@@ -352,7 +290,7 @@ TODO:
     (setq confirm-kill-processes nil
           create-lockfiles nil ; don't create .# files (crashes 'npm start')
           make-backup-files nil
-  	trash-directory er317/trash-directory))
+  	trash-directory (plist-get erwr/config-variable :trash-directory)))
 #+end_src
 
 **** flymake
@@ -389,43 +327,73 @@ Reference:
   #+end_quote
 :END:
 
-Reference:
-- [[https://github.com/bash-lsp/bash-language-server][bash-lsp/bash-language-server]]
-
 #+begin_src emacs-lisp
+    ;;; ── lsp-mode ────────────────────────────────────────────────────────────────
   (use-package lsp-mode
-    :commands lsp
+    :commands lsp lsp-deferred
     :hook ((python-mode
             json-mode
-  	  java-mode
+            java-mode
             tex-mode) . lsp-deferred)
     :config
-    (setq lsp-auto-guess-root t)
 
-    ;; Add sh-mode hook with npm check and graceful fallback
+    ;; Core behavior tuning
+    (setq lsp-auto-guess-root nil)
+    (setq lsp-log-io nil)
+    (setq lsp-enable-snippet t)
+
+    ;; Bash language server check
+    (defun my/bash-ls-available-p ()
+      (executable-find "bash-language-server"))
+
     (add-hook 'sh-mode-hook
               (lambda ()
-                (if (executable-find "npm")
+                (if (my/bash-ls-available-p)
                     (lsp-deferred)
-                  (message "npm not found — skipping LSP for sh-mode")))))
+                  (message "bash-language-server not installed")))))
 #+end_src
 
-Commands:
-- =M-x lsp-ui-imenu=
-- =M-x lsp-describe-sessions=
--lsp-mode-disable
-
 #+begin_src emacs-lisp
+  ;;; ── lsp ui ──────────────────────────────────────────────────────────────────
+  ;;; - ~M-x lsp-ui-imenu~
+  ;;; - ~M-x lsp-describe-sessions~
+  ;;; - ~lsp-mode-disable~
   (use-package lsp-ui
-;;    :straight t
     :commands lsp-ui-mode
     :config
-    (setq lsp-ui-doc-enable nil)
+    (setq lsp-ui-doc-enable t)
     (setq lsp-ui-doc-header t)
     (setq lsp-ui-doc-include-signature t)
     (setq lsp-ui-doc-border (face-foreground 'default))
     (setq lsp-ui-sideline-show-code-actions t)
-    (setq lsp-ui-sideline-delay 0.05))
+    (setq lsp-ui-sideline-delay 0.2))
+#+end_src
+
+**** elisp
+
+#+begin_src emacs-lisp
+  ;;;  (use-package elisp-mode
+  ;;;    :ensure nil
+  ;;;    :hook
+  (add-hook 'emacs-lisp-mode-hook #'eldoc-mode)
+  (add-hook 'emacs-lisp-mode-hook #'flymake-mode);)
+#+end_src
+
+#+begin_src emacs-lisp
+  ;; Better navigation to definitions
+  (use-package elisp-def
+    :hook (emacs-lisp-mode . elisp-def-mode))
+#+end_src
+
+#+begin_src emacs-lisp
+  ;; Helpful when debugging macros
+  (use-package macrostep
+    :commands macrostep-expand)
+  ;;; Debugging helpers (built-in, but declared for clarity)
+
+  ;; Toggle on-demand:
+  ;; M-x toggle-debug-on-error
+  ;; M-x edebug-defun
 #+end_src
 
 **** markdown
@@ -485,9 +453,9 @@ Resource:
     (org-log-into-drawer t)
     (org-capture-templates
      `(("c" "Core" entry
-        (file+headline ,er317/config-capture-target "Capture")
-        (file ,er317/config-capture-template))))
-    (org-agenda-files (symbol-value 'er317/config-agenda-files))
+        (file+headline ,(plist-get erwr/config-variable :capture-target) "Capture")
+        (file ,(plist-get erwr/config-variable :capture-template)))))
+    (org-agenda-files (plist-get erwr/config-variable :agenda-files))
     (org-fold-core-style 'overlays) ;; https://lists.nongnu.org/archive/html/emacs-orgmode/2024-04/msg00497.html
     (tex-fontify-script nil)
     )

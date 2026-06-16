@@ -41,19 +41,379 @@ Evaluate (~C-c C-c~)
 
 *** header
 
-#+name: el-lexical-binding
+#+name: el-lexical
 #+begin_src emacs-lisp
-  ;;; filename --- description  -*- lexical-binding: t; -*-
+  ;;; -*- lexical-binding: t; -*-
 #+end_src
-
-#+RESULTS: el-lexical-binding
 
 #+name: el-license
 #+begin_src emacs-lisp
-  ;;  er317-dev — Emacs Lisp development
   ;;  Copyright (C) 2024—2025 — Erwann Rogard
   ;;  Released under GPL 3.0
   ;;  See https://www.gnu.org/licenses/gpl-3.0.en.html
+#+end_src
+
+*** helper
+:PROPERTIES:
+:header-args: :tangle "../el/helper.el"
+:END:
+
+**** header
+
+#+name: el-license
+#+begin_src emacs-lisp
+  ;;  Requirement:
+  ;;  - Self contained
+  ;;  - General purpose
+  ;;  - Narrow functionality
+#+end_src
+
+**** resolve
+***** fn
+
+#+header: :noweb-ref el-helper
+#+begin_src emacs-lisp
+  ;;
+  (cl-defun er317/resolve-fn (&key object)
+    "Return function value of OBJECT whether it's a symbol or lambda."
+    (if (symbolp object)
+        (er317/resolve-fn :object (symbol-function object))
+      (cond
+       ((cl-functionp object) object)
+       (t (error "not a function %S" object)))))
+#+end_src
+
+#+RESULTS:
+: er317/resolve-fn
+
+#+header: :noweb-ref el-buttercup-helper
+#+begin_src emacs-lisp
+  ;; 
+  (describe "er317/resolve-fn"
+    (before-each
+      (defun er317--dummy-fn (x) (* x 2)))
+
+    (it "evaluates the resolved function for a symbol"
+      (let ((fn (er317/resolve-fn :object 'er317--dummy-fn)))
+        (expect (funcall fn 3) :to-equal 6)))
+
+    (it "evaluates the resolved function for a built-in symbol"
+      (let ((fn (er317/resolve-fn :object '1+)))
+        (expect (funcall fn 9) :to-equal 10)))
+
+    (it "evaluates the resolved function for a lambda"
+      (let* ((lam (lambda (x) (* x x)))
+             (fn  (er317/resolve-fn :object lam)))
+        (expect (funcall fn 5) :to-equal 25)))
+
+    (it "errors on non-functions"
+      (expect (er317/resolve-fn :object "not-a-function") :to-throw))
+
+    (after-each
+      (fmakunbound 'er317--dummy-fn)))
+#+end_src
+
+#+RESULTS:
+: #s(buttercup-suite "er317/resolve-fn" nil passed nil nil nil nil (#s(buttercup-spec "evaluates the resolved function for a symbol" #0 passed nil nil nil nil #[nil ((buttercup-with-converted-ert-signals (let ((fn (er317/resolve-fn :object 'er317--dummy-fn))) (expect (funcall fn 3) :to-equal 6)))) (t)]) #s(buttercup-spec "evaluates the resolved function for a built-in symbol" #0 passed nil nil nil nil #[nil ((buttercup-with-converted-ert-signals (let ((fn (er317/resolve-fn :object '1+))) (expect (funcall fn 9) :to-equal 10)))) (t)]) #s(buttercup-spec "evaluates the resolved function for a lambda" #0 passed nil nil nil nil #[nil ((buttercup-with-converted-ert-signals (let* ((lam (lambda (x) (* x x))) (fn (er317/resolve-fn :object lam))) (expect (funcall fn 5) :to-equal 25)))) (t)]) #s(buttercup-spec "errors on non-functions" #0 passed nil nil nil nil #[nil ((buttercup-with-converted-ert-signals (expect (er317/resolve-fn :object "not-a-function") :to-throw))) (t)])) (#[nil ((defun er317--dummy-fn (x) (* x 2))) (t)]) (#[nil ((fmakunbound 'er317--dummy-fn)) (t)]) nil nil)
+
+**** list
+***** plist-merge
+
+#+header: :noweb-ref el-helper
+#+begin_src emacs-lisp
+  ;;
+  (cl-defun er317/plist-merge
+      (&key source target override &allow-other-keys)
+    "Merge SOURCE and TARGET property lists, with SOURCE taking precedence unless OVERRIDE is true."
+    (if override
+        ;; Swap to give TARGET precedence
+        (er317/plist-merge :source target :target source)
+      ;; Else: filter TARGET keys that collide with SOURCE
+      (let* ((__keys (cl-loop for (k _) on source by #'cddr collect k))
+             (__filtered (cl-loop for (k v) on target by #'cddr
+                                  unless (memq k __keys)
+                                  append (list k v))))
+        (append source __filtered))))
+#+end_src
+
+#+RESULTS:
+: er317/plist-merge
+
+#+header: :noweb-ref el-buttercup-helper
+#+begin_src emacs-lisp
+  ;; 
+  (describe "er317/plist-merge"
+    (it ":overrides t"
+      (expect
+       (er317/plist-merge
+        :source '(:foo 1 :bar 2)
+        :target '(:bar 99 :baz 42)
+        :override t)
+       :to-equal '(:bar 99 :baz 42 :foo 1)))
+
+    (it "override unspecified"
+      (expect
+       (er317/plist-merge
+        :source '(:foo 1 :bar 2)
+        :target '(:bar 99 :baz 42))
+       :to-equal '(:foo 1 :bar 2 :baz 42))))
+#+end_src
+
+#+RESULTS:
+: #s(buttercup-suite "er317/plist-merge" nil passed nil nil nil nil (#s(buttercup-spec "overrides existing keys when :override is t" #0 passed nil nil nil nil #[nil ((buttercup-with-converted-ert-signals (expect (er317/plist-merge :source '(:foo 1 :bar 2) :target '(:bar 99 :baz 42) :override t) :to-equal '(:bar 99 :baz 42 :foo 1)))) (t)]) #s(buttercup-spec "does not override existing keys when :override is nil or missing" #0 passed nil nil nil nil #[nil ((buttercup-with-converted-ert-signals (expect (er317/plist-merge :source '(:foo 1 :bar 2) :target '(:bar 99 :baz 42)) :to-equal '(:foo 1 :bar 2 :baz 42)))) (t)])) nil nil nil nil)
+
+***** plist-to-alist
+
+#+header: :noweb-ref el-helper
+#+begin_src emacs-lisp
+  ;;
+  (cl-defun er317/plist-to-alist (&key plist unkeyword &allow-other-keys)
+    "Convert PLIST to an alist.
+      
+    Example:
+    ```
+    (er317/plist-to-alist
+        :plist '(:foo \"x\" :bar \"y\")
+        :unkeyword t)
+    ```"
+    (cl-loop for (k v) on plist by #'cddr
+             collect (cons (if (and unkeyword (keywordp k))
+                               (intern (substring (symbol-name k) 1))
+                             k)
+                           v)))
+#+end_src
+
+#+RESULTS:
+: er317/plist-to-alist
+
+#+header: :noweb-ref el-buttercup-helper
+#+begin_src emacs-lisp
+  ;; 
+  (describe "er317/plist-to-alist"
+    (it "converts a plist to an alist, unkeywording the keys"
+      (let ((plist '(:foo "x" :bar "y")))
+        (expect
+         (er317/plist-to-alist :plist plist :unkeyword t)
+         :to-equal '((foo . "x") (bar . "y"))))))
+#+end_src
+
+***** alist-to-plist
+
+#+header: :noweb-ref el-helper
+#+begin_src emacs-lisp
+  ;; 
+  (cl-defun er317/alist-to-plist (&key alist keywordize &allow-other-keys)
+    "Convert ALIST to a plist.
+
+    Example
+    ```
+    (er317/alist-to-plist
+    :alist '((foo . \"x\") (bar . \"y\"))
+    :keywordize t)
+    ```"
+    (cl-loop for (k . v) in alist
+             append (list (if (and keywordize (symbolp k) (not (keywordp k)))
+                              (intern (concat ":" (symbol-name k)))
+                            k)
+    			v)))
+#+end_src
+
+#+RESULTS:
+: er317/alist-to-plist\
+
+#+header: :noweb-ref el-buttercup-helper
+#+begin_src emacs-lisp
+  ;; 
+  (describe "er317/alist-to-plist"
+    (it "converts an alist to a plist, keywordizing the keys"
+      (let ((alist '((foo . "x") (bar . "y"))))
+        (expect
+         (er317/alist-to-plist :alist alist :keywordize t)
+         :to-equal '(:foo "x" :bar "y"))))))
+#+end_src
+
+***** zip-into-plist
+
+#+header: :noweb-ref el-helper
+#+begin_src emacs-lisp
+  ;;
+  (cl-defun er317/zip-into-plist
+      (&key key-list value-list
+  	  &allow-other-keys
+  	  &aux
+  	  (__key-len (if (listp key-list) (length key-list)
+  		       (error "key-list is not a list: %S" key-list)
+                         ))
+  	  (__value-len (if (listp value-list) (length value-list)
+  			 (error "value-list is not a list: %S" value-list)
+  			 ))
+  	  (__length-check (unless (= __key-len __value-len)
+  			    (error "Length mismatch: keys (%d) vs values (%d)"
+  				   __key-len __value-len)))
+  	  )
+    (apply #'append
+  	 (cl-mapcar (lambda (k v)
+                        (unless (keywordp k)
+  			(error "Expected keyword: %S" k))
+                        (list k v))
+                      key-list value-list)))
+#+end_src
+
+#+RESULTS:
+: er317/zip-into-plist
+
+#+header: :noweb-ref el-buttercup-helper
+#+begin_src emacs-lisp
+  ;; 
+  (describe "er317/zip-into-plist"
+    (it "zips a list of keys and a list of values into a plist"
+      (let ((key-list '(:foo :bar))
+            (value-list '("x" "y")))
+        (expect
+         (er317/zip-into-plist :key-list key-list :value-list value-list)
+         :to-equal '(:foo "x" :bar "y"))))))
+#+end_src
+
+***** zip-plist
+
+#+header: :noweb-ref el-helper
+#+begin_src emacs-lisp
+  ;;
+  (cl-defun er317/zip-plist
+      (&key plist
+  	  &allow-other-keys
+  	  &aux
+  	  (__keys (cl-loop for (k _) on plist by #'cddr collect k))
+  	  (__columns (cl-loop for (_ v) on plist by #'cddr collect v))
+  	  (__rows (apply #'cl-mapcar #'list __columns)))
+    "Transpose a PLIST of keys and list-values into a list of row-wise plists.
+
+    Example:
+    ```
+    (er317/zip-plist
+        :plist '(:key1 (v1 v2) :key2 (w1 w2)))
+    ```"
+    (mapcar (lambda (vals)
+              (cl-loop for k in __keys
+                       for v in vals
+                       append (list k v)))
+            __rows))
+#+end_src
+
+#+RESULTS:
+: er317/zip-plist
+
+#+header: :noweb-ref el-buttercup-helper
+#+begin_src emacs-lisp
+  ;; 
+  (describe "er317/zip-plist"
+    (it "zips multiple values from a plist into a list of plists"
+      (let ((input '(:key1 (1 2 3)
+                           :key2 ("a" "b" "c"))))
+        (expect
+         (er317/zip-plist :plist input)
+         :to-equal
+         '((:key1 1 :key2 "a")
+           (:key1 2 :key2 "b")
+           (:key1 3 :key2 "c"))))))
+#+end_src
+
+***** list-map-append
+
+#+header: :noweb-ref el-helper
+#+begin_src emacs-lisp
+  ;;
+  (cl-defun er317/collect-append
+      (&key before-list after-list (middle-list-seq (error "*-seq is nil")) &allow-other-keys)
+    "Append BEFORE-LIST and AFTER-LIST to each LIST in MIDDLE-LIST-SEQ
+
+  Example:
+  ```
+  (er317/collect-append 
+     :middle-list-seq '((:b 2) (:b 3))
+     :before-list '(:a 1)
+     :after-list '(:c 4))
+  ```"
+    (cl-loop for list in middle-list-seq
+             collect (append before-list list after-list)))
+#+end_src
+
+#+RESULTS:
+: er317/collect-append
+
+#+header: :noweb-ref el-buttercup-helper
+#+begin_src emacs-lisp
+  ;; 
+  (describe "er317/collect-append"
+    (it "before, middle, after"
+      (let ((before-list '(:a 1))
+            (middle-list-seq '((:b 2) (:b 3)))
+            (after-list '(:c 4)))
+        (expect
+         (er317/collect-append
+          :middle-list-seq middle-list-seq
+          :before-list before-list
+          :after-list after-list)
+         :to-equal
+         '((:a 1 :b 2 :c 4)
+           (:a 1 :b 3 :c 4))))))
+#+end_src
+
+***** symb-list-to-plist
+
+#+header: :noweb-ref el-helper
+#+begin_src emacs-lisp
+  ;;
+  (cl-defun er317/symb-list-to-plist
+      (&key symb-list key-list strip-nil-flag
+  	  &aux
+        	  (__non-nil-args (cl-remove-if-not #'identity (list symb-list key-list))))
+    "Build a property list from SYMB-LIST or KEY-LIST; each must be quoted.
+
+    If STRIP-NIL-FLAG is non-nil, KV pairs with nil values are omitted.
+
+  Example:
+  ```
+  (er317/symb-list-to-plist
+      :symb-list '(foo bar))
+  ```"
+    (unless (= (length __non-nil-args) 1)
+      (error "Invalid input: symb-list=%S key-list=%S"
+             symb-list key-list))
+
+    (cond
+     (key-list
+      (er317/symb-list-to-plist
+       :symb-list
+       (mapcar (lambda (key)
+                 (intern (substring (symbol-name key) 1))) ;; strip leading colon
+               key-list)
+       :strip-nil-flag strip-nil-flag))
+
+     (symb-list
+      (cl-loop for symb in symb-list
+               for key = (intern (format ":%s" symb))
+               for val = (symbol-value symb)
+               ;; Respect strip-nil-flag: if true, omit nils; else include nil values
+               when (or strip-nil-flag val)
+               append (list key val)))
+
+     (t nil)))
+#+end_src
+
+#+RESULTS:
+: er317/symb-list-to-plist
+
+
+#+begin_src emacs-lisp
+  ;; 
+  (describe "er317/symb-list-to-plist"
+    (it "converts a list of symbols to a plist with keyword keys and variable values"
+      (let ((a "a")
+            (b "b"))
+        (expect
+         (er317/symb-list-to-plist :symb-list '(a b))
+         :to-equal '(:a "a" :b "b")))))
 #+end_src
 
 *** meta
@@ -137,7 +497,7 @@ Description:
        
        (__result-fn
         (cond
-         ((eq __result-wrap-flag :wrap) (lambda (result-list) (er317/zip-to-plist :key-list result-key-list :value-list result-list)))
+         ((eq __result-wrap-flag :wrap) (lambda (result-list) (er317/zip-into-plist :key-list result-key-list :value-list result-list)))
          ((eq __result-wrap-flag :identity) #'identity)))
 
        (__source-name (if (symbolp source-fn) (symbol-name source-fn) "LAMBDA"))
@@ -185,39 +545,6 @@ Description:
 | :square | 4 |
 
 ***** capture
-
-#+name: el-capture-warnings
-#+header: :noweb-ref el-meta-capture
-#+begin_src emacs-lisp
-  (cl-defmacro er317/capture-warnings (&key el-list)
-    "Returns calls to `display-warning` while evaluating EL-LIST.
-
-  Example:
-    ```
-  (er317/capture-warnings
-   :el-list
-   ((display-warning 'my-test "This is a test warning.")))
-  ```"
-    ;;    (unless (listp el-list)
-    ;;    (error (format "%S is not a list" el-list)))
-    `(let ((captured-warnings '()))
-       (cl-letf (((symbol-function 'display-warning)
-                  (lambda (type message &optional level buffer-name)
-                    (push (list type message level buffer-name) captured-warnings))))
-         ,@el-list
-         captured-warnings)))
-#+end_src
-
-#+header: :noweb-ref el-example
-#+begin_src emacs-lisp
-  (er317/capture-warnings
-   :el-list
-   ((display-warning 'my-test "This is a test warning.")))
-#+end_src
-
-#+RESULTS:
-| my-test | This is a test warning. | nil | nil |
-
 **** collect
 
 #+name: el-meta
@@ -231,6 +558,10 @@ Description:
 #+end_src
 
 *** runtime
+:PROPERTIES:
+:header-args: :lexical t
+:END:
+
 **** reminder
 
 This code serves as a reminder; not meant to be tangled.
@@ -253,299 +584,6 @@ This code serves as a reminder; not meant to be tangled.
     "Return a regexp as a group."
     (format "\\(%s\\)" string)
 #+end_src
-
-**** helper
-***** resolve
-****** fn
-
-#+header: :noweb-ref el-module-helper
-#+begin_src emacs-lisp
-  (cl-defun er317/resolve-fn (&key object)
-    "Return function value of OBJECT whether it's a symbol or lambda."
-    (if (symbolp object) (symbol-function object) object))
-#+end_src
-
-#+RESULTS:
-: er317/resolve-fn
-
-****** symb
-
-#+header: :noweb-ref el-module-helper
-#+begin_src emacs-lisp
-  (cl-defun er317/resolve-symb (&key object)
-    "Resolve OBJECT to a symbol based on its form"
-    (cond
-     ((symbolp object) object)
-     ((and (consp object) (eq (car object) 'quote))
-      (cadr object))))
-#+end_src
-
-#+RESULTS:
-: er317/resolve-symb
-
-**** list
-***** plist-merge
-
-#+header: :noweb-ref el-backend
-#+begin_src emacs-lisp
-  (cl-defun er317/plist-merge
-      (&key source target override &allow-other-keys)
-    "Merge SOURCE and TARGET property lists, with SOURCE taking precedence unless OVERRIDE is true."
-    (if override
-        ;; Swap to give TARGET precedence
-        (er317/plist-merge :source target :target source)
-      ;; Else: filter TARGET keys that collide with SOURCE
-      (let* ((__keys (cl-loop for (k _) on source by #'cddr collect k))
-             (__filtered (cl-loop for (k v) on target by #'cddr
-                                  unless (memq k __keys)
-                                  append (list k v))))
-        (append source __filtered))))
-#+end_src
-
-#+RESULTS:
-: er317/plist-merge
-
-#+header: :noweb-ref el-check
-#+begin_src emacs-lisp
-  (er317/plist-merge
-      :source '(:foo 1 :bar 2)
-      :target '(:bar 99 :baz 42)
-      :override t)
-#+end_src
-
-#+RESULTS:
-| :bar | 99 | :baz | 42 | :foo | 1 |
-
-#+begin_src emacs-lisp
-  (er317/plist-put
-   :target-plist '(:foo 1 :bar 2)
-   :source-plist '(:bar 99 :baz 42))
-#+end_src
-
-#+RESULTS:
-| :foo | 1 | :bar | 99 | :baz | 42 |
-
-***** plist-to-alist
-
-#+header: :noweb-ref el-module-list
-#+begin_src emacs-lisp
-  (cl-defun er317/plist-to-alist (&key plist unkeyword &allow-other-keys)
-    "Convert PLIST to an alist.
-      
-    Example:
-    ```
-    (er317/plist-to-alist
-        :plist '(:foo \"x\" :bar \"y\")
-        :unkeyword t)
-    ```"
-    (cl-loop for (k v) on plist by #'cddr
-             collect (cons (if (and unkeyword (keywordp k))
-                               (intern (substring (symbol-name k) 1))
-                             k)
-                           v)))
-#+end_src
-
-#+RESULTS:
-: er317/plist-to-alist
-
-#+header: :noweb-ref el-example
-#+header: :var plist='(:foo "x" :bar "y")
-#+begin_src emacs-lisp
-  (er317/plist-to-alist :plist plist :unkeyword t)
-#+end_src
-
-#+RESULTS:
-: ((foo . x) (bar . y))
-
-***** alist-to-plist
-
-#+header: :noweb-ref el-module-list
-#+begin_src emacs-lisp
-  ;; Convert alist to plist
-  (cl-defun er317/alist-to-plist (&key alist keywordize &allow-other-keys)
-    "Convert ALIST to a plist.
-
-    Example
-    ```
-      (er317/alist-to-plist
-    :alist '((foo . "x") (bar . "y"))
-    :keywordize t)
-    ```"
-    (cl-loop for (k . v) in alist
-             append (list (if (and keywordize (symbolp k) (not (keywordp k)))
-                              (intern (concat ":" (symbol-name k)))
-                            k)
-    			v)))
-#+end_src
-
-#+RESULTS:
-: er317/alist-to-plist
-
-#+header: :noweb-ref el-example
-#+header: :var alist='((foo . "x") (bar . "y"))
-#+begin_src emacs-lisp
-  (er317/alist-to-plist :alist alist :keywordize t)
-#+end_src
-
-#+RESULTS:
-| :foo | x | :bar | y |
-
-***** zip-to-plist
-
-#+header: :noweb-ref el-module-list
-#+begin_src emacs-lisp
-  (cl-defun er317/zip-to-plist
-      (&key key-list value-list
-  	  &allow-other-keys
-  	  &aux
-  	  (__key-len (if (listp key-list) (length key-list)
-  		       (error "key-list is not a list: %S" key-list)
-                         ))
-  	  (__value-len (if (listp value-list) (length value-list)
-  			 (error "value-list is not a list: %S" value-list)
-  			 ))
-  	  (__length-check (unless (= __key-len __value-len)
-  			    (error "Length mismatch: keys (%d) vs values (%d)"
-  				   __key-len __value-len)))
-  	  )
-    (apply #'append
-  	 (cl-mapcar (lambda (k v)
-                        (unless (keywordp k)
-  			(error "Expected keyword: %S" k))
-                        (list k v))
-                      key-list value-list)))
-#+end_src
-
-#+RESULTS:
-: er317/zip-to-plist
-
-#+header: :noweb-ref el-ref-example
-#+header: :var key-list='(:foo :bar)
-#+header: :var value-list='("x" "y")
-#+begin_src emacs-lisp
-  (er317/zip-to-plist
-   :key-list '(:foo :bar)
-   :value-list '("x" "y"))
-#+end_src
-
-#+RESULTS:
-| :foo | x | :bar | y |
-
-***** plist-transpose
-
-#+header: :noweb-ref el-module-list
-#+begin_src emacs-lisp
-  (cl-defun er317/plist-transpose (&key plist)
-    "Transpose a PLIST of keys and list-values into a list of row-wise plists.
-
-  Example:
-  ```
-  (er317/plist-transpose
-      :plist '(:key1 (v1 v2) :key2 (w1 w2)))
-  ```"
-    (let* ((keys (cl-loop for (k _) on plist by #'cddr collect k))
-           (columns (cl-loop for (_ v) on plist by #'cddr collect v))
-           (rows (apply #'cl-mapcar #'list columns)))
-      (mapcar (lambda (vals)
-                (cl-loop for k in keys
-                         for v in vals
-                         nconc (list k v)))
-              rows)))
-#+end_src
-
-#+RESULTS:
-: er317/plist-transpose
-
-#+header: :noweb-ref el-ref-example
-#+begin_src emacs-lisp
-  (let ((input '(:key1 (1 2 3)
-  		     :key2 ("a" "b" "c"))))
-    (er317/plist-transpose :plist input))
-#+end_src
-
-#+RESULTS:
-| :key1 | 1 | :key2 | a |
-| :key1 | 2 | :key2 | b |
-| :key1 | 3 | :key2 | c |
-
-***** list-map-append
-
-#+header: :noweb-ref el-module-list 
-#+begin_src emacs-lisp
-  (cl-defun er317/list-map-append
-      (&key before-list after-list (middle-list-seq (error "*-seq is nil")) &allow-other-keys)
-    "Append BEFORE-LIST and AFTER-LIST to each LIST in MIDDLE-LIST-SEQ
-
-  Example:
-  ```
-  (er317/list-map-append 
-     :middle-list-seq '((:b 2) (:b 3))
-     :before-list '(:a 1)
-     :after-list '(:c 4))
-  ```"
-    (cl-loop for list in middle-list-seq
-             collect (append before-list list after-list)))
-#+end_src
-
-#+RESULTS:
-: er317/list-map-append
-
-#+header: :noweb-ref el-ref-example
-#+header: :results raw replace
-#+begin_src emacs-lisp
-  (er317/list-map-append 
-   :middle-list-seq '((:b 2) (:b 3))
-   :before-list '(:a 1)
-   :after-list '(:c 4))
-#+end_src
-
-#+RESULTS:
-((:a 1 :b 2 :c 4) (:a 1 :b 3 :c 4))
-((:a 1 :b 2 :c 4) (:a 1 :b 3 :c 4))
-nil
-
-***** symb-list-to-plist
-
-#+header: :noweb-ref el-module-list
-#+begin_src emacs-lisp
-  (cl-defun er317/symb-list-to-plist
-      (&key symb-list key-list strip-nil-flag &aux
-        	  (__non-nil-args (cl-remove-if-not #'identity (list symb-list key-list))))
-    "Build a property list from SYMB-LIST or KEY-LIST; each must be quoted.
-
-    If STRIP-NIL-FLAG is non-nil, KV pairs with nil values are omitted.
-
-  Example:
-  ```
-  (er317/symb-list-to-plist
-      :symb-list '(foo bar))
-  ```"
-    (unless (= (length __non-nil-args) 1)
-      (error "Invalid input: symb-list=%S key-list=%S"
-             symb-list key-list))
-
-    (cond
-     (key-list
-      (er317/arg-plist
-       :symb-list
-       (mapcar (lambda (key)
-                 (intern (substring (symbol-name key) 1))) ;; strip leading colon
-               key-list)
-       :strip-nil-flag strip-nil-flag))
-
-     (symb-list
-      (cl-loop for symb in symb-list
-               for key = (intern (format ":%s" symb))
-               for val = (symbol-value symb)
-               ;; Respect strip-nil-flag: if true, omit nils; else include nil values
-               when (or strip-nil-flag val)
-               append (list key val)))
-
-     (t nil)))
-#+end_src
-
-#+RESULTS:
-: er317/symb-list-to-plist
 
 **** fn
 ***** keyword-alist
@@ -593,8 +631,8 @@ nil
 #+header: :noweb-ref el-ref-babel
 #+begin_src emacs-lisp
   (er317/adapt-keyword
-   :source-fn 'org-babel-get-src-block-info
-   :target-fn 'er317/babel-info-as-plist
+   :source-fn org-babel-get-src-block-info
+   :target-symb er317/babel-info-as-plist
    :target-key-list (:no-eval :datum)
    :result-key-list (:lang :body :header-args :switches :name :start :coderef))
 #+end_src
@@ -610,19 +648,19 @@ nil
 #+header: :var name="json-foo"
 #+header: :results raw
 #+begin_src emacs-lisp :wrap src json
-  (let* ((location (org-babel-find-named-block name))
-         (option-list '(:no-eval t)))
-    (save-excursion
-      (goto-char location)
-      (plist-get (apply #'er317/babel-info-as-plist option-list) :body)))
+  (let ((buf (find-file-noselect "./demo.org")))
+    (with-current-buffer buf
+      (let* ((location (org-babel-find-named-block name))
+  	   (option-list '(:no-eval t)))
+        (save-excursion
+  	(goto-char location)
+  	(plist-get (apply #'er317/babel-info-as-plist option-list) :body)))))
 #+end_src
 
 #+RESULTS:
-#+begin_src json
 {
     "key" : "X"
 }
-#+end_src
 
 #+header: :noweb-ref el-ref-babel
 #+begin_src emacs-lisp
@@ -636,29 +674,32 @@ nil
        buffer
        no-eval
        &aux
-       (__arglist `(:at-point ,at-point :buffer ,buffer :datum ,datum :name ,name :no-eval ,no-eval :position ,position))
+       (__arglist (list
+  		 :at-point at-point
+  		 :buffer buffer
+  		 :datum datum
+  		 :name name
+  		 :no-eval no-eval
+  		 :position position))
        (__non-nil-list (cl-remove-if-not #'identity (list at-point datum position name)))
-       (__has-conflict (let ((len (length __non-nil-list)))
-                         (cond
-  			;; setup that way bc < messes () matching
-  			((eq len 0) nil)
-  			((eq len 1) nil)
-                          (error "Conflicting inputs: %S" __non-nil-list))))
+       (__check (let ((len (length __non-nil-list)))
+                  (cond
+  		 ;; setup that way bc < messes () matching
+  		 ((eq len 0) nil)
+  		 ((eq len 1) nil)
+                   (error "Conflicting inputs: %S" __non-nil-list))))
        &allow-other-keys)
-    "Resolve source block's Babel info.
+    "Wrapper around `er317/babel-info-as-plist` that resolves an Org Babel source block.
 
   Keywords:
   - at-point|datum|name|position
   - buffer
   - no-eval
 
-  Implemetation:
-  - Forwards to `(er317/babel-info-as-plist
-       :datum datum
-       :no-eval no-eval)`
-
   Example:
-  `(er317/babel-info-resolve :name \"json-foo\")`"
+  `(er317/babel-info-resolve
+  :buffer (find-file-noselect \"./demo.org\")
+  :name \"json-foo\")`"
     (cond
      ((and buffer (not (eq buffer (current-buffer))))
       (with-current-buffer buffer
@@ -726,11 +767,23 @@ nil
        buffer
        element-parse-option-list
        (babel-info-arglist '(:no-eval t))
-       each-babel-info-key
-       each-func
-       each-arglist
+       ;; each refers to each block
+       babel-info-key
+       mapper-fn
+       &allow-other-keys
        &aux
-       (__arglist (let ((symb-list '(ref-list head-re middle-re tail-re regex buffer element-parse-option-list babel-info-arglist each-babel-info-key each-func each-arglist))) (er317/symb-list-to-plist :symb-list symb-list)))
+       (__symb-list
+        '(ref-list
+  	head-re
+  	middle-re
+  	tail-re
+  	regex
+  	buffer
+  	element-parse-option-list
+  	babel-info-arglist
+  	babel-info-key
+  	mapper-fn))
+       (__arglist (er317/symb-list-to-plist :symb-list __symb-list))
        (__regex-flag
         (cond
          ((and regex (or middle-re ref-list))
@@ -754,37 +807,39 @@ nil
          ((memq __regex-flag '(:middle-re :ref-list))
         	(concat head-re __middle-re tail-re))))
 
-       (__each-func-flag
+       (__mapper-fn-flag
         (cond
-         ((and each-func each-babel-info-key)
-    	(error "Both :each-func and :each-babel-info-key are provided"))
-         (each-func :each-func)
-         (each-babel-info-key :each-babel-info-key)
+         ((and mapper-fn babel-info-key)
+    	(error "Both :mapper-fn and :babel-info-key are provided"))
+         (mapper-fn :mapper-fn)
+         (babel-info-key :babel-info-key)
          (t :identity)))
 
-       (__each-func
+       (__mapper-fn
         (cond
-         ((eq __each-func-flag :each-func) each-func)
-         ((eq __each-func-flag :each-babel-info-key)
-    	(lambda (info-plist) (plist-get info-plist each-babel-info-key)))
-         (t #'identity)))
-       &allow-other-keys)
-    "Filters source block info by matching noweb-ref on REGEX.
+         ((eq __mapper-fn-flag :mapper-fn) mapper-fn)
+         ((eq __mapper-fn-flag :babel-info-key)
+    	(lambda (info-plist) (plist-get info-plist babel-info-key)))
+         (t #'identity))))
+    "Filters source blocks by matching noweb-ref on REGEX; applies MAPPER-FN
 
        Execution flow:
        - RESULT <- '()
        - For each SOURCE-BLOCK in BUFFER
            - INFO-PLIST <- BABEL-INFO to plist
            - When :noweb-ref matches REGEX
-              - VALUE <- (EACH-FUNC INFO-PLIST EACH-ARGLIST)
+              - VALUE <- (MAPPER-FN INFO-PLIST EACH-ARGLIST)
               - RESULT <- (append RESULT (list VALUE))
        - RESULT
+
+  Other keys:           Side-effect
+  - BABEL-INFO-KEY Set MAPPER-FN gets the corresponding key
 
        Example:
        ```
        (er317/noweb-ref-filter
         :regex \"^\\(foo\\|bar\\)$\"
-        :each-babel-info-key :body)
+        :babel-info-key :body)
        ```"
     (cond
      ((and buffer (not (eq buffer (current-buffer))))
@@ -802,7 +857,7 @@ nil
               (ref (when param-pair (cdr param-pair))))
             (progn
               (when (and param-pair (string-match-p __regex ref))
-                (push (apply __each-func info-plist each-arglist) results))))))
+                (push (funcall __mapper-fn info-plist) results))))))
       (nreverse results))))
 #+end_src
 
@@ -826,7 +881,7 @@ nil
   (string-join
    (er317/noweb-ref-filter
     :regex regex
-    :each-babel-info-key :body)
+    :babel-info-key :body)
    "\n")
 #+end_src
 
@@ -854,12 +909,13 @@ EOF
        &aux
        (__filter-arglist-by-iter-unshared
         (unless filter-arglist-by-iter
-   	(er317/plist-transpose :plist filter-arglist-by-key-unshared)))
+   	(er317/zip-plist :plist filter-arglist-by-key-unshared)))
        (__filter-arglist-by-iter
         (or filter-arglist-by-iter
-            (er317/list-map-append
+            (er317/collect-append
              :before-list filter-arglist-shared
-             :middle-list-seq __filter-arglist-by-iter-unshared)))
+             :middle-list-seq __filter-arglist-by-iter-unshared)
+  	  ))
        (__filter-each-babel-info-key (plist-get filter-arglist-shared :each-babel-info-key))
        (__filter-body-flag (eq __filter-each-babel-info-key :body))
        (__combine-func
@@ -1178,59 +1234,10 @@ then promote the rest of the subtree."
      ))
 #+end_src
 
-**** unit-test
-
-#+header: :noweb-ref el-module-ut
-#+header: :noweb yes
-#+begin_src emacs-lisp
-  <<el-capture-warnings>>
-#+end_src
-
-#+header: :noweb-ref el-module-ut
-#+begin_src emacs-lisp
-  ;; Ensure buttercup is installed and loaded
-  ;; 1. Load buttercup using use-package
-  (use-package buttercup
-    :ensure t)
-#+end_src
-
 *** collect
 
 Convention:
 - =<el-module-name>= → =<el-name>= 
-
-**** ut
-
-#+header: :noweb-ref el-ut-module
-#+header: :noweb yes
-#+begin_src emacs-lisp
-  <<el-module-ut>>
-#+end_src
-
-#+RESULTS:
-
-
-#+header: :noweb-ref el-example
-#+begin_src emacs-lisp :lexical t
-    (describe "capture-warnings"
-    	  (it "mocks a warning from display-warning"
-    	      (let ((mock (er317/capture-warnings
-    			       :el-list
-    			       ((display-warning 'my-test "This is a test warning.")))))
-  		(message "Mock warnings: %S" mock)
-    		(expect mock :not :to-be nil))))
-  ;  		(cl-destructuring-bind (type message level buffer-name) (car mock)
-  ;  		  (expect type :to-equal 'my-test)
-  ;  		  (expect message :to-equal "This is a test warning.")))))
-#+end_src
-
-#+header: :noweb-ref el-example
-#+begin_src emacs-lisp
-  (buttercup-run)
-#+end_src
-
-#+RESULTS:
-: t
 
 **** config
 
@@ -1265,7 +1272,7 @@ Convention:
 #+end_src
 
 #+RESULTS:
-: er317/list-map-append
+: er317/collect-append
 
 **** el-fn
 
@@ -1331,7 +1338,7 @@ Where applicable, keep both the name and noweb-ref.
 #+end_src
 
 #+header: :noweb-ref json-baz
-#+begin_src sh
+#+begin_src json
   {
       "file":
       ["John	Doe",
@@ -1418,8 +1425,117 @@ Where applicable, keep both the name and noweb-ref.
   echo "${value}"
 #+end_src
 
+* test-cases
+:PROPERTIES:
+:EXPORT_FILE_NAME: "./org/demo.org"
+:END:
+
+Where applicable, keep both the name and noweb-ref.
+
+#+name: json-foo
+#+header: :noweb-ref json-foo
+#+begin_src json
+  {
+      "key" : "X"
+  }
+#+end_src
+
+#+header: :noweb-ref json-bar
+#+begin_src json
+  {
+      "key" : "Y"
+  }
+#+end_src
+
+#+header: :noweb-ref json-qux
+#+begin_src json
+  [
+      {
+  	"key":"W"
+      },
+      {
+  	"key":"Z"
+      }
+  ]
+#+end_src
+
+#+header: :noweb-ref json-baz
+#+begin_src json
+  {
+      "file":
+      ["John	Doe",
+       "Jane Smith"]
+  }
+#+end_src
+
 * tangle
 ** el
+*** helper
+**** source
+:PROPERTIES:
+:header-args: :tangle "../el/helper.el"
+:header-args+: :emacs-lisp :lexical t
+:END:
+
+#+header: :noweb yes
+#+begin_src emacs-lisp
+  <<el-lexical>>
+  ;; helper.el
+  ;;
+  <<el-license>>
+#+end_src
+
+#+header: :noweb yes
+#+begin_src emacs-lisp
+  <<el-helper>>
+#+end_src
+
+#+header: :tangle no
+#+begin_src emacs-lisp
+  (buttercup-run)
+#+end_src
+
+**** buttercup
+:PROPERTIES:
+:header-args: :tangle "../el/buttercup.el"
+:header-args+: :emacs-lisp :lexical t
+:END:
+
+#+header: :noweb yes
+#+begin_src emacs-lisp
+  <<el-lexical>>
+  ;; buttercup.el
+  ;;
+  <<el-license>>
+#+end_src
+
+#+begin_src emacs-lisp
+  (load-file "./helper.el")
+#+end_src
+
+#+begin_src emacs-lisp
+  (use-package buttercup
+    :ensure t)
+#+end_src
+
+#+header: :tangle no
+#+begin_src emacs-lisp
+  (setq buttercup-suites nil)
+#+end_src
+
+#+header: :noweb yes
+#+begin_src emacs-lisp
+  <<el-buttercup-helper>>
+#+end_src
+
+#+header: :tangle no
+#+begin_src emacs-lisp
+  (buttercup-run)
+#+end_src
+
+#+RESULTS:
+: t
+
 *** noweb
 :PROPERTIES:
 :header-args: :tangle "../el/noweb.el"
@@ -1475,10 +1591,75 @@ Where applicable, keep both the name and noweb-ref.
   <<el-shell>>
 #+end_src
 
-* execute
-** buttercup
-
 * trash
+** warnings
+
+#+header: :noweb-ref el-meta
+#+begin_src emacs-lisp
+  (defmacro er317/capture-warnings (&rest body)
+    "Capture calls to `display-warning` during BODY.
+
+  Temporarily overrides `display-warning` to store each call's arguments
+  (type, message, optional level, optional buffer-name) in a list, which
+  is returned after executing BODY.
+
+  
+  "
+    `(let ((captured-warnings '()))
+       (cl-letf (((symbol-function 'display-warning)
+                  (lambda (type message &optional level buffer-name)
+                    (push (list type message level buffer-name) captured-warnings))))
+         ,@body
+         captured-warnings)))
+#+end_src
+
+#+RESULTS:
+: er317/capture-warnings
+
+#+begin_src emacs-lisp
+  (let ((warnings
+         (cl-labels ((demo-warn ()
+                       (display-warning 'demo "Mock warning.")))
+           (er317/capture-warnings
+            (demo-warn)))))
+    (message "Captured warnings: %S" warnings))
+#+end_src
+
+#+RESULTS:
+: Captured warnings: ((demo "Mock warning." nil nil))
+
+** capture
+
+#+name: el-capture-warnings
+#+header: :noweb-ref el-meta-capture
+#+begin_src emacs-lisp
+  (cl-defmacro er317/capture-warnings (&body body)
+    "Returns calls to `display-warning` while evaluating BODY.
+
+  Example:
+    ```
+  (er317/capture-warnings
+   ((display-warning 'my-test \"This is a test warning.\")))
+  ```"
+    ;;    (unless (listp el-list)
+    ;;    (error (format "%S is not a list" el-list)))
+    `(let ((captured-warnings '()))
+       (cl-letf (((symbol-function 'display-warning)
+                  (lambda (type message &optional level buffer-name)
+                    (push (list type message level buffer-name) captured-warnings))))
+         ,@body
+         captured-warnings)))
+#+end_src
+
+#+RESULTS: el-capture-warnings
+: er317/capture-warnings
+
+#+header: :noweb-ref el-example
+#+begin_src emacs-lisp
+  (er317/capture-warnings
+   ((display-warning 'my-test "This is a test warning.")))
+#+end_src
+
 ** mangle
 
 *** config

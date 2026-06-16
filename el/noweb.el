@@ -53,8 +53,9 @@
           (apply #'er317/noweb-ref-collect
 		 `(:head ,head :ref-list ,ref-list :tail ,tail
 			 ,@(when order `(:order ,order)))))
-    (parsed-list (mapcar parse-fn raw-blocks)))
-  (when (and key-list
+	 (parsed-list (mapcar parse-fn raw-blocks)))
+    (message "DEBUG:keys-list%s" key-list)
+  (when (and key-list 
              (/= (length key-list) (length parsed-list)))
     (error "key-list and parsed-list must be of equal length"))
   (funcall encode-fn
