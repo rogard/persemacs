@@ -443,8 +443,6 @@ Resource:
 
 ***** custom
 
-
-
 #+begin_src emacs-lisp
   (use-package org
 ;;    :straight t
