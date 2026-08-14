@@ -1,0 +1,1162 @@
+#+title: Emacs congifuration
+#+author: Erwann Rogard
+#+property: header-args:emacs-lisp :lexical t
+
+This is a meta file for generating Emacs init file.
+
+Features:
+- Centralized parameters→zero redundancy
+
+Workflow:
+- Jump to [[#parameter][parameter]] and customize
+- Jump to [[#execute][execute]] and follow instructions
+  
+* reusable
+
+These are named blocks referenced elsewhere.
+
+Usage inside:
+1) block headers: ~:var <var>=<name>(<arg>=...)~
+2) org code: ~#+call: <name>(<arg>=...)~
+3) blocks with ~:noweb yes~ in their header: ~<<name>>~
+
+Also see:
+- [[https://orgmode.org/manual/Working-with-Source-Code.html][Working with souce blocks]]
+
+** header
+*** spec
+
+#+name: el-header-spec
+;;; %s --- %s -*- lexical-binding: t; -*-
+;;; Copyright (C) 2024-26 Erwann Rogard
+;;; Released under GPL 3.0
+;;; See https://www.gnu.org/licenses/gpl-3.0.en.html
+;;;
+;;; Commentary:
+;;; - sets up straight
+;;; - delegates to config.el extra.el
+;;;
+;;; Code:
+
+*** generate
+
+#+name: el-header-gen
+#+header: :var name="init-source"
+#+header: :var spec=el-header-spec
+#+begin_src emacs-lisp
+  (let* ((plist (funcall erw1/resolve-entry name))
+         (basename (plist-get plist :basename))
+         (caption (plist-get plist :caption)))
+    (format spec basename caption))
+#+end_src
+
+** datum
+
+Retrieves a block's content.
+
+#+name: el-src-block-datum
+#+header: :var block-name="el-foo"
+#+begin_src emacs-lisp
+  (save-excursion
+    (goto-char
+     (org-babel-find-named-block block-name))
+    (nth 1 (org-babel-get-src-block-info)))
+#+end_src
+
+** resolve-entry
+
+#+name: el-resolve-entry
+#+begin_src emacs-lisp
+  (setq erw1/resolve-entry
+        (lambda (name)
+          (let ((entry (assoc name table)))
+            (unless entry
+              (error "Unknown entry: %S" name))
+            (cl-destructuring-bind (_name dir basename caption) entry
+              (let ((dir (string-remove-suffix "/" dir)))
+                (list
+                 :name _name
+                 :directory dir
+                 :basename basename
+                 :path (expand-file-name basename dir)
+                 :caption caption))))))
+#+end_src
+
+#+RESULTS: el-complete
+: #[(name) ((let ((entry (assoc name table-path))) (cl-destructuring-bind (_name directory basename caption) entry (let ((directory (string-remove-suffix "/" directory))) (list :name _name :directory directory :basename basename :path (expand-file-name basename directory) :caption caption))))) (t)]
+
+#+header: :noweb-ref el-cleanup
+#+begin_src emacs-lisp
+  (eval-after-load init-source
+    (makunbound 'erw1/resolve-entry))
+#+end_src
+
+** footer
+*** spec
+
+#+name: el-footer-spec
+(provide '%s)
+;;; %s ends here
+
+*** gen
+
+#+name: el-footer-gen
+#+header: :var spec=el-footer-spec
+#+begin_src emacs-lisp
+  (let* ((plist (funcall erw1/resolve-entry "init-source"))
+         (basename (plist-get plist :basename)))
+    (format spec basename basename))
+#+end_src
+
+* boostrap
+:PROPERTIES:
+:header-args: :tangle no
+:END:
+
+** parameter
+:PROPERTIES:
+:custom_id: parameter
+:END:
+
+#+name: table-path
+| name        | directory        | file             | caption                 |
+|-------------+------------------+------------------+-------------------------|
+| init-source | "."              | "erw1-init.el"   | Emacs init (source)     |
+| init-target | "~"              | ".emacs"         | Emacs init (target)     |
+| config      | "."              | "erw1-config.el" | Packages' configuration |
+| extra       | "."              | "erw1-extra.el"  | Extra functionality     |
+| link        | "."              | "erw1-link.sh"   | target->source          |
+| org-capture | "~/src/org"      | "capture.org"    | org capture target      |
+| trash       | "~/.local/share" | "Trash"          | Trash                   |
+
+#+begin_src emacs-lisp 
+;;  table =
+;;(("init-source" "." "erw1-init.el" "Emacs init (source)")
+;; ("init-target" "~" ".emacs" "Emacs init (target)")
+;; ("config" "." "erw1-config.el" "Packages' configuration")
+;; ("extra" "." "erw1-extra.el" "Extra functionality")
+;; ("link" "." "erw1-link.sh" "target->source")
+;; ("org-capture" "~/src/org" "capture.org" "org capture target")
+;; ("trash" "~/.local/share" "Trash" "Trash"))
+#+end_src
+
+** execute
+:PROPERTIES:
+:custom_id: execute
+:END:
+
+*** preamble
+
+~ctrl-c ctrl-c~
+#+header: :noweb yes :var table=table-path
+#+begin_src emacs-lisp
+  (progn
+    <<el-resolve-entry>>)
+#+end_src
+
+#+RESULTS:
+: #[(name) ((let ((entry (assoc name table))) (if entry nil (error "Unknown entry: %S" name)) (let* ((--cl-rest-- entry) (_name (if (= (length --cl-rest--) 4) (car-safe (prog1 --cl-rest-- (setq --cl-rest-- (cdr --cl-rest--)))) (signal 'wrong-number-of-arguments (list '(_name dir basename caption) (length --cl-rest--))))) (dir (car-safe (prog1 --cl-rest-- (setq --cl-rest-- (cdr --cl-rest--))))) (basename (car-safe (prog1 --cl-rest-- (setq --cl-rest-- (cdr --cl-rest--))))) (caption (car-safe --cl-rest--))) (let ((dir (string-remove-suffix "/" dir))) (list :name _name :directory dir :basename basename :path (expand-file-name basename dir) :caption caption))))) ((table ("init-source" "." "erw1-init.el" "Emacs init (source)") ("init-target" "~" ".emacs" "Emacs init (target)") ("config" "." "erw1-config.el" "Packages' configuration") ("extra" "." "erw1-extra.el" "Extra functionality") ("link" "." "erw1-link.sh" "target->source") ("org-capture" "~/src/org" "capture.org" "org capture target") ("trash" "~/.local/share" "Trash" "Trash")))]
+
+Test:
+#+header: :results drawer
+#+begin_src emacs-lisp
+  (funcall erw1/resolve-entry "config")
+#+end_src
+
+#+RESULTS:
+:results:
+(:name config :directory . :basename erw1-config.el :path /home/erwann/github/rogard/persemacs/erw1-config.el :caption Packages' configuration)
+:end:
+
+*** by-subtree
+
+Caution:
+- This won't work with a "virgin" installation of Emacs, but it suggests what to do manually.
+
+Instruction:
+- Jump to the buffers listed after executing this block, and follow instructions.
+
+~ctrl-c ctrl-c~
+#+begin_src emacs-lisp
+  (org-ql-search (current-buffer)
+    '(property "exec" "true")
+    :title "Customize Properties")
+#+end_src
+
+*** tangle
+
+~ctrl-c ctrl-c~
+#+begin_src emacs-lisp
+  (org-babel-tangle)
+#+end_src
+
+#+RESULTS:
+| /home/erwann/github/rogard/persemacs/erw1-link.sh | /home/erwann/github/rogard/persemacs/erw1-extra.el | /home/erwann/github/rogard/persemacs/erw1-config.el | /home/erwann/github/rogard/persemacs/erw1-init.el |
+
+*** link
+
+~ctrl-c ctrl-c~
+#+header: :var path=(plist-get (funcall erw1/resolve-entry "link") :path)
+#+begin_src shell
+  chmod +x "$path"
+  $SHELL "$path"
+#+end_src
+
+#+RESULTS:
+: Link created and Emacs verified successfully.
+
+* source
+** el
+*** init
+:PROPERTIES:
+:header-args: emacs-lisp :tangle (plist-get (funcall erw1/resolve-entry "init-source") :path)
+:END:
+
+***** header
+:PROPERTIES:
+:custom_id: init-header
+:exec:     true
+:END:
+
+~ctrl-c ctrl-c~
+#+call: el-header-gen[:results raw :wrap src emacs-lisp](name="init-source")
+
+#+RESULTS:
+#+begin_src emacs-lisp
+;;; erw1-init.el --- Emacs init (source) -*- lexical-binding: t; -*-
+;;; Copyright (C) 2024-26 Erwann Rogard
+;;; Released under GPL 3.0
+;;; See https://www.gnu.org/licenses/gpl-3.0.en.html
+;;;
+;;; Commentary:
+;;; - sets up straight
+;;; - delegates to config.el extra.el
+;;;
+;;; Code:
+#+end_src
+
+***** straight
+
+#+begin_src emacs-lisp
+  ;; https://github.com/radian-software/straight.el?tab=readme-ov-file#getting-started
+  (let ((bootstrap-file
+         (expand-file-name
+          "straight/repos/straight.el/bootstrap.el"
+          (or (bound-and-true-p straight-base-dir)
+              user-emacs-directory)))
+        (bootstrap-version 7))
+    (unless (file-exists-p bootstrap-file)
+      (with-current-buffer
+          (url-retrieve-synchronously
+  	 "https://raw.githubusercontent.com/radian-software/straight.el/develop/install.el"
+  	 'silent 'inhibit-cookies)
+        (goto-char (point-max))
+        (eval-print-last-sexp)))
+    (load bootstrap-file nil 'nomessage))
+#+end_src
+
+#+begin_src emacs-lisp
+  ;; This makes :straight t
+  ;; - redundant in use-package declarations
+  ;; - *except* for non-standard sources
+  (use-package straight
+    :custom
+    (straight-use-package-by-default t))
+#+end_src
+
+#+begin_src emacs-lisp
+  (use-package use-package)
+#+end_src
+
+#+header: :tangle no
+#+begin_src emacs-lisp
+  ;;; legacy comments:
+  ;; https://emacs.stackexchange.com/questions/80853/\
+  ;; installing-a-package-with-straight-fails-with-the-error-use-package-unrecog
+  ;; (straight-use-package-mode 1)
+  ;; (straight-use-package 'org)
+  ;;  (unless (package-installed-p 'use-package)
+  ;;    (package-refresh-contents)
+  ;;    (package-install 'use-package))
+  ;; → removed based on:
+  ;; https://github.com/radian-software/straight.el?tab=readme-ov-file#getting-started
+  ;; (eval-and-compile
+  ;;  (setq use-package-always-ensure t))
+  ;; (setq use-package-always-defer t))
+#+end_src
+
+***** delegate
+
+#+header: :tangle no
+#+begin_src emacs-lisp
+  ;; → renouncing this bc making meta local only
+  ;;(let ((dir-name (file-name-directory
+  ;;		 (or (file-truename load-file-name) buffer-file-name))))
+  ;;(dolist (pair meta-delegate-list)
+  ;;  (let ((source-file (plist-get pair :file))
+  ;;	  (source-lang (plist-get pair :lang)))
+  ;;    (with-current-buffer (find-file-noselect (expand-file-name source-file dir-name))
+  ;;	(message "Visiting buffer %s" (buffer-name))
+  ;;	(let ((target-list (org-babel-tangle nil nil source-lang)))
+  ;;	  (dolist (target-file target-list)
+  ;;	    (load-file target-file)))))))
+#+end_src
+
+#+header: :var config-path=(plist-get (funcall erw1/resolve-entry "config") :path)
+#+header: :var extra-path=(plist-get (funcall erw1/resolve-entry "extra") :path)
+#+header: :noweb yes
+#+begin_src emacs-lisp
+  (let ((dir-name default-directory))
+    (load (expand-file-name config-path dir-name))
+    (load (expand-file-name extra-path dir-name)))
+#+end_src
+
+#+header: :var config-path=(plist-get (funcall erw1/resolve-entry "config") :path)
+#+header: :var extra-path=(plist-get (funcall erw1/resolve-entry "extra") :path)
+#+begin_src emacs-lisp :tangle no
+  (let ((dir-name default-directory))
+    (message "config-path=%S type=%S" config-path (type-of config-path)))
+#+end_src
+
+#+RESULTS:
+: config-path="/home/erwann/github/rogard/persemacs/erw1-config.el" type=string
+
+***** cleanup
+
+#+header: :noweb yes
+#+header: :var init-source=(plist-get (funcall erw1/resolve-entry "init-source") :path)
+#+begin_src emacs-lisp
+  <<el-cleanup>>
+#+end_src
+
+***** footer
+:PROPERTIES:
+:custom_id: init-footer
+:exec:     true
+:END:
+
+~ctrl-c ctrl-c~
+#+call: el-footer-gen[:results raw :wrap src emacs-lisp]()
+
+#+RESULTS:
+#+begin_src emacs-lisp
+(provide 'erw1-init.el)
+;;; erw1-init.el ends here
+#+end_src
+
+*** config
+:PROPERTIES:
+:header-args: emacs-lisp :tangle (plist-get (funcall erw1/resolve-entry "config") :path)
+:END:
+
+**** header
+:PROPERTIES:
+:exec:     true
+:END:
+
+~ctrl-c ctrl-c~
+#+call: el-header-gen[:results raw :wrap src emacs-lisp](name="config")
+
+#+RESULTS:
+#+begin_src emacs-lisp
+  ;; erw1-config.el --- Packages' configuration -*- lexical-binding: t; -*-
+  ;; Copyright (C) 2024—2026 — Erwann Rogard
+  ;; Released under GPL 3.0
+  ;; See https://www.gnu.org/licenses/gpl-3.0.en.html
+#+end_src
+
+#+begin_src emacs-lisp
+  ;;; Commentary:
+  ;; Initially adapted from:
+  ;; - https://github.com/ianyepan/yay-evil-emacs
+  ;;; Code:
+#+end_src
+
+**** package
+***** auctex
+
+#+begin_src emacs-lisp
+  ;; ── auctex ───────────────────────────────────────────────────────────────────
+#+end_src
+
+#+header: :noweb-ref el-config
+#+begin_src emacs-lisp
+  ;; https://emacs.stackexchange.com/a/81504/41724
+  (use-package auctex)
+#+end_src
+
+***** citar
+
+#+begin_src emacs-lisp
+  ;; ── citar ────────────────────────────────────────────────────────────────────
+#+end_src
+
+#+header: :noweb-ref el-config
+#+begin_src emacs-lisp
+  (use-package citar
+    ;; :no-require
+    :after (org bibtex)
+    :custom
+    (org-cite-global-bibliography '("~/src/bib/academ.bib"))
+    (org-cite-insert-processor 'citar)
+    (org-cite-follow-processor 'citar)
+    (org-cite-activate-processor 'citar)
+    (citar-bibliography org-cite-global-bibliography)
+    (citar-notes-paths '("~/src/org/")))
+  ;; optional: org-cite-insert is also bound to C-c C-x C-@
+  ;;    :bind
+  ;;    (:map org-mode-map :package org ("C-c b" . #'org-cite-insert)))
+#+end_src
+
+***** corfu
+
+#+begin_src emacs-lisp
+  ;; ── corfu ────────────────────────────────────────────────────────────────────
+#+end_src
+
+Reference:
+- https://github.com/minad/corfu
+
+#+header: :noweb-ref el-config
+#+begin_src emacs-lisp
+  (use-package corfu
+    :init
+    (global-corfu-mode)
+    (corfu-popupinfo-mode +1)
+    
+    :custom
+    (corfu-auto t)
+    (corfu-quit-at-boundary 'separator)
+    (corfu-quit-no-match 'separator)
+    (corfu-scroll-margin 0)
+    (corfu-separator ?\s)
+    (corfu-popupinfo-delay '(0.5 . 0.2)))
+#+end_src
+
+#+header: :noweb-ref el-config
+#+begin_src emacs-lisp
+  (use-package emacs ; pseudo package
+    :init
+    (column-number-mode 1)
+    :custom
+    (tab-always-indent 'complete)
+    (text-mode-ispell-word-completion nil)
+    (read-extended-command-predicate
+     #'command-completion-default-include-p))
+#+end_src
+
+#+header: :noweb-ref el-config
+#+begin_src emacs-lisp
+  (use-package emacs
+    :init
+    ;; CRM indicator for completing-read-multiple
+    (defun crm-indicator (args)
+      (cons (format "[CRM%s] %s"
+                    (replace-regexp-in-string
+                     "\\`\\[.*?]\\*\\|\\[.*?]\\*\\'" ""
+                     crm-separator)
+                    (car args))
+            (cdr args)))
+
+    (advice-add #'completing-read-multiple
+                :filter-args
+                #'crm-indicator)
+
+    (add-hook 'minibuffer-setup-hook #'cursor-intangible-mode)
+
+    :custom
+    (minibuffer-prompt-properties
+     '(read-only t cursor-intangible t face minibuffer-prompt))
+
+    (enable-recursive-minibuffers t)
+    (read-extended-command-predicate
+     #'command-completion-default-include-p))
+#+end_src
+
+***** dash
+
+#+begin_src emacs-lisp
+  ;; ── dash ─────────────────────────────────────────────────────────────────────
+#+end_src
+
+#+header: :noweb-ref el-config
+#+begin_src emacs-lisp
+  (use-package dash
+    :disabled)
+#+end_src
+
+***** dashboard
+
+#+begin_src emacs-lisp
+  ;; ── dashboard ────────────────────────────────────────────────────────────────
+#+end_src
+
+
+#+begin_src emacs-lisp
+  (use-package dashboard
+    :init
+    (dashboard-setup-startup-hook)
+
+    :custom
+    (dashboard-startup-banner 'logo)
+    (dashboard-banner-logo-title "Misterwann!")
+    (dashboard-items nil)
+    (dashboard-set-footer nil))
+#+end_src
+
+***** doomemacs
+
+#+begin_src emacs-lisp
+  ;; ── doomemacs ────────────────────────────────────────────────────────────────
+#+end_src
+
+
+#+begin_src emacs-lisp
+  (use-package doom-themes
+    :init
+    (load-theme 'doom-wilmersdorf t)
+
+    :custom
+    (doom-themes-enable-bold t)
+    (doom-themes-enable-italic t)
+    (doom-themes-treemacs-theme "doom-atom")
+
+    :config
+    (doom-themes-visual-bell-config)
+    (doom-themes-neotree-config)
+    (doom-themes-treemacs-config)
+    (doom-themes-org-config)
+
+    (set-face-background 'show-paren-match "yellow")
+    (set-face-foreground 'show-paren-match "black"))
+#+end_src
+
+***** ekg
+
+#+begin_src emacs-lisp
+  ;; ── ekg ──────────────────────────────────────────────────────────────────────
+#+end_src
+
+#+begin_src emacs-lisp
+  (use-package ekg
+    :disabled)
+#+end_src
+
+***** emacs
+
+#+begin_src emacs-lisp
+  ;; ── emacs ────────────────────────────────────────────────────────────────────
+#+end_src
+
+#+header: :var trash-path=(plist-get (funcall erw1/resolve-entry "trash") :path)
+#+begin_src emacs-lisp
+  ;; :init
+  ;; → made irrelevant by straight
+  ;; (setq package-quickstart t)
+  (use-package emacs
+    :custom
+    (inhibit-startup-screen t)
+    (ring-bell-function #'ignore)
+    (frame-resize-pixelwise t)
+
+    (scroll-margin 0)
+    (scroll-conservatively 101) ; >100 avoids recentering
+    (scroll-preserve-screen-position t)
+    (auto-window-vscroll nil)
+
+    (confirm-kill-processes nil)
+    (create-lockfiles nil)      ; avoids .# files (can break npm workflows)
+    (make-backup-files nil)
+    (trash-directory trash-path) ; trash-path defined in foonote
+
+    :config
+    (setq frame-title-format '("Misterwann")
+  	default-directory "~/")
+
+    (set-face-attribute 'default nil :height 180)
+
+    (tool-bar-mode -1)
+    (menu-bar-mode -1)
+    (scroll-bar-mode -1))
+#+end_src
+
+***** flymake
+
+#+begin_src emacs-lisp
+  ;; ── flymake ──────────────────────────────────────────────────────────────────
+#+end_src
+
+Reference:
+- [[https://github.com/federicotdn/flymake-shellcheck][flymate-shellcheck]]
+
+#+header: :noweb-ref el-config
+#+begin_src emacs-lisp
+  (use-package flymake-shellcheck
+    :disabled ; lsp overlap
+    ;; :hook (sh-mode . flymake-shellcheck-load))
+    )
+#+end_src
+
+***** flycheck
+
+#+header: :noweb-ref el-config
+#+begin_src emacs-lisp
+  ;;; M-x flycheck-select-checker
+  (use-package flycheck
+  :init (global-flycheck-mode))
+#+end_src
+
+***** lsp-mode
+:LOGBOOK:
+- Note taken on [2024-06-20 Thu 15:25] \\
+  Inside =debug.sh=, =Flymake= ensures that when a token is selected, the corresponding doc appears.
+- Note taken on [2024-06-20 Thu 15:23] \\
+  Inside =debug.sh=
+
+  #+begin_quote
+  Minor modes enabled in this buffer: Auto-Save Corfu Eldoc Font-Lock
+  Lsp-Completion Lsp-Diagnostics Lsp-Headerline-Breadcrumb Lsp-Managed
+  Lsp Lsp-Modeline-Code-Actions Lsp-Modeline-Diagnostics
+  Lsp-Modeline-Workspace-Status Lsp-Ui Lsp-Ui-Sideline
+
+  The major mode is Shell-script mode defined in sh-script.el:
+
+  Major mode for editing shell scripts.
+  #+end_quote
+:END:
+
+#+begin_src emacs-lisp
+  ;; ── lsp-mode ─────────────────────────────────────────────────────────────────
+#+end_src
+
+#+begin_src emacs-lisp
+    (use-package lsp-mode
+      :commands (lsp lsp-deferred)
+      :hook ((python-mode . lsp-deferred)
+             (sh-mode . lsp-deferred))
+      :custom
+      (lsp-auto-guess-root t)
+      (lsp-enable-snippet nil)
+      (lsp-diagnostics-provider :auto))
+    
+    (use-package lsp-pyright
+      :after lsp-mode)
+
+    (use-package lsp-ui
+      :commands lsp-ui-mode
+      :custom
+      (lsp-ui-doc-enable t)
+      (lsp-ui-doc-header t)
+      (lsp-ui-doc-include-signature t)
+      (lsp-ui-doc-border (face-foreground 'default))
+      (lsp-ui-sideline-show-code-actions t)
+      (lsp-ui-sideline-delay 0.2))
+#+end_src
+
+***** pipenv
+
+#+begin_src emacs-lisp
+  (use-package pipenv
+  :hook (python-mode . pipenv-mode))
+#+end_src
+
+***** elisp
+
+#+begin_src emacs-lisp
+  ;; ── elisp ────────────────────────────────────────────────────────────────────
+#+end_src
+
+#+begin_src emacs-lisp
+  ;; Core Emacs Lisp editing enhancements
+  (use-package emacs ; pseudo package
+    :hook
+    ((emacs-lisp-mode . eldoc-mode)
+     (emacs-lisp-mode . flymake-mode)))
+#+end_src
+
+
+#+begin_src emacs-lisp 
+  ;; Better navigation to definitions
+  (use-package elisp-def
+    :hook (emacs-lisp-mode . elisp-def-mode))
+#+end_src
+
+
+#+begin_src emacs-lisp 
+  ;; Macro debugging helpers
+  (use-package macrostep
+    :commands macrostep-expand)
+
+  ;; Built-in debugging helpers (kept for reference)
+  ;; M-x toggle-debug-on-error
+  ;; M-x edebug-defun
+#+end_src
+
+***** markdown
+
+#+begin_src emacs-lisp
+  ;; ── markdown ─────────────────────────────────────────────────────────────────
+#+end_src
+
+
+#+begin_src emacs-lisp
+  (use-package markdown-mode
+    :hook (markdown-mode . visual-line-mode))
+#+end_src
+
+
+#+begin_src emacs-lisp
+  (use-package web-mode
+    :mode (("\\.html?\\'" . web-mode)
+           ("\\.css\\'"   . web-mode)
+           ("\\.jsx?\\'"  . web-mode)
+           ("\\.tsx?\\'"  . web-mode)
+           ("\\.json\\'"  . web-mode))
+
+    :custom
+    (web-mode-markup-indent-offset 2)  ; HTML
+    (web-mode-css-indent-offset 2)     ; CSS
+    (web-mode-code-indent-offset 2)    ; JS/JSX/TS/TSX
+    (web-mode-content-types-alist
+     '(("jsx" . "\\.js[x]?\\'"))))
+#+end_src
+
+***** org
+
+#+begin_src emacs-lisp
+  ;; ── org ──────────────────────────────────────────────────────────────────────
+#+end_src
+
+#+name: org-cap-tpl
+#+header: :tangle no
+#+begin_src org
+  ,* %^{heading}
+  :PROPERTIES:
+  :created_on: %^T
+  :uname:    %(eval (concat (getenv "OWNER") "@" (system-name)))
+  :END:
+#+end_src
+
+#+header: :var target-path=(plist-get (funcall erw1/resolve-entry "org-capture") :path)
+#+header: :var template=el-src-block-datum("org-cap-tpl")
+#+begin_src emacs-lisp
+  (use-package org
+    :init ; don't change to :custom
+    (setq org-capture-templates
+          `(("c" "Core" entry
+             (file+headline ,target-path "Inbox")
+             ,template)))
+    (setq org-agenda-files (list target-path)))
+#+end_src
+
+#+begin_src emacs-lisp
+  (use-package org
+    :custom
+    (org-read-date-force-compatible-dates nil) ; extends calendar
+    (org-log-into-drawer t)
+    (org-fold-core-style 'overlays) ; https://lists.nongnu.org/archive/html/emacs-orgmode/2024-04/msg00497.html
+    (tex-fontify-script nil)
+    :hook ((org-mode . visual-line-mode)
+           (org-mode . org-indent-mode)))
+#+end_src
+
+***** babel
+
+#+begin_src emacs-lisp
+  ;; ── babel ────────────────────────────────────────────────────────────────────
+#+end_src
+
+#+begin_src emacs-lisp
+  (use-package ob-json
+    :straight
+    (:host github :repo "sgpthomas/ob-json" :files ("ob-json.el"))
+    :after org)
+#+end_src
+
+#+begin_src emacs-lisp
+  (use-package ob-yaml
+    :straight
+    (:host github :repo "llhotka/ob-yaml" :files ("ob-yaml.el"))
+    :after org)
+#+end_src
+
+#+begin_src emacs-lisp
+  (use-package org
+    :config
+    (org-babel-do-load-languages
+     'org-babel-load-languages
+     '((emacs-lisp . t)
+       (latex . t)
+       (org . t)
+       (java . t)
+       (python . t)
+       (shell . t)
+       (lua . t)
+       (yaml . t)
+       (json . t)
+       )))
+#+end_src
+
+***** ql
+
+#+begin_src emacs-lisp
+  ;; ── ql ───────────────────────────────────────────────────────────────────────
+#+end_src
+
+#+begin_src emacs-lisp
+  (use-package org-ql
+    :straight (:host github :repo "alphapapa/org-ql"))
+#+end_src
+
+***** vertico
+
+#+begin_src emacs-lisp
+  ;; ── vertico ──────────────────────────────────────────────────────────────────
+#+end_src
+
+Reference:
+- https://github.com/minad/vertico
+
+#+begin_src emacs-lisp
+  ;; Enable vertico
+  (use-package vertico
+    :init
+    (vertico-mode)
+
+    ;; Different scroll margin
+    ;; (setq vertico-scroll-margin 0)
+
+    ;; Show more candidates
+    ;; (setq vertico-count 20)
+
+    ;; Grow and shrink the Vertico minibuffer
+    ;; (setq vertico-resize t)
+
+    ;; Optionally enable cycling for `vertico-next' and `vertico-previous'.
+    ;; (setq vertico-cycle t)
+    )
+#+end_src
+
+
+#+begin_src emacs-lisp
+  ;; Persist history over Emacs restarts. Vertico sorts by history position.
+  (use-package savehist
+    ;;    :straight t
+    :init
+    (savehist-mode))
+#+end_src
+
+***** web-mode
+
+#+begin_src emacs-lisp
+  ;; ── web-mode ─────────────────────────────────────────────────────────────────
+#+end_src
+
+#+begin_src emacs-lisp
+  (use-package web-mode
+    ;;    :straight t
+    :mode (("\\.html?\\'" . web-mode)
+           ("\\.css\\'"   . web-mode)
+           ("\\.jsx?\\'"  . web-mode)
+           ("\\.tsx?\\'"  . web-mode)
+           ("\\.json\\'"  . web-mode))
+    :config
+    (setq web-mode-markup-indent-offset 2) ; HTML
+    (setq web-mode-css-indent-offset 2)    ; CSS
+    (setq web-mode-code-indent-offset 2)   ; JS/JSX/TS/TSX
+    (setq web-mode-content-types-alist '(("jsx" . "\\.js[x]?\\'"))))
+#+end_src
+
+***** wolfram
+
+#+begin_src emacs-lisp
+  ;; ── wolfram ──────────────────────────────────────────────────────────────────
+#+end_src
+
+Resource:
+- https://github.com/tririver/ob-mathematica/
+- https://rgoswami.me/posts/org-mathematica/
+- https://emacs.stackexchange.com/a/75819
+- https://github.com/kawabata/wolfram-mode/tree/be680190cac6ccf579dbce107deaae495928d1b3
+
+#+begin_src emacs-lisp
+  (use-package ob-mathematica
+    :disabled
+    :straight (:host github :repo "tririver/ob-mathematica")
+    :after org)
+#+end_src
+
+#+begin_src emacs-lisp
+  (use-package wolfram-mode
+    :disabled
+    :mode (("\\.m\\'" . wolfram-mode)
+  	 ("\\.nb\\'" . wolfram-mode))
+
+    :custom
+    (wolfram-program
+     "/usr/local/Wolfram/WolframEngine/14.0/SystemFiles/Kernel/Binaries/Linux-x86-64/WolframKernel")
+
+    :config
+    (require 'ob-mathematica))
+  (use-package wolfram-mode
+    :disabled
+    ;; :commands (wolfram-mode run-wolfram) ;; Uncomment if needed
+    :mode (("\\.m\\'" . wolfram-mode)
+           ("\\.nb\\'" . wolfram-mode))
+    :init
+    (setq wolfram-program "/usr/local/Wolfram/WolframEngine/14.0/SystemFiles/Kernel/Binaries/Linux-x86-64/WolframKernel")
+    ;; Uncomment and adjust the following line if you need to set wolfram-path
+    ;; (setq wolfram-path "/Owners/yourownername/Library/WolframEngine/12.3/Applications")
+    :config
+    (require 'ob-mathematica "/home/erwann/github/ob-mathematica/ob-mathematica.el"))
+#+end_src
+
+**** footer
+*** extra
+:PROPERTIES:
+:header-args: emacs-lisp :tangle (plist-get (funcall erw1/resolve-entry "extra") :path)
+:END:
+
+**** header
+:PROPERTIES:
+:exec:     true
+:END:
+
+~ctrl-c ctrl-c~
+#+call: el-header-gen[:results raw :wrap src emacs-lisp](name="extra")
+
+#+RESULTS:
+#+begin_src emacs-lisp
+  ;; erw1-extra.el --- Extra functionality -*- lexical-binding: t; -*-
+  ;; Copyright (C) 2024—2026 — Erwann Rogard
+  ;; Released under GPL 3.0
+  ;; See https://www.gnu.org/licenses/gpl-3.0.en.html
+#+end_src
+
+#+begin_src emacs-lisp
+  ;;; Commentary:
+  ;;; Code:
+#+end_src
+
+**** banner
+
+#+begin_src emacs-lisp
+  (defun erw1/code-banner (title comment-symb &optional depth)
+    "Insert a 80-character banner: COMMENT-SYMB TITLE and continued with a line.
+
+  DEPTH:
+  0 = top-level
+  1 = major section
+  2 = subsection
+  3 = ordinary note"
+
+    (interactive
+     (list
+      (read-string "Title: ")
+      (read-string "Comment-Symb: " "%")
+      (read-number "Depth (0-3): " 3)))
+
+    (let* ((depth (max 0 (min 3 (or depth 3))))
+           (char (pcase depth
+                   (0 ?█)
+                   (1 ?▬)
+                   (2 ?═)
+                   (_ ?─)))
+           (title (if (= depth 0)
+                     (upcase title)
+                   title))
+           (prefix (format "%s %c%c " comment-symb char char))
+           (content (concat title " "))
+           (total-width 80)
+           (fill (max 0
+                      (- total-width
+                         (length prefix)
+                         (length content))))
+           (line (concat prefix
+                         content
+                         (make-string fill char))))
+      (insert line "\n")))
+#+end_src
+
+#+RESULTS:
+: erw1/code-banner
+**** custom-id
+
+#+begin_src emacs-lisp
+  ;; Operations on custom id's set as follows:
+  ;; `M-x org-set-property-and-value RET custom_id:ID`
+#+end_src
+
+#+begin_src emacs-lisp :tangle no
+  (save-excursion
+     (goto-char (point-min))
+     (org-find-property "CUSTOM_ID" "parameter"))
+#+end_src
+
+#+RESULTS:
+: 1592
+
+***** precedes-p
+
+#+header: :noweb-ref el-org-dependency  :tangle no
+#+begin_src emacs-lisp
+  (cl-defun erw1/org-custom-id-precedes-p (before-cid after-cid)
+    "Returns t is position BEFORE-CID before that of AFTER-CID in the current buffer."
+    (let ((before-pos (erw1/org-custom-id->position before-cid))
+          (after-pos (erw1/org-custom-id->position after-cid)))
+      (and before-pos
+           after-pos
+           (< before-pos after-pos))))
+#+end_src
+
+#+RESULTS:
+: erw1/org-custom-id-precedes-p
+
+***** current
+
+#+header: :noweb-ref el-org-dependency :tangle no
+#+begin_src emacs-lisp
+  (defun erw1/org-custom-id-current ()
+    "Returns the custom id of the current subtree."
+    (org-with-point-at (point)
+      (org-back-to-heading t)
+      (org-entry-get (point) "CUSTOM_ID")))
+#+end_src
+
+#+header: :tangle no
+#+begin_src emacs-lisp
+  (erw1/org-custom-id-current)
+#+end_src
+
+#+RESULTS:
+: el-dependency
+
+***** format-item
+
+#+header: :noweb-ref el-org-dependency
+#+begin_src emacs-lisp
+  (cl-defun erw1/org-dependency--format-item
+      (curr-cid dep-cid
+                &key
+                (fmt "%f [[#%d][%l]]")
+                (true "✅")
+                (false "❎")
+                (precedes (erw1/org-custom-id-precedes-p dep-cid curr-cid))
+                (flag (if precedes true false))
+  	      (spec `((?f . ,flag)
+  		      (?d . ,dep-cid)
+  		      (?l . ,dep-cid))))
+    (format-spec fmt spec))
+#+end_src
+
+#+RESULTS:
+: erw1/org-dependency--format-item
+
+***** REPL
+
+#+header: :tangle no :results drawer
+#+begin_src emacs-lisp
+  (erw1/org-dependency--format-item "bar" "foo")
+#+end_src
+
+#+RESULTS:
+:results:
+✅ [[#foo][foo]]
+:end:
+
+#+header: :noweb yes
+#+begin_src emacs-lisp
+  <<el-org-dependency>>
+#+end_src
+
+#+name: org-dependency
+#+header: :var curr-cid=(erw1/org-custom-id-current)
+#+header: :var dep-cid-list='()
+#+header: :tangle no :results drawer
+#+begin_src emacs-lisp
+  (let* ((items (mapcar (lambda (dep-cid)
+                           (erw1/org-dependency--format-item curr-cid dep-cid))
+                         dep-cid-list))
+         (item-block (if items
+                          (concat " - " (string-join items "\n - "))
+                        "(none)")))
+    (concat
+     "Info about this node:\n"
+     (format "- current id: [[#%s][%s]]\n" curr-cid curr-cid)
+     "- dependencies id: \n"
+     item-block
+     "\n\n---\n"
+     "legend: ✅/❎ = comes before/after current node"))
+#+end_src
+
+#+call: org-dependency(dep-cid-list='("foo" "bar"))
+
+#+RESULTS:
+:results:
+Info about this node:
+- current id: [[#el-dependency][el-dependency]]
+- dependencies id: 
+ - ✅ [[#foo][foo]]
+ - ✅ [[#bar][bar]]
+
+---
+legend: ✅/❎ = comes before/after current node
+:end:
+
+**** footer
+** sh
+*** link
+:PROPERTIES:
+:header-args: emacs-lisp :tangle (plist-get (funcall erw1/resolve-entry "link") :path)
+:END:
+
+#+begin_src shell
+  #!/usr/bin/env bash
+#+end_src
+
+#+header: :noweb-ref sh-link :tangle no
+#+begin_src shell
+  if [[ -f "${su_path}" ]]; then      
+      cp "${su_path}" "${su_path}.bak" || {
+          echo "Failed to create backup of ${su_path}"; exit 1;
+      }
+  fi
+#+end_src
+
+#+header: :noweb-ref sh-link :tangle no
+#+begin_src shell
+  if [[ ! -f "${vc_path}" ]]; then
+      echo "Init file ${vc_path} not found"; exit 1;
+  fi
+#+end_src
+
+#+header: :noweb-ref sh-link :tangle no
+#+begin_src shell
+  ln -sf "${vc_path}" "${su_path}" || {
+      echo "Failed to create link"; exit 1;
+  }
+#+end_src
+
+#+header: :noweb-ref sh-link :tangle no
+#+begin_src shell
+  emacs --batch --eval "(kill-emacs)" || {
+      echo "Failed to launch Emacs with the new link"; exit 1;
+  }
+#+end_src
+
+#+header: :noweb-ref sh-link :tangle no
+#+begin_src shell
+  echo "Link created and Emacs verified successfully."
+#+end_src
+
+#+header: :noweb yes
+#+header: :var vc_path=(plist-get (funcall erw1/resolve-entry "init-source") :path)
+#+header: :var su_path=(plist-get (funcall erw1/resolve-entry "init-target") :path)
+#+begin_src shell
+  <<sh-link>>
+#+end_src
+
+* legacy
+:PROPERTIES:
+:header-args: :tangle no
+:END:
