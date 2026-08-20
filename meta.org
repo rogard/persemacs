@@ -44,7 +44,7 @@ Also see:
 #+header: :var name="init-source"
 #+header: :var spec=el-header-spec
 #+begin_src emacs-lisp
-  (let* ((plist (funcall erw1/resolve-entry name))
+  (let* ((plist (funcall er317/resolve-entry name))
          (basename (plist-get plist :basename))
          (caption (plist-get plist :caption)))
     (format spec basename caption))
@@ -67,7 +67,7 @@ Retrieves a block's content.
 
 #+name: el-resolve-entry
 #+begin_src emacs-lisp
-  (setq erw1/resolve-entry
+  (setq er317/resolve-entry
         (lambda (name)
           (let ((entry (assoc name table)))
             (unless entry
@@ -88,7 +88,7 @@ Retrieves a block's content.
 #+header: :noweb-ref el-cleanup
 #+begin_src emacs-lisp
   (eval-after-load init-source
-    (makunbound 'erw1/resolve-entry))
+    (makunbound 'er317/resolve-entry))
 #+end_src
 
 ** footer
@@ -103,7 +103,7 @@ Retrieves a block's content.
 #+name: el-footer-gen
 #+header: :var spec=el-footer-spec
 #+begin_src emacs-lisp
-  (let* ((plist (funcall erw1/resolve-entry "init-source"))
+  (let* ((plist (funcall er317/resolve-entry "init-source"))
          (basename (plist-get plist :basename)))
     (format spec basename basename))
 #+end_src
@@ -121,21 +121,21 @@ Retrieves a block's content.
 #+name: table-path
 | name        | directory        | file             | caption                 |
 |-------------+------------------+------------------+-------------------------|
-| init-source | "."              | "erw1-init.el"   | Emacs init (source)     |
+| init-source | "."              | "er317-init.el"   | Emacs init (source)     |
 | init-target | "~"              | ".emacs"         | Emacs init (target)     |
-| config      | "."              | "erw1-config.el" | Packages' configuration |
-| extra       | "."              | "erw1-extra.el"  | Extra functionality     |
-| link        | "."              | "erw1-link.sh"   | target->source          |
+| config      | "."              | "er317-config.el" | Packages' configuration |
+| extra       | "."              | "er317-extra.el"  | Extra functionality     |
+| link        | "."              | "er317-link.sh"   | target->source          |
 | org-capture | "~/src/org"      | "capture.org"    | org capture target      |
 | trash       | "~/.local/share" | "Trash"          | Trash                   |
 
 #+begin_src emacs-lisp 
 ;;  table =
-;;(("init-source" "." "erw1-init.el" "Emacs init (source)")
+;;(("init-source" "." "er317-init.el" "Emacs init (source)")
 ;; ("init-target" "~" ".emacs" "Emacs init (target)")
-;; ("config" "." "erw1-config.el" "Packages' configuration")
-;; ("extra" "." "erw1-extra.el" "Extra functionality")
-;; ("link" "." "erw1-link.sh" "target->source")
+;; ("config" "." "er317-config.el" "Packages' configuration")
+;; ("extra" "." "er317-extra.el" "Extra functionality")
+;; ("link" "." "er317-link.sh" "target->source")
 ;; ("org-capture" "~/src/org" "capture.org" "org capture target")
 ;; ("trash" "~/.local/share" "Trash" "Trash"))
 #+end_src
@@ -155,17 +155,17 @@ Retrieves a block's content.
 #+end_src
 
 #+RESULTS:
-: #[(name) ((let ((entry (assoc name table))) (if entry nil (error "Unknown entry: %S" name)) (let* ((--cl-rest-- entry) (_name (if (= (length --cl-rest--) 4) (car-safe (prog1 --cl-rest-- (setq --cl-rest-- (cdr --cl-rest--)))) (signal 'wrong-number-of-arguments (list '(_name dir basename caption) (length --cl-rest--))))) (dir (car-safe (prog1 --cl-rest-- (setq --cl-rest-- (cdr --cl-rest--))))) (basename (car-safe (prog1 --cl-rest-- (setq --cl-rest-- (cdr --cl-rest--))))) (caption (car-safe --cl-rest--))) (let ((dir (string-remove-suffix "/" dir))) (list :name _name :directory dir :basename basename :path (expand-file-name basename dir) :caption caption))))) ((table ("init-source" "." "erw1-init.el" "Emacs init (source)") ("init-target" "~" ".emacs" "Emacs init (target)") ("config" "." "erw1-config.el" "Packages' configuration") ("extra" "." "erw1-extra.el" "Extra functionality") ("link" "." "erw1-link.sh" "target->source") ("org-capture" "~/src/org" "capture.org" "org capture target") ("trash" "~/.local/share" "Trash" "Trash")))]
+: #[(name) ((let ((entry (assoc name table))) (if entry nil (error "Unknown entry: %S" name)) (let* ((--cl-rest-- entry) (_name (if (= (length --cl-rest--) 4) (car-safe (prog1 --cl-rest-- (setq --cl-rest-- (cdr --cl-rest--)))) (signal 'wrong-number-of-arguments (list '(_name dir basename caption) (length --cl-rest--))))) (dir (car-safe (prog1 --cl-rest-- (setq --cl-rest-- (cdr --cl-rest--))))) (basename (car-safe (prog1 --cl-rest-- (setq --cl-rest-- (cdr --cl-rest--))))) (caption (car-safe --cl-rest--))) (let ((dir (string-remove-suffix "/" dir))) (list :name _name :directory dir :basename basename :path (expand-file-name basename dir) :caption caption))))) ((table ("init-source" "." "er317-init.el" "Emacs init (source)") ("init-target" "~" ".emacs" "Emacs init (target)") ("config" "." "er317-config.el" "Packages' configuration") ("extra" "." "er317-extra.el" "Extra functionality") ("link" "." "er317-link.sh" "target->source") ("org-capture" "~/src/org" "capture.org" "org capture target") ("trash" "~/.local/share" "Trash" "Trash")))]
 
 Test:
 #+header: :results drawer
 #+begin_src emacs-lisp
-  (funcall erw1/resolve-entry "config")
+  (funcall er317/resolve-entry "config")
 #+end_src
 
 #+RESULTS:
 :results:
-(:name config :directory . :basename erw1-config.el :path /home/erwann/github/rogard/persemacs/erw1-config.el :caption Packages' configuration)
+(:name config :directory . :basename er317-config.el :path /home/erwann/github/rogard/persemacs/er317-config.el :caption Packages' configuration)
 :end:
 
 *** by-subtree
@@ -191,12 +191,12 @@ Instruction:
 #+end_src
 
 #+RESULTS:
-| /home/erwann/github/rogard/persemacs/erw1-link.sh | /home/erwann/github/rogard/persemacs/erw1-extra.el | /home/erwann/github/rogard/persemacs/erw1-config.el | /home/erwann/github/rogard/persemacs/erw1-init.el |
+| /home/erwann/github/rogard/persemacs/er317-link.sh | /home/erwann/github/rogard/persemacs/er317-extra.el | /home/erwann/github/rogard/persemacs/er317-config.el | /home/erwann/github/rogard/persemacs/er317-init.el |
 
 *** link
 
 ~ctrl-c ctrl-c~
-#+header: :var path=(plist-get (funcall erw1/resolve-entry "link") :path)
+#+header: :var path=(plist-get (funcall er317/resolve-entry "link") :path)
 #+begin_src shell
   chmod +x "$path"
   $SHELL "$path"
@@ -209,7 +209,7 @@ Instruction:
 ** el
 *** init
 :PROPERTIES:
-:header-args: emacs-lisp :tangle (plist-get (funcall erw1/resolve-entry "init-source") :path)
+:header-args: emacs-lisp :tangle (plist-get (funcall er317/resolve-entry "init-source") :path)
 :END:
 
 ***** header
@@ -302,8 +302,8 @@ Instruction:
   ;;	    (load-file target-file)))))))
 #+end_src
 
-#+header: :var config-path=(plist-get (funcall erw1/resolve-entry "config") :path)
-#+header: :var extra-path=(plist-get (funcall erw1/resolve-entry "extra") :path)
+#+header: :var config-path=(plist-get (funcall er317/resolve-entry "config") :path)
+#+header: :var extra-path=(plist-get (funcall er317/resolve-entry "extra") :path)
 #+header: :noweb yes
 #+begin_src emacs-lisp
   (let ((dir-name default-directory))
@@ -311,8 +311,8 @@ Instruction:
     (load (expand-file-name extra-path dir-name)))
 #+end_src
 
-#+header: :var config-path=(plist-get (funcall erw1/resolve-entry "config") :path)
-#+header: :var extra-path=(plist-get (funcall erw1/resolve-entry "extra") :path)
+#+header: :var config-path=(plist-get (funcall er317/resolve-entry "config") :path)
+#+header: :var extra-path=(plist-get (funcall er317/resolve-entry "extra") :path)
 #+begin_src emacs-lisp :tangle no
   (let ((dir-name default-directory))
     (message "config-path=%S type=%S" config-path (type-of config-path)))
@@ -324,7 +324,7 @@ Instruction:
 ***** cleanup
 
 #+header: :noweb yes
-#+header: :var init-source=(plist-get (funcall erw1/resolve-entry "init-source") :path)
+#+header: :var init-source=(plist-get (funcall er317/resolve-entry "init-source") :path)
 #+begin_src emacs-lisp
   <<el-cleanup>>
 #+end_src
@@ -340,13 +340,13 @@ Instruction:
 
 #+RESULTS:
 #+begin_src emacs-lisp
-(provide 'erw1-init.el)
-;;; erw1-init.el ends here
+(provide 'er317-init.el)
+;;; er317-init.el ends here
 #+end_src
 
 *** config
 :PROPERTIES:
-:header-args: emacs-lisp :tangle (plist-get (funcall erw1/resolve-entry "config") :path)
+:header-args: emacs-lisp :tangle (plist-get (funcall er317/resolve-entry "config") :path)
 :END:
 
 **** header
@@ -548,7 +548,7 @@ Reference:
   ;; ── emacs ────────────────────────────────────────────────────────────────────
 #+end_src
 
-#+header: :var trash-path=(plist-get (funcall erw1/resolve-entry "trash") :path)
+#+header: :var trash-path=(plist-get (funcall er317/resolve-entry "trash") :path)
 #+begin_src emacs-lisp
   ;; :init
   ;; → made irrelevant by straight
@@ -737,7 +737,7 @@ Reference:
   :END:
 #+end_src
 
-#+header: :var target-path=(plist-get (funcall erw1/resolve-entry "org-capture") :path)
+#+header: :var target-path=(plist-get (funcall er317/resolve-entry "org-capture") :path)
 #+header: :var template=el-src-block-datum("org-cap-tpl")
 #+begin_src emacs-lisp
   (use-package org
@@ -914,7 +914,7 @@ Resource:
 **** footer
 *** extra
 :PROPERTIES:
-:header-args: emacs-lisp :tangle (plist-get (funcall erw1/resolve-entry "extra") :path)
+:header-args: emacs-lisp :tangle (plist-get (funcall er317/resolve-entry "extra") :path)
 :END:
 
 **** header
@@ -941,7 +941,7 @@ Resource:
 **** banner
 
 #+begin_src emacs-lisp
-  (defun erw1/code-banner (title comment-symb &optional depth)
+  (defun er317/code-banner (title comment-symb &optional depth)
     "Insert a 80-character banner: COMMENT-SYMB TITLE and continued with a line.
 
   DEPTH:
@@ -1000,10 +1000,10 @@ Resource:
 
 #+header: :noweb-ref el-org-dependency  :tangle no
 #+begin_src emacs-lisp
-  (cl-defun erw1/org-custom-id-precedes-p (before-cid after-cid)
+  (cl-defun er317/org-custom-id-precedes-p (before-cid after-cid)
     "Returns t is position BEFORE-CID before that of AFTER-CID in the current buffer."
-    (let ((before-pos (erw1/org-custom-id->position before-cid))
-          (after-pos (erw1/org-custom-id->position after-cid)))
+    (let ((before-pos (er317/org-custom-id->position before-cid))
+          (after-pos (er317/org-custom-id->position after-cid)))
       (and before-pos
            after-pos
            (< before-pos after-pos))))
@@ -1016,7 +1016,7 @@ Resource:
 
 #+header: :noweb-ref el-org-dependency :tangle no
 #+begin_src emacs-lisp
-  (defun erw1/org-custom-id-current ()
+  (defun er317/org-custom-id-current ()
     "Returns the custom id of the current subtree."
     (org-with-point-at (point)
       (org-back-to-heading t)
@@ -1025,7 +1025,7 @@ Resource:
 
 #+header: :tangle no
 #+begin_src emacs-lisp
-  (erw1/org-custom-id-current)
+  (er317/org-custom-id-current)
 #+end_src
 
 #+RESULTS:
@@ -1035,13 +1035,13 @@ Resource:
 
 #+header: :noweb-ref el-org-dependency
 #+begin_src emacs-lisp
-  (cl-defun erw1/org-dependency--format-item
+  (cl-defun er317/org-dependency--format-item
       (curr-cid dep-cid
                 &key
                 (fmt "%f [[#%d][%l]]")
                 (true "✅")
                 (false "❎")
-                (precedes (erw1/org-custom-id-precedes-p dep-cid curr-cid))
+                (precedes (er317/org-custom-id-precedes-p dep-cid curr-cid))
                 (flag (if precedes true false))
   	      (spec `((?f . ,flag)
   		      (?d . ,dep-cid)
@@ -1056,7 +1056,7 @@ Resource:
 
 #+header: :tangle no :results drawer
 #+begin_src emacs-lisp
-  (erw1/org-dependency--format-item "bar" "foo")
+  (er317/org-dependency--format-item "bar" "foo")
 #+end_src
 
 #+RESULTS:
@@ -1070,12 +1070,12 @@ Resource:
 #+end_src
 
 #+name: org-dependency
-#+header: :var curr-cid=(erw1/org-custom-id-current)
+#+header: :var curr-cid=(er317/org-custom-id-current)
 #+header: :var dep-cid-list='()
 #+header: :tangle no :results drawer
 #+begin_src emacs-lisp
   (let* ((items (mapcar (lambda (dep-cid)
-                           (erw1/org-dependency--format-item curr-cid dep-cid))
+                           (er317/org-dependency--format-item curr-cid dep-cid))
                          dep-cid-list))
          (item-block (if items
                           (concat " - " (string-join items "\n - "))
@@ -1107,7 +1107,7 @@ legend: ✅/❎ = comes before/after current node
 ** sh
 *** link
 :PROPERTIES:
-:header-args: emacs-lisp :tangle (plist-get (funcall erw1/resolve-entry "link") :path)
+:header-args: emacs-lisp :tangle (plist-get (funcall er317/resolve-entry "link") :path)
 :END:
 
 #+begin_src shell
@@ -1150,8 +1150,8 @@ legend: ✅/❎ = comes before/after current node
 #+end_src
 
 #+header: :noweb yes
-#+header: :var vc_path=(plist-get (funcall erw1/resolve-entry "init-source") :path)
-#+header: :var su_path=(plist-get (funcall erw1/resolve-entry "init-target") :path)
+#+header: :var vc_path=(plist-get (funcall er317/resolve-entry "init-source") :path)
+#+header: :var su_path=(plist-get (funcall er317/resolve-entry "init-target") :path)
 #+begin_src shell
   <<sh-link>>
 #+end_src
